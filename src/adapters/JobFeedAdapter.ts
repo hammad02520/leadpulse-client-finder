@@ -8,13 +8,11 @@ export class JobFeedAdapter implements BaseAdapter {
 
   async fetchLeads(): Promise<Lead[]> {
     try {
-      const liveScraped = await liveScraperService.scrapeLiveWebLeads();
-      const jobFeedOnly = liveScraped.filter(l => l.source === 'JOB_FEED');
-      return jobFeedOnly;
+      const liveScraped = await liveScraperService.scrapeLiveJobFeedLeads();
+      return liveScraped;
     } catch (err) {
       console.error('JobFeedAdapter live scraping error:', err);
       return [];
     }
   }
 }
-

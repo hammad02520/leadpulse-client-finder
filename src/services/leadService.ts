@@ -4,7 +4,7 @@ import { JobFeedAdapter } from '../adapters/JobFeedAdapter';
 import { LocalBizAdapter } from '../adapters/LocalBizAdapter';
 import { deduplicateLeads } from './deduplicationService';
 
-const STORAGE_KEY = 'leadpulse_leads_data_v7'; // Live scraped real web data key
+const STORAGE_KEY = 'leadpulse_leads_data_v8_pure_live'; // 100% Pure live scraped internet data key
 
 class LeadService {
   private adapters = [
