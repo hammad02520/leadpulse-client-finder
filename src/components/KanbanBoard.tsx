@@ -2,12 +2,7 @@ import React from 'react';
 import { 
   Flame, 
   Sparkles, 
-  ChevronRight, 
   Globe, 
-  ExternalLink,
-  MessageSquare,
-  CheckCircle2,
-  XCircle,
   ArrowRight
 } from 'lucide-react';
 import { Lead, LeadStatus } from '../types';
@@ -20,14 +15,14 @@ interface KanbanBoardProps {
 }
 
 const STAGES: { id: LeadStatus; label: string; color: string }[] = [
-  { id: 'NEW', label: '🆕 NEW LEADS', color: '#6366f1' },
-  { id: 'QUALIFIED', label: '⭐ QUALIFIED', color: '#06b6d4' },
-  { id: 'CONTACTED', label: '📨 CONTACTED', color: '#f59e0b' },
-  { id: 'FOLLOW_UP', label: '⏳ FOLLOW-UP', color: '#ec4899' },
-  { id: 'REPLIED', label: '💬 REPLIED', color: '#8b5cf6' },
-  { id: 'MEETING', label: '📅 MEETING', color: '#3b82f6' },
-  { id: 'PROPOSAL', label: '📝 PROPOSAL', color: '#14b8a6' },
-  { id: 'WON', label: '🏆 WON', color: '#10b981' }
+  { id: 'NEW', label: '🆕 NEW LEADS', color: '#4f46e5' },
+  { id: 'QUALIFIED', label: '⭐ QUALIFIED', color: '#0284c7' },
+  { id: 'CONTACTED', label: '📨 CONTACTED', color: '#d97706' },
+  { id: 'FOLLOW_UP', label: '⏳ FOLLOW-UP', color: '#db2777' },
+  { id: 'REPLIED', label: '💬 REPLIED', color: '#7c3aed' },
+  { id: 'MEETING', label: '📅 MEETING', color: '#2563eb' },
+  { id: 'PROPOSAL', label: '📝 PROPOSAL', color: '#0d9488' },
+  { id: 'WON', label: '🏆 WON', color: '#16a34a' }
 ];
 
 export const KanbanBoard: React.FC<KanbanBoardProps> = ({
@@ -46,7 +41,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
   };
 
   return (
-    <div style={{ padding: '0 16px 32px 16px', overflowX: 'auto' }}>
+    <div style={{ padding: '24px', overflowX: 'auto' }}>
       
       <div style={{ display: 'flex', gap: '16px', minWidth: '1600px', paddingBottom: '16px' }}>
         
@@ -60,33 +55,33 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
                 flex: '1',
                 minWidth: '280px',
                 maxWidth: '320px',
-                background: 'rgba(17, 24, 39, 0.6)',
-                backdropFilter: 'blur(12px)',
+                background: '#f4f4f5',
                 border: '1px solid var(--border-color)',
-                borderRadius: '14px',
+                borderRadius: '12px',
                 display: 'flex',
                 flexDirection: 'column',
-                maxHeight: 'calc(100vh - 200px)'
+                maxHeight: 'calc(100vh - 140px)'
               }}
             >
               {/* Stage Header */}
               <div style={{ 
-                padding: '14px 16px', 
+                padding: '12px 16px', 
                 borderBottom: '1px solid var(--border-color)', 
                 display: 'flex', 
                 alignItems: 'center', 
                 justifyContent: 'space-between',
+                background: '#ffffff',
                 borderTop: `3px solid ${stage.color}`,
-                borderTopLeftRadius: '14px',
-                borderTopRightRadius: '14px'
+                borderTopLeftRadius: '12px',
+                borderTopRightRadius: '12px'
               }}>
-                <h3 style={{ fontSize: '0.85rem', fontWeight: '700', color: 'var(--text-main)', letterSpacing: '0.02em' }}>
+                <h3 style={{ fontSize: '0.8rem', fontWeight: '700', color: '#09090b', letterSpacing: '0.02em' }}>
                   {stage.label}
                 </h3>
                 <span style={{ 
-                  background: 'rgba(255, 255, 255, 0.08)', 
-                  color: 'var(--text-muted)', 
-                  fontSize: '0.75rem', 
+                  background: '#f4f4f5', 
+                  color: '#71717a', 
+                  fontSize: '0.725rem', 
                   fontWeight: '700', 
                   padding: '2px 8px', 
                   borderRadius: '999px' 
@@ -96,9 +91,9 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
               </div>
 
               {/* Cards Container */}
-              <div style={{ padding: '12px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '12px', flex: '1' }}>
+              <div style={{ padding: '12px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '10px', flex: '1' }}>
                 {stageLeads.length === 0 ? (
-                  <div style={{ padding: '24px 12px', textAlign: 'center', fontSize: '0.75rem', color: 'var(--text-dim)', border: '1px dashed var(--border-color)', borderRadius: '8px' }}>
+                  <div style={{ padding: '24px 12px', textAlign: 'center', fontSize: '0.75rem', color: '#a1a1aa', border: '1px dashed #e4e4e7', borderRadius: '8px', background: '#ffffff' }}>
                     No leads in this stage
                   </div>
                 ) : (
@@ -112,15 +107,16 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
                     return (
                       <div 
                         key={lead.id}
-                        className="glass-panel"
                         style={{
                           padding: '14px',
                           display: 'flex',
                           flexDirection: 'column',
-                          gap: '10px',
-                          border: '1px solid var(--border-color)',
-                          background: '#0d131f',
-                          borderRadius: '10px'
+                          gap: '8px',
+                          border: '1px solid #e4e4e7',
+                          background: '#ffffff',
+                          borderRadius: '10px',
+                          boxShadow: 'var(--shadow-sm)',
+                          opacity: lead.isExpired ? 0.6 : 1
                         }}
                       >
                         {/* Company & Score */}
@@ -128,7 +124,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
                           <span className={`badge ${tempClass}`} style={{ fontSize: '0.7rem' }}>
                             Score {lead.scoreBreakdown.totalScore}/100
                           </span>
-                          <span style={{ fontSize: '0.7rem', color: 'var(--primary)', fontWeight: '600' }}>
+                          <span style={{ fontSize: '0.7rem', color: 'var(--primary)', fontWeight: '700' }}>
                             {lead.source}
                           </span>
                         </div>
@@ -138,37 +134,38 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
                           <h4 
                             onClick={() => onSelectLead(lead)}
                             style={{ 
-                              fontSize: '0.9rem', 
+                              fontSize: '0.875rem', 
                               fontWeight: '700', 
-                              color: 'var(--text-main)', 
+                              color: '#09090b', 
                               cursor: 'pointer',
                               lineHeight: '1.3'
                             }}
                           >
                             {lead.company.name}
                           </h4>
-                          <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                          <p style={{ fontSize: '0.75rem', color: '#71717a', marginTop: '2px', lineHeight: '1.3' }}>
                             {lead.title}
                           </p>
                         </div>
 
                         {/* Audit Snippet */}
-                        <div style={{ fontSize: '0.725rem', background: 'rgba(0,0,0,0.2)', padding: '6px 8px', borderRadius: '6px' }}>
-                          <div style={{ color: '#38bdf8', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: '600' }}>
-                            <Globe size={11} /> {lead.websiteAudit.domain}
+                        <div style={{ fontSize: '0.725rem', background: '#f4f4f5', padding: '6px 8px', borderRadius: '6px', border: '1px solid #e4e4e7' }}>
+                          <div style={{ color: '#0284c7', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: '700' }}>
+                            <Globe size={12} /> {lead.websiteAudit.domain}
                           </div>
-                          <div style={{ color: 'var(--text-dim)', marginTop: '2px' }}>
+                          <div style={{ color: '#71717a', marginTop: '2px' }}>
                             Opportunity: {lead.websiteAudit.opportunityScore}/100
                           </div>
                         </div>
 
                         {/* Footer & Actions */}
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '4px', paddingTop: '8px', borderTop: '1px solid var(--border-color)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '4px', paddingTop: '8px', borderTop: '1px solid #e4e4e7' }}>
                           
                           <button 
                             className="btn btn-primary"
                             style={{ padding: '4px 8px', fontSize: '0.7rem' }}
                             onClick={() => onOpenPitchModal(lead)}
+                            disabled={lead.isExpired}
                           >
                             <Sparkles size={12} /> Pitch
                           </button>
