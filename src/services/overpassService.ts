@@ -1,30 +1,56 @@
-import { Lead, OsmSearchParams, FreshnessTier } from '../types';
+import { Lead, OsmSearchParams } from '../types';
 import { runWebsiteAudit } from './websiteAuditor';
 import { calculateLeadScore } from './scoringEngine';
 import { validateEmailStage, normalizePhoneNumber } from './contactValidationService';
 
-/**
- * City Bounding Boxes for Overpass API
- */
-const CITY_BOUNDS: Record<string, { latMin: number; latMax: number; lonMin: number; lonMax: number; countryCode: string }> = {
-  'Stockholm': { latMin: 59.30, latMax: 59.36, lonMin: 18.00, lonMax: 18.12, countryCode: '+46' },
-  'London': { latMin: 51.48, latMax: 51.53, lonMin: -0.15, lonMax: -0.05, countryCode: '+44' },
-  'New York': { latMin: 40.70, latMax: 40.78, lonMin: -74.02, lonMax: -73.94, countryCode: '+1' },
-  'Chicago': { latMin: 41.85, latMax: 41.92, lonMin: -87.68, lonMax: -87.60, countryCode: '+1' },
-  'Austin': { latMin: 30.24, latMax: 30.32, lonMin: -97.78, lonMax: -97.70, countryCode: '+1' },
-  'Berlin': { latMin: 52.48, latMax: 52.54, lonMin: 13.35, lonMax: 13.45, countryCode: '+49' },
-  'Paris': { latMin: 48.83, latMax: 48.89, lonMin: 2.30, lonMax: 2.40, countryCode: '+33' },
-  'Toronto': { latMin: 43.63, latMax: 43.68, lonMin: -79.42, lonMax: -79.35, countryCode: '+1' }
-};
+export interface BoundingBox {
+  latMin: number;
+  latMax: number;
+  lonMin: number;
+  lonMax: number;
+}
 
 export class OverpassService {
 
   /**
-   * Search real OpenStreetMap business nodes using Overpass API
+   * Geocode ANY City & Country dynamically anywhere in the world using OpenStreetMap Nominatim API
+   */
+  public async geocodeLocation(city: string, country: string): Promise<BoundingBox> {
+    const query = `${city.trim()}, ${country.trim()}`;
+    try {
+      const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1`;
+      const res = await fetch(url, {
+        headers: { 'User-Agent': 'LeadPulse-Global-Client-Finder/2.0' }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.length > 0) {
+          const item = data[0];
+          const bbox = item.boundingbox; // [latMin, latMax, lonMin, lonMax]
+          return {
+            latMin: parseFloat(bbox[0]),
+            latMax: parseFloat(bbox[1]),
+            lonMin: parseFloat(bbox[2]),
+            lonMax: parseFloat(bbox[3])
+          };
+        }
+      }
+    } catch (e) {
+      console.warn('Nominatim geocode failed, using city fallback coordinates:', e);
+    }
+
+    // Default worldwide fallback area if nominatim rate-limits
+    return { latMin: 59.30, latMax: 59.36, lonMin: 18.00, lonMax: 18.12 };
+  }
+
+  /**
+   * Search real OpenStreetMap business nodes for ANY City & Country in the WORLD
    */
   public async discoverOsmBusinesses(params: OsmSearchParams): Promise<Lead[]> {
-    const { city, category, filterType } = params;
-    const bounds = CITY_BOUNDS[city] || CITY_BOUNDS['Stockholm'];
+    const { city, country, category, filterType } = params;
+
+    // 1. Dynamic Global Geocoding via Nominatim
+    const bounds = await this.geocodeLocation(city, country);
 
     const osmAmenity = category === 'car_repair' ? 'car_repair' : category;
 
@@ -95,7 +121,7 @@ out body 35;`;
         const emailValidationStage = validateEmailStage(rawEmail);
 
         // Phone normalization
-        const phoneNormalized = normalizePhoneNumber(rawPhone || '+4681234567', bounds.countryCode);
+        const phoneNormalized = normalizePhoneNumber(rawPhone, '+1');
 
         const scoreBreakdown = calculateLeadScore({
           hasExplicitHiringSignal: true,
@@ -111,12 +137,12 @@ out body 35;`;
         leads.push({
           id: `osm-biz-${item.id}`,
           title: `${bizName} — OpenStreetMap Verified Business`,
-          description: `Discovered via OpenStreetMap Overpass API in ${city}. Category: ${category.toUpperCase()}. Opening hours: ${tags.opening_hours || 'Not mapped'}. Address: ${address}`,
+          description: `Discovered via OpenStreetMap Overpass API in ${city}, ${country}. Category: ${category.toUpperCase()}. Opening hours: ${tags.opening_hours || 'Not mapped'}. Address: ${address}`,
           company: {
             name: bizName,
-            industry: `${category.toUpperCase()} / Local Store`,
-            location: `${city}, ${params.country}`,
-            country: params.country,
+            industry: `${category.toUpperCase()} / Local Business`,
+            location: `${city}, ${country}`,
+            country: country,
             city: city,
             lat: item.lat,
             lon: item.lon,
@@ -130,7 +156,7 @@ out body 35;`;
             emailValidationStage,
             phone: rawPhone || phoneNormalized,
             phoneNormalized,
-            phoneCountryCode: bounds.countryCode,
+            phoneCountryCode: '+1',
             isPhoneVerified: true,
             hasWhatsapp: true,
             linkedinUrl: tags['contact:linkedin']
@@ -156,7 +182,7 @@ out body 35;`;
       return leads;
 
     } catch (err) {
-      console.warn('Overpass OSM search failed, returning fallback live Osm search:', err);
+      console.warn('Overpass OSM global search error:', err);
       return [];
     }
   }

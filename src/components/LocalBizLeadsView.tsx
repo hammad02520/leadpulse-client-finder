@@ -9,12 +9,12 @@ import {
   Sparkles, 
   Phone, 
   Mail, 
-  ExternalLink,
   ShieldCheck,
   Smartphone,
   Calendar,
   ShoppingBag,
-  Building2
+  Building2,
+  Globe2
 } from 'lucide-react';
 import { Lead, OsmSearchParams, EmailValidationStage } from '../types';
 import { overpassService } from '../services/overpassService';
@@ -25,6 +25,19 @@ interface LocalBizLeadsViewProps {
   onOpenPitchModal: (lead: Lead) => void;
   onAddDiscoveredLeads: (newLeads: Lead[]) => void;
 }
+
+const POPULAR_PRESETS = [
+  { country: 'Sweden', city: 'Stockholm', label: '🇸🇪 Stockholm, Sweden' },
+  { country: 'United Kingdom', city: 'London', label: '🇬🇧 London, UK' },
+  { country: 'United States', city: 'New York', label: '🇺🇸 New York, USA' },
+  { country: 'United States', city: 'Chicago', label: '🇺🇸 Chicago, USA' },
+  { country: 'United States', city: 'Austin', label: '🇺🇸 Austin, USA' },
+  { country: 'Germany', city: 'Berlin', label: '🇩🇪 Berlin, Germany' },
+  { country: 'United Arab Emirates', city: 'Dubai', label: '🇦🇪 Dubai, UAE' },
+  { country: 'Japan', city: 'Tokyo', label: '🇯🇵 Tokyo, Japan' },
+  { country: 'Pakistan', city: 'Karachi', label: '🇵🇰 Karachi, Pakistan' },
+  { country: 'Canada', city: 'Toronto', label: '🇨🇦 Toronto, Canada' }
+];
 
 export const LocalBizLeadsView: React.FC<LocalBizLeadsViewProps> = ({
   leads,
@@ -46,7 +59,8 @@ export const LocalBizLeadsView: React.FC<LocalBizLeadsViewProps> = ({
     const matchesSearch = 
       l.company.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       l.company.industry.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      l.title.toLowerCase().includes(searchTerm.toLowerCase());
+      l.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      l.company.location.toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesFilterType = 
       filterType === 'ALL' ||
@@ -57,17 +71,18 @@ export const LocalBizLeadsView: React.FC<LocalBizLeadsViewProps> = ({
   });
 
   const handleRunOsmSearch = async () => {
+    if (!city.trim() || !country.trim()) return;
     setIsSearchingOsm(true);
     try {
       const results = await overpassService.discoverOsmBusinesses({
-        country,
-        city,
+        country: country.trim(),
+        city: city.trim(),
         category,
         filterType
       });
       onAddDiscoveredLeads(results);
     } catch (e) {
-      console.error('OSM Search Error:', e);
+      console.error('OSM Global Search Error:', e);
     } finally {
       setIsSearchingOsm(false);
     }
@@ -91,81 +106,83 @@ export const LocalBizLeadsView: React.FC<LocalBizLeadsViewProps> = ({
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
               <span className="badge badge-hot" style={{ fontSize: '0.75rem' }}>
-                📍 OpenStreetMap + Overpass API Engine
+                🌍 OpenStreetMap Dynamic Global Engine
               </span>
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>100% Free Public Business Discovery</span>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Free Worldwide Geocoding (Nominatim API + Overpass QL)</span>
             </div>
             <h2 style={{ fontSize: '1.4rem', fontWeight: '800', color: 'var(--text-main)', letterSpacing: '-0.02em' }}>
-              Local Business Lead Discovery & Technical Audit
+              Worldwide Local Business Lead Finder
             </h2>
             <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-              Discover real local restaurants, gyms, clinics, & shops via OpenStreetMap Overpass QL. Deep crawl website, audit mobile responsiveness, and validate emails & phone numbers.
+              Search ANY city & ANY country worldwide on Earth. Automatically geocodes coordinates via Nominatim and scrapes OpenStreetMap for businesses with zero website or missing mobile apps!
             </p>
           </div>
 
           <button 
             className="btn btn-primary"
-            style={{ padding: '10px 20px', fontSize: '0.875rem', fontWeight: '700' }}
+            style={{ padding: '10px 22px', fontSize: '0.875rem', fontWeight: '700' }}
             onClick={handleRunOsmSearch}
             disabled={isSearchingOsm}
           >
-            {isSearchingOsm ? '⏳ Discovering via Overpass API...' : '🚀 Discover Local Businesses Now'}
+            {isSearchingOsm ? '⏳ Geocoding & Discovering Worldwide...' : `🚀 Search ${city}, ${country}`}
           </button>
         </div>
       </div>
 
-      {/* Interactive OpenStreetMap Search Controls Panel */}
+      {/* Dynamic Global Geocoding Search Controls */}
       <div className="glass-panel" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
         
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.9rem', fontWeight: '700', color: 'var(--text-main)' }}>
-          <MapPin size={18} color="var(--primary)" /> Configure OpenStreetMap / Overpass QL Query
-        </div>
-
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px' }}>
-          
-          {/* Country Selector */}
-          <div>
-            <label style={{ fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
-              Country
-            </label>
-            <select 
-              className="input-field" 
-              value={country} 
-              onChange={(e) => {
-                setCountry(e.target.value);
-                if (e.target.value === 'Sweden') setCity('Stockholm');
-                else if (e.target.value === 'United Kingdom') setCity('London');
-                else setCity('New York');
-              }}
-            >
-              <option value="Sweden">🇸🇪 Sweden</option>
-              <option value="United Kingdom">🇬🇧 United Kingdom</option>
-              <option value="United States">🇺🇸 United States</option>
-              <option value="Germany">🇩🇪 Germany</option>
-              <option value="France">🇫🇷 France</option>
-              <option value="Canada">🇨🇦 Canada</option>
-            </select>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.9rem', fontWeight: '700', color: 'var(--text-main)' }}>
+            <Globe2 size={18} color="var(--primary)" /> Target Any City & Country in the World
           </div>
 
-          {/* City Selector */}
+          {/* Quick Presets */}
+          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+            {POPULAR_PRESETS.slice(0, 5).map(p => (
+              <button 
+                key={p.city}
+                className="btn btn-secondary"
+                style={{ padding: '4px 8px', fontSize: '0.725rem' }}
+                onClick={() => {
+                  setCountry(p.country);
+                  setCity(p.city);
+                }}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px' }}>
+          
+          {/* Custom Country Field */}
           <div>
             <label style={{ fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
-              City
+              Country (Type Any Country Worldwide)
             </label>
-            <select className="input-field" value={city} onChange={(e) => setCity(e.target.value)}>
-              {country === 'Sweden' && <option value="Stockholm">Stockholm</option>}
-              {country === 'United Kingdom' && <option value="London">London</option>}
-              {country === 'United States' && (
-                <>
-                  <option value="New York">New York</option>
-                  <option value="Chicago">Chicago</option>
-                  <option value="Austin">Austin</option>
-                </>
-              )}
-              {country === 'Germany' && <option value="Berlin">Berlin</option>}
-              {country === 'France' && <option value="Paris">Paris</option>}
-              {country === 'Canada' && <option value="Toronto">Toronto</option>}
-            </select>
+            <input 
+              type="text"
+              className="input-field"
+              placeholder="e.g. Sweden, United Kingdom, Pakistan, Japan, UAE..."
+              value={country}
+              onChange={(e) => setCountry(e.target.value)}
+            />
+          </div>
+
+          {/* Custom City Field */}
+          <div>
+            <label style={{ fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
+              City (Type Any City Worldwide)
+            </label>
+            <input 
+              type="text"
+              className="input-field"
+              placeholder="e.g. Stockholm, London, Karachi, Tokyo, Dubai..."
+              value={city}
+              onChange={(e) => setCity(e.target.value)}
+            />
           </div>
 
           {/* Category Selector */}
@@ -188,7 +205,7 @@ export const LocalBizLeadsView: React.FC<LocalBizLeadsViewProps> = ({
           {/* Filter Type */}
           <div>
             <label style={{ fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
-              Web & App Status Target
+              Target Web & App Needs
             </label>
             <select className="input-field" value={filterType} onChange={(e) => setFilterType(e.target.value as any)}>
               <option value="ALL">🌐 All Business Listings</option>
@@ -199,13 +216,13 @@ export const LocalBizLeadsView: React.FC<LocalBizLeadsViewProps> = ({
 
         </div>
 
-        {/* Search Bar */}
+        {/* Filter Search Input */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', paddingTop: '8px', borderTop: '1px solid var(--border-color)' }}>
           <Search size={16} color="var(--text-muted)" />
           <input 
             type="text"
             className="input-field"
-            placeholder="Search discovered local leads by business name or industry..."
+            placeholder="Search discovered local leads by business name, city, or category..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -220,7 +237,7 @@ export const LocalBizLeadsView: React.FC<LocalBizLeadsViewProps> = ({
             <Building2 size={36} color="var(--text-muted)" style={{ margin: '0 auto 12px auto' }} />
             <h3 style={{ fontSize: '1rem', fontWeight: '700', color: 'var(--text-main)' }}>No Local Businesses Discovered Yet</h3>
             <p style={{ fontSize: '0.85rem', marginTop: '4px' }}>
-              Click <strong>"🚀 Discover Local Businesses Now"</strong> to query OpenStreetMap Overpass API for real businesses in {city}, {country}!
+              Type any city & country above and click <strong>"🚀 Search {city}, {country}"</strong> to discover real businesses worldwide!
             </p>
           </div>
         ) : (
