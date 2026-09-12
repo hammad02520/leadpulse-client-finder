@@ -6,9 +6,11 @@ import {
   ExternalLink, 
   ChevronRight,
   Sparkles,
-  Clock
+  Clock,
+  Code2,
+  Building2
 } from 'lucide-react';
-import { Lead, LeadStatus, LeadTemperature, SourceType } from '../types';
+import { Lead, LeadStatus, LeadTemperature, SourceType, ProjectNeedType } from '../types';
 
 interface LeadTableProps {
   leads: Lead[];
@@ -28,6 +30,7 @@ export const LeadTable: React.FC<LeadTableProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [tempFilter, setTempFilter] = useState<LeadTemperature | 'ALL'>('ALL');
   const [sourceFilter, setSourceFilter] = useState<SourceType | 'ALL'>('ALL');
+  const [needFilter, setNeedFilter] = useState<ProjectNeedType | 'ALL'>('ALL');
   const [hideExpired, setHideExpired] = useState(true);
 
   const filteredLeads = leads.filter(l => {
@@ -43,8 +46,9 @@ export const LeadTable: React.FC<LeadTableProps> = ({
 
     const matchesTemp = tempFilter === 'ALL' || l.scoreBreakdown.temperature === tempFilter;
     const matchesSource = sourceFilter === 'ALL' || l.source === sourceFilter;
+    const matchesNeed = needFilter === 'ALL' || l.projectNeed === needFilter;
 
-    return matchesSearch && matchesTemp && matchesSource;
+    return matchesSearch && matchesTemp && matchesSource && matchesNeed;
   });
 
   const getTimeAgoText = (postedAtStr: string) => {
@@ -60,24 +64,23 @@ export const LeadTable: React.FC<LeadTableProps> = ({
   return (
     <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
       
-      {/* Search & Filter Bar */}
-      <div className="glass-panel" style={{ padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+      {/* Interactive Filter Control Panel */}
+      <div className="glass-panel" style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
         
-        {/* Search input */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: '1', minWidth: '260px' }}>
-          <Search size={18} color="var(--text-muted)" />
-          <input 
-            type="text" 
-            placeholder="Search by company, tech need, email, or keywords..."
-            className="input-field"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
-
-        {/* Filter dropdowns */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+        {/* Top Search & Toggles */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
           
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: '1', minWidth: '260px' }}>
+            <Search size={18} color="var(--text-muted)" />
+            <input 
+              type="text" 
+              placeholder="Search by company, tech need, email, or keywords..."
+              className="input-field"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+
           <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', color: 'var(--text-muted)', cursor: 'pointer', background: '#f8fafc', padding: '6px 12px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
             <input 
               type="checkbox" 
@@ -87,31 +90,68 @@ export const LeadTable: React.FC<LeadTableProps> = ({
             Hide Expired / Stale Posts
           </label>
 
-          {/* Temperature */}
-          <select 
-            className="input-field" 
-            style={{ width: 'auto' }}
-            value={tempFilter}
-            onChange={(e) => setTempFilter(e.target.value as any)}
-          >
-            <option value="ALL">🔥 All Quality Tiers</option>
-            <option value="HOT">🔥 Hot (Score 80-100)</option>
-            <option value="WARM">☀️ Warm (Score 60-79)</option>
-            <option value="COLD">❄️ Cold (Score 40-59)</option>
-          </select>
+        </div>
 
-          {/* Source */}
-          <select 
-            className="input-field" 
-            style={{ width: 'auto' }}
-            value={sourceFilter}
-            onChange={(e) => setSourceFilter(e.target.value as any)}
-          >
-            <option value="ALL">🌐 All Sources</option>
-            <option value="REDDIT">Reddit Subreddits</option>
-            <option value="JOB_FEED">Remote Tech Job Feeds</option>
-            <option value="LOCAL_BIZ">Local Business Directory</option>
-          </select>
+        {/* Filter Selection Controls */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', paddingTop: '8px', borderTop: '1px solid var(--border-color)' }}>
+          
+          {/* Source Filter */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <Building2 size={15} color="var(--primary)" />
+            <span style={{ fontSize: '0.775rem', fontWeight: '700', color: '#3f3f46' }}>Source:</span>
+            <select 
+              className="input-field" 
+              style={{ width: 'auto', padding: '5px 10px', fontSize: '0.775rem' }}
+              value={sourceFilter}
+              onChange={(e) => setSourceFilter(e.target.value as any)}
+            >
+              <option value="ALL">🌐 All Sources</option>
+              <option value="LOCAL_BIZ">📍 Local Business Directory</option>
+              <option value="JOB_FEED">💼 Remote Job Feeds (HN, WWR)</option>
+              <option value="REDDIT">🔴 Reddit Hiring Subreddits</option>
+              <option value="MANUAL_IMPORT">📥 Custom Manual Leads</option>
+            </select>
+          </div>
+
+          {/* Project Need Filter */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <Code2 size={15} color="#0284c7" />
+            <span style={{ fontSize: '0.775rem', fontWeight: '700', color: '#3f3f46' }}>Need Category:</span>
+            <select 
+              className="input-field" 
+              style={{ width: 'auto', padding: '5px 10px', fontSize: '0.775rem' }}
+              value={needFilter}
+              onChange={(e) => setNeedFilter(e.target.value as any)}
+            >
+              <option value="ALL">🛠️ All Project Needs</option>
+              <option value="MOBILE_APP">📱 Mobile App (iOS / Android)</option>
+              <option value="WEB_REDESIGN">🎨 Web Redesign</option>
+              <option value="SAAS_MVP">🚀 SaaS MVP Development</option>
+              <option value="ECOMMERCE">🛍️ E-Commerce Store</option>
+              <option value="SPEED_PERFORMANCE">⚡ Speed & Performance</option>
+            </select>
+          </div>
+
+          {/* Lead Quality Temperature Filter */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <Flame size={15} color="#dc2626" />
+            <span style={{ fontSize: '0.775rem', fontWeight: '700', color: '#3f3f46' }}>Score Tier:</span>
+            <select 
+              className="input-field" 
+              style={{ width: 'auto', padding: '5px 10px', fontSize: '0.775rem' }}
+              value={tempFilter}
+              onChange={(e) => setTempFilter(e.target.value as any)}
+            >
+              <option value="ALL">🔥 All Score Tiers</option>
+              <option value="HOT">🔥 Hot (Score 80-100)</option>
+              <option value="WARM">☀️ Warm (Score 60-79)</option>
+              <option value="COLD">❄️ Cold (Score 40-59)</option>
+            </select>
+          </div>
+
+          <div style={{ marginLeft: 'auto', fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: '600' }}>
+            Showing <strong>{filteredLeads.length}</strong> of {leads.length} leads
+          </div>
 
         </div>
 
@@ -128,7 +168,7 @@ export const LeadTable: React.FC<LeadTableProps> = ({
               <th style={{ padding: '14px 16px' }}>Lead Score</th>
               <th style={{ padding: '14px 16px' }}>Website Audit</th>
               <th style={{ padding: '14px 16px' }}>Contact Options</th>
-              <th style={{ padding: '14px 16px' }}>Source</th>
+              <th style={{ padding: '14px 16px' }}>Source Link</th>
               <th style={{ padding: '14px 16px' }}>Pipeline Status</th>
               <th style={{ padding: '14px 16px', textAlign: 'right' }}>Actions</th>
             </tr>
@@ -138,7 +178,7 @@ export const LeadTable: React.FC<LeadTableProps> = ({
             {filteredLeads.length === 0 ? (
               <tr>
                 <td colSpan={8} style={{ padding: '32px', textAlign: 'center', color: 'var(--text-muted)' }}>
-                  No active fresh leads matching your filter. Uncheck "Hide Expired" or click "Fetch Live Leads".
+                  No active leads matching your selected filters. Change filters or click "Fetch Live Leads".
                 </td>
               </tr>
             ) : (
@@ -146,6 +186,8 @@ export const LeadTable: React.FC<LeadTableProps> = ({
                 const tempClass = 
                   lead.scoreBreakdown.temperature === 'HOT' ? 'badge-hot' :
                   lead.scoreBreakdown.temperature === 'WARM' ? 'badge-warm' : 'badge-cold';
+
+                const auditedSiteUrl = lead.company.websiteUrl || (lead.websiteAudit.domain && lead.websiteAudit.domain !== 'No Domain' ? `https://${lead.websiteAudit.domain}` : undefined);
 
                 return (
                   <tr 
@@ -204,13 +246,19 @@ export const LeadTable: React.FC<LeadTableProps> = ({
                       </div>
                     </td>
 
-                    {/* Website Audit */}
+                    {/* Website Audit with target="_blank" link */}
                     <td style={{ padding: '14px 16px', minWidth: '180px' }}>
-                      {lead.websiteAudit.hasWebsite ? (
+                      {lead.websiteAudit.hasWebsite && auditedSiteUrl ? (
                         <div style={{ fontSize: '0.8rem' }}>
-                          <div style={{ color: '#0284c7', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                            <Globe size={13} /> {lead.websiteAudit.domain}
-                          </div>
+                          <a 
+                            href={auditedSiteUrl} 
+                            target="_blank" 
+                            rel="noreferrer" 
+                            style={{ color: '#0284c7', fontWeight: '700', display: 'inline-flex', alignItems: 'center', gap: '4px', textDecoration: 'none' }}
+                            title="Open audited client site in new blank tab"
+                          >
+                            <Globe size={13} /> {lead.websiteAudit.domain} ↗
+                          </a>
                           <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px' }}>
                             Mobile: {lead.websiteAudit.mobileFriendly ? '✅ OK' : '❌ Poor'} | Speed: {lead.websiteAudit.performanceScore}/100
                           </div>
@@ -241,13 +289,14 @@ export const LeadTable: React.FC<LeadTableProps> = ({
                       </div>
                     </td>
 
-                    {/* Source */}
+                    {/* Source with target="_blank" link */}
                     <td style={{ padding: '14px 16px' }}>
                       <a 
                         href={lead.sourceUrl} 
                         target="_blank" 
                         rel="noreferrer"
-                        style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--primary)', fontSize: '0.8rem', textDecoration: 'none', fontWeight: '600' }}
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--primary)', fontSize: '0.8rem', textDecoration: 'none', fontWeight: '700' }}
+                        title="Open direct job post in new blank tab"
                       >
                         {lead.source} <ExternalLink size={12} />
                       </a>

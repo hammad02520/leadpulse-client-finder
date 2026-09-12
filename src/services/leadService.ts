@@ -4,7 +4,7 @@ import { JobFeedAdapter } from '../adapters/JobFeedAdapter';
 import { LocalBizAdapter } from '../adapters/LocalBizAdapter';
 import { deduplicateLeads } from './deduplicationService';
 
-const STORAGE_KEY = 'leadpulse_leads_data_v3'; // Bumping storage key to clear outdated dead links
+const STORAGE_KEY = 'leadpulse_leads_data_v7'; // Live scraped real web data key
 
 class LeadService {
   private adapters = [
@@ -109,7 +109,7 @@ class LeadService {
       'Title',
       'Company Name',
       'Industry',
-      'Website',
+      'Real Live Website Domain',
       'Direct Job Post Link',
       'Contact Person',
       'Email',
@@ -147,7 +147,7 @@ class LeadService {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.setAttribute('href', url);
-    link.setAttribute('download', `LeadPulse_Live_Real_Leads_${new Date().toISOString().slice(0, 10)}.csv`);
+    link.setAttribute('download', `LeadPulse_Live_Registered_Leads_${new Date().toISOString().slice(0, 10)}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);

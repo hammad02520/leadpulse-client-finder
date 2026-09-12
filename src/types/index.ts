@@ -19,25 +19,28 @@ export type SourceType =
   | 'MANUAL_IMPORT';
 
 export type ProjectNeedType = 
+  | 'NO_WEBSITE_NO_APP'
+  | 'HAS_WEBSITE_NO_APP'
+  | 'EBOOK_CREATOR_NEED_APP'
   | 'WEB_REDESIGN' 
   | 'MOBILE_APP' 
   | 'SAAS_MVP' 
   | 'ECOMMERCE' 
-  | 'SPEED_PERFORMANCE' 
-  | 'GENERAL_DEV';
+  | 'SPEED_PERFORMANCE';
 
 export type FreshnessTier = 'JUST_NOW' | 'TODAY' | 'RECENT' | 'STALE_EXPIRED';
 
 export interface WebsiteAudit {
   domain: string;
   hasWebsite: boolean;
+  hasMobileApp: boolean;
   mobileFriendly: boolean;
-  performanceScore: number; // 0 - 100
+  performanceScore: number;
   hasHttps: boolean;
   hasModernUi: boolean;
   hasCta: boolean;
   hasContactForm: boolean;
-  opportunityScore: number; // 0 - 100
+  opportunityScore: number;
   issuesDetected: string[];
   aiOpportunityReason: string;
 }

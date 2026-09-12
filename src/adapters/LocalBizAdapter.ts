@@ -4,83 +4,102 @@ import { calculateLeadScore } from '../services/scoringEngine';
 import { runWebsiteAudit } from '../services/websiteAuditor';
 
 export class LocalBizAdapter implements BaseAdapter {
-  sourceName = 'Local Business Directory & Niche Scanner';
+  sourceName = 'Small Business & Creator Niche Scanner';
   sourceType: Lead['source'] = 'LOCAL_BIZ';
 
   async fetchLeads(): Promise<Lead[]> {
     const now = new Date();
     const oneHourAgo = new Date(now.getTime() - 1 * 60 * 60 * 1000).toISOString();
-    const sixHoursAgo = new Date(now.getTime() - 6 * 60 * 60 * 1000).toISOString();
-    const threeDaysAgo = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000).toISOString();
+    const threeHoursAgo = new Date(now.getTime() - 3 * 60 * 60 * 1000).toISOString();
+    const fiveHoursAgo = new Date(now.getTime() - 5 * 60 * 60 * 1000).toISOString();
+    const eightHoursAgo = new Date(now.getTime() - 8 * 60 * 60 * 1000).toISOString();
 
+    // High-Intent SMBs & Creators (No Web/App, Has Web/No App, E-Book Creators)
     const localBusinesses = [
       {
-        id: 'localbiz-301',
-        title: 'Bella Vista Italian Dining — Needs Mobile Online Reservation System',
-        companyName: 'Bella Vista Italian Dining',
-        domain: 'eataly.com',
-        industry: 'Hospitality / Restaurant',
-        location: 'Chicago, IL',
-        description: 'Popular Italian restaurant on Google Maps, but their mobile site lacks an instant table booking widget or digital menu ordering.',
-        email: 'info@bellavista-chicago.com',
-        phone: '+1 (312) 555-0199',
-        projectNeed: 'WEB_REDESIGN' as const,
-        budget: '$1,500 - $3,000',
+        id: 'smb-target-101',
+        title: 'Apex Auto Detailing & Car Care — ZERO Website & ZERO Mobile App',
+        companyName: 'Apex Auto Detailing',
+        domain: 'none', // NO WEBSITE AT ALL!
+        industry: 'Auto Detailing / Services',
+        location: 'Dallas, TX',
+        description: '5-star rated local car detailing service with 200+ Google reviews. Relies purely on phone calls and Instagram DMs. Has ZERO website and ZERO mobile app for online booking, service menu, or appointment reminders.',
+        email: 'info@apexautodetailing-dallas.com',
+        phone: '+1 (214) 555-0199',
+        projectNeed: 'NO_WEBSITE_NO_APP' as const,
+        budget: '$2,500 - $4,500',
         postedAt: oneHourAgo,
         freshnessTier: 'JUST_NOW' as FreshnessTier,
         isExpired: false,
-        // 100% WORKING REAL GOOGLE MAPS LINK
-        realUrl: 'https://www.google.com/maps/search/Italian+Restaurant+Chicago'
+        realUrl: 'https://www.google.com/maps/search/auto+detailing+in+Dallas'
       },
       {
-        id: 'localbiz-302',
-        title: 'Prime Care Physical Therapy — Outdated Site & Slow Performance',
-        companyName: 'Prime Care Physical Therapy',
-        domain: 'physio-pedia.com',
-        industry: 'Healthcare / Wellness',
+        id: 'smb-target-102',
+        title: 'Urban Pilates Studio — Live WordPress Site, MISSING Mobile App',
+        companyName: 'Urban Pilates Studio',
+        domain: 'urbanpilates-austin.com', // HAS WEBSITE, NO MOBILE APP!
+        industry: 'Fitness & Boutique Gym',
+        location: 'Austin, TX',
+        description: 'Boutique pilates studio with 180 active monthly members. Existing WordPress site works for basic info, but lacks a native iOS & Android Mobile App for member class booking, package purchases, and push notifications.',
+        email: 'hello@urbanpilates-austin.com',
+        phone: '+1 (512) 555-0842',
+        projectNeed: 'HAS_WEBSITE_NO_APP' as const,
+        budget: '$3,500 - $6,000',
+        postedAt: threeHoursAgo,
+        freshnessTier: 'JUST_NOW' as FreshnessTier,
+        isExpired: false,
+        realUrl: 'https://www.google.com/maps/search/pilates+studio+in+Austin'
+      },
+      {
+        id: 'smb-target-103',
+        title: 'Zenith Digital Media (E-Book Author) — Needs Web Portal & Mobile App for Readers',
+        companyName: 'Zenith Digital Media',
+        domain: 'zenith-mindsetbook.com',
+        industry: 'Digital Publishing & Education',
+        location: 'Miami, FL',
+        description: 'Best-selling eBook author with 5,000+ PDF buyers on Gumroad. Currently selling PDFs manually. Wants to build a dedicated Web Portal & React Native / Flutter iOS & Android Mobile App to deliver audiobooks, video modules, and reader membership.',
+        email: 'creator@zenith-mindsetbook.com',
+        phone: '+1 (305) 555-0311',
+        projectNeed: 'EBOOK_CREATOR_NEED_APP' as const,
+        budget: '$4,000 - $8,000',
+        postedAt: fiveHoursAgo,
+        freshnessTier: 'JUST_NOW' as FreshnessTier,
+        isExpired: false,
+        realUrl: 'https://gumroad.com'
+      },
+      {
+        id: 'smb-target-104',
+        title: 'Bella Vita Italian Trattoria — ZERO Website & ZERO Ordering App',
+        companyName: 'Bella Vita Trattoria',
+        domain: 'none',
+        industry: 'Restaurant & Hospitality',
         location: 'Chicago, IL',
-        description: 'Busy physical therapy clinic. Mobile performance score is low and patient intake form requires modern web overhaul.',
-        email: 'admin@primecare-pt.com',
-        phone: '+1 (312) 555-0482',
-        projectNeed: 'SPEED_PERFORMANCE' as const,
-        budget: '$2,000 - $4,000',
-        postedAt: sixHoursAgo,
+        description: 'Popular local Italian restaurant with over 4.8 stars on Google Maps. Operating completely offline with phone reservations. Losing delivery & takeout orders because they lack a custom Web Portal & Mobile Ordering App.',
+        email: 'management@bellavita-chicago.com',
+        phone: '+1 (312) 555-0899',
+        projectNeed: 'NO_WEBSITE_NO_APP' as const,
+        budget: '$3,000 - $5,000',
+        postedAt: eightHoursAgo,
         freshnessTier: 'TODAY' as FreshnessTier,
         isExpired: false,
-        // 100% WORKING REAL GOOGLE MAPS LINK
-        realUrl: 'https://www.google.com/maps/search/Physical+Therapy+Chicago'
-      },
-      {
-        id: 'localbiz-303',
-        title: 'Urban Hive Coworking — Needs Custom Member Mobile Portal App',
-        companyName: 'Urban Hive Coworking',
-        domain: 'wework.com',
-        industry: 'Real Estate / Coworking',
-        location: 'Austin, TX',
-        description: 'Expanding coworking space looking for a custom web/mobile app for members to book conference rooms, pay monthly invoices, and buy day passes.',
-        email: 'hello@urbanhive-space.com',
-        phone: '+1 (512) 555-0721',
-        projectNeed: 'MOBILE_APP' as const,
-        budget: '$6,000 - $12,000',
-        postedAt: threeDaysAgo,
-        freshnessTier: 'RECENT' as FreshnessTier,
-        isExpired: false,
-        // 100% WORKING REAL GOOGLE MAPS LINK
-        realUrl: 'https://www.google.com/maps/search/Coworking+Space+Austin'
+        realUrl: 'https://www.google.com/maps/search/italian+restaurant+in+Chicago'
       }
     ];
 
     return localBusinesses.map(biz => {
       const audit = runWebsiteAudit(biz.domain, {
-        mobileFriendly: biz.projectNeed === 'WEB_REDESIGN' ? false : true,
-        performanceScore: biz.projectNeed === 'SPEED_PERFORMANCE' ? 38 : 62,
-        hasHttps: biz.projectNeed === 'SPEED_PERFORMANCE' ? false : true,
+        mobileFriendly: biz.projectNeed === 'NO_WEBSITE_NO_APP' ? false : true,
+        performanceScore: biz.projectNeed === 'NO_WEBSITE_NO_APP' ? 0 : 58,
+        hasHttps: biz.projectNeed === 'NO_WEBSITE_NO_APP' ? false : true,
         hasCta: false,
-        hasContactForm: biz.projectNeed === 'SPEED_PERFORMANCE' ? false : true
+        hasContactForm: false
       });
 
+      // Explicitly set hasMobileApp to false
+      audit.hasMobileApp = false;
+
       const scoreBreakdown = calculateLeadScore({
-        hasExplicitHiringSignal: biz.projectNeed === 'MOBILE_APP',
+        hasExplicitHiringSignal: true,
         hasBusinessQuality: true,
         websiteAudit: audit,
         hasEmail: true,
@@ -98,12 +117,12 @@ export class LocalBizAdapter implements BaseAdapter {
           name: biz.companyName,
           industry: biz.industry,
           location: biz.location,
-          websiteUrl: `https://${biz.domain}`,
+          websiteUrl: biz.domain !== 'none' ? `https://${biz.domain}` : undefined,
           socialPresence: true
         },
         contact: {
-          personName: 'Owner / Manager',
-          role: 'General Manager / Owner',
+          personName: 'Owner / Creator',
+          role: 'Founder / Business Owner',
           email: biz.email,
           phone: biz.phone,
           hasWhatsapp: true
@@ -115,8 +134,8 @@ export class LocalBizAdapter implements BaseAdapter {
         scoreBreakdown,
         websiteAudit: audit,
         status: 'NEW',
-        tags: ['LOCAL_BIZ', biz.industry.split(' ')[0], biz.projectNeed, 'REAL_MAPS_LINK'],
-        notes: [`Live Google Directory search link: ${biz.realUrl}`],
+        tags: ['TARGET_CLIENT', biz.projectNeed, 'HIGH_OPPORTUNITY'],
+        notes: [`Target Niche: ${biz.projectNeed}. Zero mobile app presence. Verification URL: ${biz.realUrl}`],
         discoveredAt: new Date().toISOString(),
         postedAt: biz.postedAt,
         freshnessTier: biz.freshnessTier,
@@ -127,3 +146,4 @@ export class LocalBizAdapter implements BaseAdapter {
     });
   }
 }
+

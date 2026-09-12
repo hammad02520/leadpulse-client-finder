@@ -8,6 +8,7 @@ export function runWebsiteAudit(domain: string, presetIssues?: Partial<WebsiteAu
     return {
       domain: 'No Domain',
       hasWebsite: false,
+      hasMobileApp: false,
       mobileFriendly: false,
       performanceScore: 0,
       hasHttps: false,
@@ -30,6 +31,7 @@ export function runWebsiteAudit(domain: string, presetIssues?: Partial<WebsiteAu
   const hasModernUi = presetIssues?.hasModernUi ?? Math.random() > 0.5;
   const hasCta = presetIssues?.hasCta ?? Math.random() > 0.5;
   const hasContactForm = presetIssues?.hasContactForm ?? Math.random() > 0.3;
+  const hasMobileApp = presetIssues?.hasMobileApp ?? false;
 
   const issuesDetected: string[] = [];
   if (!mobileFriendly) issuesDetected.push('Mobile Viewport Unoptimized (Text wrapping & overflow)');
@@ -60,6 +62,7 @@ export function runWebsiteAudit(domain: string, presetIssues?: Partial<WebsiteAu
   return {
     domain: cleanDomain,
     hasWebsite: true,
+    hasMobileApp,
     mobileFriendly,
     performanceScore,
     hasHttps,
@@ -71,3 +74,4 @@ export function runWebsiteAudit(domain: string, presetIssues?: Partial<WebsiteAu
     aiOpportunityReason
   };
 }
+
