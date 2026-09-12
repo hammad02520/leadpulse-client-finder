@@ -1,6 +1,7 @@
 import { Lead, FreshnessTier, ProjectNeedType } from '../types';
 import { runWebsiteAudit } from './websiteAuditor';
 import { calculateLeadScore } from './scoringEngine';
+import { overpassService } from './overpassService';
 
 export class LiveScraperService {
 
@@ -186,7 +187,7 @@ export class LiveScraperService {
   }
 
   /**
-   * 2. Scrape Live Community & Reddit Hiring Calls (HackerNews Algolia & GitHub Issues)
+   * 2. Scrape Live Community & Reddit Hiring Calls (HackerNews Algolia)
    */
   public async scrapeLiveRedditLeads(): Promise<Lead[]> {
     const leads: Lead[] = [];
@@ -260,76 +261,21 @@ export class LiveScraperService {
   }
 
   /**
-   * 3. Scrape Live Small Businesses, Creators, & E-Book Authors (Dev.to & Show HN APIs)
+   * 3. Scrape Real OpenStreetMap Local Business Nodes Worldwide (Overpass API)
    */
   public async scrapeLiveLocalBizLeads(): Promise<Lead[]> {
-    const leads: Lead[] = [];
-
-    // Dev.to ShowDev / Creators API
     try {
-      const res = await fetch('https://dev.to/api/articles?tag=showdev&per_page=12');
-      if (res.ok) {
-        const articles = await res.json();
-        articles.slice(0, 8).forEach((art: any) => {
-          const authorName = art.user.name || art.user.username;
-          const companyName = art.organization ? art.organization.name : `${authorName}'s Venture`;
-          const domain = art.canonical_url ? this.extractDomainFromUrl(art.canonical_url, companyName) : 'none';
-          const projectNeed = this.classifyProjectNeed(art.title, art.description || '');
-          const audit = runWebsiteAudit(domain);
-          audit.hasMobileApp = false;
-
-          const scoreBreakdown = calculateLeadScore({
-            hasExplicitHiringSignal: true,
-            hasBusinessQuality: true,
-            websiteAudit: audit,
-            hasEmail: true,
-            hasWhatsapp: true,
-            hasSocialPresence: true,
-            freshnessTier: 'JUST_NOW',
-            isExpired: false
-          });
-
-          leads.push({
-            id: `live-devto-${art.id}`,
-            title: `${art.title} — Live Creator / Business Showcase`,
-            description: (art.description || '').slice(0, 300) + '...',
-            company: {
-              name: companyName,
-              industry: 'Digital Media / Content Creator',
-              location: 'Global / Remote',
-              websiteUrl: domain !== 'none' ? `https://${domain}` : undefined,
-              socialPresence: true
-            },
-            contact: {
-              personName: authorName,
-              role: 'Creator / Founder',
-              email: `${art.user.username}@gmail.com`,
-              phone: '+1 (555) 444-1212',
-              hasWhatsapp: true
-            },
-            source: 'LOCAL_BIZ',
-            sourceUrl: art.url,
-            projectNeed,
-            budgetSignal: '$3,000 - $6,000',
-            scoreBreakdown,
-            websiteAudit: audit,
-            status: 'NEW',
-            tags: ['LIVE_SCRAPED', 'DEVTO_CREATOR_API', projectNeed],
-            notes: [`Live Scraped from Dev.to Creator API: ${art.url}`],
-            discoveredAt: new Date().toISOString(),
-            postedAt: art.published_at || new Date().toISOString(),
-            freshnessTier: 'JUST_NOW',
-            isExpired: false,
-            lastVerifiedAt: new Date().toISOString(),
-            outreachHistory: []
-          });
-        });
-      }
+      const osmResults = await overpassService.discoverOsmBusinesses({
+        country: 'Sweden',
+        city: 'Stockholm',
+        category: 'restaurant',
+        filterType: 'ALL'
+      });
+      return osmResults;
     } catch (e) {
-      console.warn('Dev.to live scrape failed:', e);
+      console.warn('OpenStreetMap Overpass live scrape failed:', e);
+      return [];
     }
-
-    return leads;
   }
 
 }

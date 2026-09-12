@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   MapPin, 
   Globe, 
@@ -52,8 +52,15 @@ export const LocalBizLeadsView: React.FC<LocalBizLeadsViewProps> = ({
   const [isSearchingOsm, setIsSearchingOsm] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Filter local business leads only
-  const localLeads = leads.filter(l => l.source === 'LOCAL_BIZ');
+  // Strictly filter real OpenStreetMap local business nodes ONLY
+  const localLeads = leads.filter(l => l.source === 'LOCAL_BIZ' && (l.tags.includes('OPENSTREETMAP') || l.sourceUrl.includes('openstreetmap')));
+
+  // Auto-run initial search if zero OSM leads exist
+  useEffect(() => {
+    if (localLeads.length === 0 && !isSearchingOsm) {
+      handleRunOsmSearch();
+    }
+  }, []);
 
   const filteredLeads = localLeads.filter(l => {
     const matchesSearch = 
@@ -106,7 +113,7 @@ export const LocalBizLeadsView: React.FC<LocalBizLeadsViewProps> = ({
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
               <span className="badge badge-hot" style={{ fontSize: '0.75rem' }}>
-                🌍 OpenStreetMap Dynamic Global Engine
+                📍 OpenStreetMap Dynamic Global Engine
               </span>
               <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Free Worldwide Geocoding (Nominatim API + Overpass QL)</span>
             </div>
@@ -114,7 +121,7 @@ export const LocalBizLeadsView: React.FC<LocalBizLeadsViewProps> = ({
               Worldwide Local Business Lead Finder
             </h2>
             <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-              Search ANY city & ANY country worldwide on Earth. Automatically geocodes coordinates via Nominatim and scrapes OpenStreetMap for businesses with zero website or missing mobile apps!
+              Discover real local restaurants, bakeries, gyms, clinics, salons & shops via OpenStreetMap. Deep audit mobile responsiveness, booking widgets, and email/phone verification.
             </p>
           </div>
 
@@ -124,7 +131,7 @@ export const LocalBizLeadsView: React.FC<LocalBizLeadsViewProps> = ({
             onClick={handleRunOsmSearch}
             disabled={isSearchingOsm}
           >
-            {isSearchingOsm ? '⏳ Geocoding & Discovering Worldwide...' : `🚀 Search ${city}, ${country}`}
+            {isSearchingOsm ? '⏳ Geocoding & Scrape Overpass...' : `🚀 Search ${city}, ${country}`}
           </button>
         </div>
       </div>
@@ -235,9 +242,11 @@ export const LocalBizLeadsView: React.FC<LocalBizLeadsViewProps> = ({
         {filteredLeads.length === 0 ? (
           <div className="glass-panel" style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)', gridColumn: '1 / -1' }}>
             <Building2 size={36} color="var(--text-muted)" style={{ margin: '0 auto 12px auto' }} />
-            <h3 style={{ fontSize: '1rem', fontWeight: '700', color: 'var(--text-main)' }}>No Local Businesses Discovered Yet</h3>
+            <h3 style={{ fontSize: '1rem', fontWeight: '700', color: 'var(--text-main)' }}>
+              {isSearchingOsm ? '⏳ Querying OpenStreetMap Overpass API...' : 'No OpenStreetMap Local Businesses Loaded'}
+            </h3>
             <p style={{ fontSize: '0.85rem', marginTop: '4px' }}>
-              Type any city & country above and click <strong>"🚀 Search {city}, {country}"</strong> to discover real businesses worldwide!
+              Type any city & country above and click <strong>"🚀 Search {city}, {country}"</strong> to discover real physical businesses via OpenStreetMap!
             </p>
           </div>
         ) : (
@@ -265,8 +274,8 @@ export const LocalBizLeadsView: React.FC<LocalBizLeadsViewProps> = ({
                     <span className={`badge ${score >= 80 ? 'badge-hot' : 'badge-warm'}`}>
                       <Flame size={12} /> Score {score}/100
                     </span>
-                    <span style={{ fontSize: '0.725rem', color: 'var(--text-muted)', fontWeight: '600' }}>
-                      📍 {lead.company.location}
+                    <span style={{ fontSize: '0.725rem', color: '#059669', background: '#d1fae5', padding: '2px 6px', borderRadius: '4px', fontWeight: '700' }}>
+                      📍 OpenStreetMap Business
                     </span>
                   </div>
 
@@ -274,7 +283,7 @@ export const LocalBizLeadsView: React.FC<LocalBizLeadsViewProps> = ({
                     {lead.company.name}
                   </h3>
                   <div style={{ fontSize: '0.8rem', color: 'var(--primary)', fontWeight: '700', marginTop: '2px' }}>
-                    {lead.company.industry}
+                    {lead.company.industry} • {lead.company.location}
                   </div>
                   <p style={{ fontSize: '0.775rem', color: 'var(--text-muted)', marginTop: '6px', lineHeight: '1.4' }}>
                     {lead.description}

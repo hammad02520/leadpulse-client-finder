@@ -1,17 +1,23 @@
 import { BaseAdapter } from './BaseAdapter';
 import { Lead } from '../types';
-import { liveScraperService } from '../services/liveScraperService';
+import { overpassService } from '../services/overpassService';
 
 export class LocalBizAdapter implements BaseAdapter {
-  sourceName = 'Live Small Business & Creator Scraper';
+  sourceName = 'OpenStreetMap Worldwide SMB Engine';
   sourceType: Lead['source'] = 'LOCAL_BIZ';
 
   async fetchLeads(): Promise<Lead[]> {
     try {
-      const liveScraped = await liveScraperService.scrapeLiveLocalBizLeads();
-      return liveScraped;
+      // Automatically query real OpenStreetMap business nodes for default location
+      const osmLeads = await overpassService.discoverOsmBusinesses({
+        country: 'Sweden',
+        city: 'Stockholm',
+        category: 'restaurant',
+        filterType: 'ALL'
+      });
+      return osmLeads;
     } catch (err) {
-      console.error('LocalBizAdapter live scraping error:', err);
+      console.error('LocalBizAdapter OpenStreetMap search error:', err);
       return [];
     }
   }
