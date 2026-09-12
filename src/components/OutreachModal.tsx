@@ -6,9 +6,7 @@ import {
   Mail, 
   MessageSquare, 
   Check, 
-  ExternalLink,
-  ShieldCheck,
-  AlertCircle
+  ShieldCheck
 } from 'lucide-react';
 import { Lead } from '../types';
 import { generateAIPitch, AIPitchResult } from '../services/aiPitchGenerator';
@@ -67,8 +65,8 @@ export const OutreachModal: React.FC<OutreachModalProps> = ({
         left: 0,
         right: 0,
         bottom: 0,
-        background: 'rgba(0,0,0,0.8)',
-        backdropFilter: 'blur(8px)',
+        background: 'rgba(0,0,0,0.4)',
+        backdropFilter: 'blur(4px)',
         zIndex: 1100,
         display: 'flex',
         alignItems: 'center',
@@ -80,49 +78,47 @@ export const OutreachModal: React.FC<OutreachModalProps> = ({
         className="glass-panel"
         style={{
           width: '100%',
-          maxWidth: '680px',
-          background: '#0d131f',
-          borderRadius: '16px',
+          maxWidth: '640px',
+          background: '#ffffff',
+          borderRadius: '14px',
           overflow: 'hidden',
           display: 'flex',
           flexDirection: 'column',
-          maxHeight: '90vh'
+          maxHeight: '90vh',
+          boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)'
         }}
       >
         {/* Modal Header */}
-        <div style={{ padding: '18px 24px', borderBottom: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#111827' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div style={{ background: 'rgba(99, 102, 241, 0.2)', padding: '8px', borderRadius: '10px' }}>
-              <Sparkles size={20} color="var(--primary)" />
-            </div>
+        <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#fafafa' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Sparkles size={18} color="var(--primary)" />
             <div>
-              <h3 style={{ fontSize: '1.1rem', fontWeight: '800', color: '#fff' }}>
-                Truthful AI Pitch Generator
+              <h3 style={{ fontSize: '1rem', fontWeight: '700', color: '#09090b' }}>
+                Factual AI Proposal Generator
               </h3>
-              <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+              <p style={{ fontSize: '0.75rem', color: '#71717a' }}>
                 Target: {lead.company.name} ({lead.websiteAudit.domain})
               </p>
             </div>
           </div>
 
-          <button onClick={onClose} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
-            <X size={20} />
+          <button onClick={onClose} style={{ background: 'transparent', border: 'none', color: '#71717a', cursor: 'pointer' }}>
+            <X size={18} />
           </button>
         </div>
 
         {/* Modal Body */}
-        <div style={{ padding: '24px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '16px', flex: 1 }}>
+        <div style={{ padding: '20px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '14px', flex: 1 }}>
           
-          {/* Truth Guarantee Alert */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.75rem', color: '#34d399', background: 'rgba(16, 185, 129, 0.1)', padding: '8px 12px', borderRadius: '8px', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
-            <ShieldCheck size={16} />
-            <span><strong>Factual Pitch Engine:</strong> Pitch relies strictly on verified website audit signals ({lead.websiteAudit.issuesDetected.length} audit issues found). Zero false claims!</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', color: '#15803d', background: '#f0fdf4', padding: '8px 12px', borderRadius: '6px', border: '1px solid #dcfce7' }}>
+            <ShieldCheck size={15} />
+            <span><strong>Verified Data:</strong> Proposal uses factual website audit signals ({lead.websiteAudit.issuesDetected.length} audit issues detected).</span>
           </div>
 
           {/* Email Subject Line */}
           <div>
-            <label style={{ fontSize: '0.8rem', fontWeight: '700', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
-              Email Subject Line
+            <label style={{ fontSize: '0.775rem', fontWeight: '700', color: '#3f3f46', display: 'block', marginBottom: '4px' }}>
+              Subject Line
             </label>
             <input 
               type="text" 
@@ -134,24 +130,24 @@ export const OutreachModal: React.FC<OutreachModalProps> = ({
 
           {/* Email Body */}
           <div>
-            <label style={{ fontSize: '0.8rem', fontWeight: '700', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
-              Personalized Cold Email Pitch Draft
+            <label style={{ fontSize: '0.775rem', fontWeight: '700', color: '#3f3f46', display: 'block', marginBottom: '4px' }}>
+              Cold Pitch Body
             </label>
             <textarea 
               className="input-field" 
-              rows={9}
-              style={{ fontFamily: 'var(--font-mono)', fontSize: '0.85rem', lineHeight: '1.6' }}
+              rows={8}
+              style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', lineHeight: '1.6' }}
               value={emailBody}
               onChange={(e) => setEmailBody(e.target.value)}
             />
           </div>
 
-          {/* Safe WhatsApp Preview Box */}
-          <div style={{ background: '#090d16', padding: '14px', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
-            <div style={{ fontSize: '0.8rem', fontWeight: '700', color: '#25D366', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <MessageSquare size={16} /> Safe WhatsApp wa.me Draft Preview:
+          {/* WhatsApp Preview */}
+          <div style={{ background: '#f4f4f5', padding: '12px', borderRadius: '8px', border: '1px solid #e4e4e7' }}>
+            <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#15803d', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <MessageSquare size={14} /> Safe WhatsApp Draft Preview:
             </div>
-            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+            <p style={{ fontSize: '0.75rem', color: '#52525b', fontStyle: 'italic' }}>
               "{pitchData.whatsappMessage}"
             </p>
           </div>
@@ -159,20 +155,20 @@ export const OutreachModal: React.FC<OutreachModalProps> = ({
         </div>
 
         {/* Modal Footer */}
-        <div style={{ padding: '16px 24px', borderTop: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#0d131f', flexWrap: 'wrap', gap: '12px' }}>
+        <div style={{ padding: '14px 20px', borderTop: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#fafafa', flexWrap: 'wrap', gap: '10px' }}>
           
           <button className="btn btn-secondary" onClick={handleCopy}>
-            {copied ? <Check size={16} color="#34d399" /> : <Copy size={16} />}
-            {copied ? 'Copied Pitch!' : 'Copy to Clipboard'}
+            {copied ? <Check size={15} color="#16a34a" /> : <Copy size={15} />}
+            {copied ? 'Copied!' : 'Copy Pitch'}
           </button>
 
-          <div style={{ display: 'flex', gap: '10px' }}>
+          <div style={{ display: 'flex', gap: '8px' }}>
             <button className="btn btn-whatsapp" onClick={handleLaunchWhatsApp}>
-              <MessageSquare size={16} /> Launch WhatsApp wa.me
+              <MessageSquare size={15} /> Open WhatsApp wa.me
             </button>
 
             <button className="btn btn-email" onClick={handleLaunchEmail}>
-              <Mail size={16} /> Launch Mail Client
+              <Mail size={15} /> Open Mail Client
             </button>
           </div>
 

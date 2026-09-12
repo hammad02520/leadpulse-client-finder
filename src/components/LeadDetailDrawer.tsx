@@ -5,16 +5,12 @@ import {
   Globe, 
   Mail, 
   Phone, 
-  MessageSquare, 
   ExternalLink, 
-  CheckCircle2, 
-  XCircle, 
-  AlertTriangle,
-  Sparkles,
-  Send,
-  Plus,
-  Search,
-  Linkedin
+  Sparkles, 
+  Plus, 
+  Search, 
+  Linkedin,
+  ShieldCheck
 } from 'lucide-react';
 import { Lead, LeadStatus } from '../types';
 
@@ -58,144 +54,139 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
         right: 0,
         bottom: 0,
         width: '100%',
-        maxWidth: '540px',
-        background: '#090d16',
+        maxWidth: '520px',
+        background: '#ffffff',
         borderLeft: '1px solid var(--border-color)',
-        boxShadow: '-10px 0 30px rgba(0,0,0,0.7)',
+        boxShadow: '-4px 0 20px rgba(0,0,0,0.08)',
         zIndex: 1000,
         display: 'flex',
-        flexDirection: 'column',
-        animation: 'fadeIn 0.2s ease-out'
+        flexDirection: 'column'
       }}
     >
       {/* Drawer Header */}
-      <div style={{ padding: '20px', borderBottom: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#0d131f' }}>
+      <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#fafafa' }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span className={`badge ${score.temperature === 'HOT' ? 'badge-hot' : 'badge-warm'}`}>
-              <Flame size={12} /> Score {score.totalScore}/100 ({score.temperature})
+              Score {score.totalScore}/100 ({score.temperature})
             </span>
-            <span style={{ fontSize: '0.75rem', color: 'var(--primary)', fontWeight: '600' }}>
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: '600' }}>
               {lead.source}
             </span>
           </div>
-          <h2 style={{ fontSize: '1.2rem', fontWeight: '800', marginTop: '6px', color: 'var(--text-main)' }}>
+          <h2 style={{ fontSize: '1.1rem', fontWeight: '700', marginTop: '4px', color: 'var(--text-main)' }}>
             {lead.company.name}
           </h2>
-          <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+          <p style={{ fontSize: '0.775rem', color: 'var(--text-muted)' }}>
             {lead.title}
           </p>
         </div>
 
         <button 
           onClick={onClose}
-          style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '6px' }}
+          style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '4px' }}
         >
-          <X size={22} />
+          <X size={20} />
         </button>
       </div>
 
       {/* Drawer Scrollable Content */}
-      <div style={{ padding: '20px', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '20px' }}>
+      <div style={{ padding: '20px', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '16px' }}>
         
         {/* Quick Outreach CTA */}
-        <div style={{ background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(6, 182, 212, 0.15) 100%)', padding: '16px', borderRadius: '12px', border: '1px solid rgba(99, 102, 241, 0.3)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ background: '#f4f4f5', padding: '14px 16px', borderRadius: '10px', border: '1px solid #e4e4e7', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
-            <div style={{ fontWeight: '700', fontSize: '0.9rem', color: '#fff' }}>Generate Truthful AI Pitch</div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Auto-tailored using website audit data</div>
+            <div style={{ fontWeight: '700', fontSize: '0.85rem', color: '#09090b' }}>AI Proposal Pitch</div>
+            <div style={{ fontSize: '0.75rem', color: '#71717a' }}>Fact-checked audit proposal</div>
           </div>
           <button 
             className="btn btn-primary"
             onClick={() => onOpenPitchModal(lead)}
             disabled={lead.isExpired}
-            style={{ padding: '8px 14px', fontSize: '0.8rem' }}
+            style={{ padding: '6px 12px', fontSize: '0.8rem' }}
           >
-            <Sparkles size={15} /> Pitch & Contact
+            <Sparkles size={14} /> Pitch & Contact
           </button>
         </div>
 
         {/* Website Audit Card */}
-        <div className="glass-panel" style={{ padding: '18px' }}>
-          <h3 style={{ fontSize: '0.95rem', fontWeight: '700', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Globe size={16} color="#06b6d4" /> Technical Website Audit Signals
+        <div className="glass-panel" style={{ padding: '16px' }}>
+          <h3 style={{ fontSize: '0.875rem', fontWeight: '700', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px', color: '#09090b' }}>
+            <Globe size={15} color="#0284c7" /> Website Audit Signals
           </h3>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', fontSize: '0.8rem', marginBottom: '14px' }}>
-            <div style={{ background: '#0d131f', padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
-              <span style={{ color: 'var(--text-muted)' }}>Mobile Layout:</span>{' '}
-              <strong style={{ color: audit.mobileFriendly ? '#34d399' : '#fb7185' }}>
-                {audit.mobileFriendly ? '✅ Optimized' : '❌ Unoptimized'}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '0.775rem', marginBottom: '12px' }}>
+            <div style={{ background: '#f4f4f5', padding: '8px 10px', borderRadius: '6px' }}>
+              <span style={{ color: '#71717a' }}>Mobile Layout:</span>{' '}
+              <strong style={{ color: audit.mobileFriendly ? '#16a34a' : '#dc2626' }}>
+                {audit.mobileFriendly ? '✅ OK' : '❌ Poor'}
               </strong>
             </div>
 
-            <div style={{ background: '#0d131f', padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
-              <span style={{ color: 'var(--text-muted)' }}>Performance:</span>{' '}
-              <strong style={{ color: audit.performanceScore >= 70 ? '#34d399' : '#fbbf24' }}>
+            <div style={{ background: '#f4f4f5', padding: '8px 10px', borderRadius: '6px' }}>
+              <span style={{ color: '#71717a' }}>Performance:</span>{' '}
+              <strong style={{ color: audit.performanceScore >= 70 ? '#16a34a' : '#d97706' }}>
                 {audit.performanceScore}/100
               </strong>
             </div>
 
-            <div style={{ background: '#0d131f', padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
-              <span style={{ color: 'var(--text-muted)' }}>HTTPS SSL:</span>{' '}
-              <strong style={{ color: audit.hasHttps ? '#34d399' : '#fb7185' }}>
+            <div style={{ background: '#f4f4f5', padding: '8px 10px', borderRadius: '6px' }}>
+              <span style={{ color: '#71717a' }}>HTTPS SSL:</span>{' '}
+              <strong style={{ color: audit.hasHttps ? '#16a34a' : '#dc2626' }}>
                 {audit.hasHttps ? '✅ Secure' : '❌ Warning'}
               </strong>
             </div>
 
-            <div style={{ background: '#0d131f', padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
-              <span style={{ color: 'var(--text-muted)' }}>Lead CTA:</span>{' '}
-              <strong style={{ color: audit.hasCta ? '#34d399' : '#fbbf24' }}>
+            <div style={{ background: '#f4f4f5', padding: '8px 10px', borderRadius: '6px' }}>
+              <span style={{ color: '#71717a' }}>Lead CTA:</span>{' '}
+              <strong style={{ color: audit.hasCta ? '#16a34a' : '#d97706' }}>
                 {audit.hasCta ? '✅ Present' : '❌ Missing'}
               </strong>
             </div>
           </div>
 
-          {/* AI Reasoning */}
-          <div style={{ fontSize: '0.8rem', background: 'rgba(6, 182, 212, 0.1)', borderLeft: '3px solid #06b6d4', padding: '10px 12px', borderRadius: '4px', color: '#e0f2fe' }}>
+          <div style={{ fontSize: '0.775rem', background: '#f0f9ff', borderLeft: '3px solid #0284c7', padding: '8px 10px', borderRadius: '4px', color: '#0369a1' }}>
             <strong>AI Pitch Angle:</strong> {audit.aiOpportunityReason}
           </div>
         </div>
 
-        {/* Verified Contacts & Live Search Links */}
-        <div className="glass-panel" style={{ padding: '18px' }}>
-          <h3 style={{ fontSize: '0.95rem', fontWeight: '700', marginBottom: '12px' }}>Verified Contact & Live Search Links</h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '0.85rem' }}>
+        {/* Verified Contacts & Links */}
+        <div className="glass-panel" style={{ padding: '16px' }}>
+          <h3 style={{ fontSize: '0.875rem', fontWeight: '700', marginBottom: '10px', color: '#09090b' }}>Verified Contacts & Links</h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.8rem' }}>
             
             {lead.contact.email && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Mail size={16} color="var(--accent-cyan)" />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#18181b' }}>
+                <Mail size={15} color="#0284c7" />
                 <span style={{ fontWeight: '600' }}>{lead.contact.email}</span>
               </div>
             )}
             
             {lead.contact.phone && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Phone size={16} color="var(--accent-emerald)" />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#18181b' }}>
+                <Phone size={15} color="#16a34a" />
                 <span style={{ fontWeight: '600' }}>{lead.contact.phone}</span>
               </div>
             )}
 
-            {/* Direct Link to Original Post */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <ExternalLink size={16} color="var(--primary)" />
+              <ExternalLink size={15} color="var(--primary)" />
               <a href={lead.sourceUrl} target="_blank" rel="noreferrer" style={{ color: 'var(--primary)', fontWeight: '600', textDecoration: 'none' }}>
                 Open Original Post on {lead.source} ↗
               </a>
             </div>
 
-            {/* Google Contact Email Search Link */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
-              <Search size={16} color="#fbbf24" />
-              <a href={googleSearchEmailUrl} target="_blank" rel="noreferrer" style={{ color: '#fbbf24', textDecoration: 'none', fontSize: '0.8rem' }}>
-                Search Direct Contact Email on Google ↗
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Search size={15} color="#d97706" />
+              <a href={googleSearchEmailUrl} target="_blank" rel="noreferrer" style={{ color: '#d97706', textDecoration: 'none' }}>
+                Search Company Email on Google ↗
               </a>
             </div>
 
-            {/* LinkedIn Decision Maker Search Link */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Linkedin size={16} color="#0077b5" />
-              <a href={linkedinSearchUrl} target="_blank" rel="noreferrer" style={{ color: '#38bdf8', textDecoration: 'none', fontSize: '0.8rem' }}>
-                Find Founder / CTO on LinkedIn ↗
+              <Linkedin size={15} color="#0077b5" />
+              <a href={linkedinSearchUrl} target="_blank" rel="noreferrer" style={{ color: '#0077b5', textDecoration: 'none' }}>
+                Find Decision Maker on LinkedIn ↗
               </a>
             </div>
 
@@ -203,53 +194,51 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
         </div>
 
         {/* Lead Score Matrix */}
-        <div className="glass-panel" style={{ padding: '18px' }}>
-          <h3 style={{ fontSize: '0.95rem', fontWeight: '700', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Flame size={16} color="#f43f5e" /> Lead Qualification Matrix
-          </h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '0.8rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span>Explicit Need Signal:</span> <strong>+{score.needSignalScore} pts</strong>
+        <div className="glass-panel" style={{ padding: '16px' }}>
+          <h3 style={{ fontSize: '0.875rem', fontWeight: '700', marginBottom: '10px', color: '#09090b' }}>Qualification Breakdown</h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '0.775rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', color: '#71717a' }}>
+              <span>Need Signal:</span> <strong>+{score.needSignalScore} pts</strong>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', color: '#71717a' }}>
               <span>Website Audit Opportunity:</span> <strong>+{score.websiteProblemsScore} pts</strong>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span>Freshness Bonus:</span> <strong style={{ color: '#34d399' }}>+{score.freshnessScore} pts</strong>
+            <div style={{ display: 'flex', justifyContent: 'space-between', color: '#71717a' }}>
+              <span>Freshness Bonus:</span> <strong style={{ color: '#16a34a' }}>+{score.freshnessScore} pts</strong>
             </div>
             {score.penalties > 0 && (
-              <div style={{ display: 'flex', justifyContent: 'space-between', color: '#fb7185' }}>
-                <span>Expired/Risk Penalties:</span> <strong>-{score.penalties} pts</strong>
+              <div style={{ display: 'flex', justifyContent: 'space-between', color: '#dc2626' }}>
+                <span>Risk/Expired Penalties:</span> <strong>-{score.penalties} pts</strong>
               </div>
             )}
-            <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '6px', marginTop: '4px', display: 'flex', justifyContent: 'space-between', fontWeight: '800', fontSize: '0.9rem' }}>
-              <span>Final Calculated Score:</span> <span style={{ color: 'var(--primary)' }}>{score.totalScore}/100</span>
+            <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '6px', marginTop: '4px', display: 'flex', justifyContent: 'space-between', fontWeight: '700', fontSize: '0.85rem', color: '#09090b' }}>
+              <span>Total Calculated Score:</span> <span style={{ color: 'var(--primary)' }}>{score.totalScore}/100</span>
             </div>
           </div>
         </div>
 
-        {/* Notes & Activity History */}
-        <div className="glass-panel" style={{ padding: '18px' }}>
-          <h3 style={{ fontSize: '0.95rem', fontWeight: '700', marginBottom: '12px' }}>Notes & Activity Timeline</h3>
+        {/* Notes & Activity Timeline */}
+        <div className="glass-panel" style={{ padding: '16px' }}>
+          <h3 style={{ fontSize: '0.875rem', fontWeight: '700', marginBottom: '10px', color: '#09090b' }}>Notes & Timeline</h3>
           
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '14px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '10px' }}>
             {lead.notes.map((note, idx) => (
-              <div key={idx} style={{ fontSize: '0.8rem', background: '#0d131f', padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
+              <div key={idx} style={{ fontSize: '0.75rem', background: '#f4f4f5', padding: '6px 10px', borderRadius: '6px', color: '#3f3f46' }}>
                 {note}
               </div>
             ))}
           </div>
 
-          <form onSubmit={handleNoteSubmit} style={{ display: 'flex', gap: '8px' }}>
+          <form onSubmit={handleNoteSubmit} style={{ display: 'flex', gap: '6px' }}>
             <input 
               type="text" 
-              placeholder="Add a new note..."
+              placeholder="Add note..."
               className="input-field"
               value={newNote}
               onChange={(e) => setNewNote(e.target.value)}
             />
-            <button type="submit" className="btn btn-secondary" style={{ padding: '8px 12px' }}>
-              <Plus size={16} /> Add
+            <button type="submit" className="btn btn-secondary" style={{ padding: '6px 10px' }}>
+              <Plus size={14} />
             </button>
           </form>
         </div>
