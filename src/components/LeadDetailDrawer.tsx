@@ -10,7 +10,8 @@ import {
   Plus, 
   Search, 
   Linkedin,
-  Building2
+  Building2,
+  AlertCircle
 } from 'lucide-react';
 import { Lead, LeadStatus } from '../types';
 
@@ -43,6 +44,7 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
   const audit = lead.websiteAudit;
   const score = lead.scoreBreakdown;
 
+  const auditedSiteUrl = lead.company.websiteUrl || (audit.domain && audit.domain !== 'No Domain' ? `https://${audit.domain}` : undefined);
   const googleSearchEmailUrl = `https://www.google.com/search?q=${encodeURIComponent('contact email ' + lead.company.name + ' ' + (audit.domain || ''))}`;
   const linkedinSearchUrl = `https://www.linkedin.com/search/results/all/?keywords=${encodeURIComponent(lead.company.name + ' founder OR owner OR CTO')}`;
 
@@ -110,28 +112,35 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
           </a>
         </div>
 
-        {/* Quick Outreach CTA */}
-        <div style={{ background: '#f4f4f5', padding: '14px 16px', borderRadius: '10px', border: '1px solid #e4e4e7', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div>
-            <div style={{ fontWeight: '700', fontSize: '0.85rem', color: '#09090b' }}>AI Proposal Pitch</div>
-            <div style={{ fontSize: '0.75rem', color: '#71717a' }}>Fact-checked audit proposal</div>
-          </div>
-          <button 
-            className="btn btn-secondary"
-            onClick={() => onOpenPitchModal(lead)}
-            disabled={lead.isExpired}
-            style={{ padding: '6px 12px', fontSize: '0.8rem' }}
-          >
-            <Sparkles size={14} /> Pitch & Contact
-          </button>
-        </div>
-
-        {/* Website Audit Card */}
+        {/* Website Technical Audit Card with Prominent Audited Link */}
         <div className="glass-panel" style={{ padding: '16px' }}>
-          <h3 style={{ fontSize: '0.875rem', fontWeight: '700', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px', color: '#09090b' }}>
-            <Globe size={15} color="#0284c7" /> Website Audit Signals
+          <h3 style={{ fontSize: '0.875rem', fontWeight: '700', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px', color: '#09090b' }}>
+            <Globe size={16} color="#0284c7" /> Technical Website Audit Signals
           </h3>
 
+          {/* EXACT AUDITED WEBSITE LINK BANNER */}
+          {auditedSiteUrl ? (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#f0f9ff', border: '1px solid #bae6fd', padding: '10px 12px', borderRadius: '8px', marginBottom: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#0369a1', fontWeight: '700', fontSize: '0.825rem' }}>
+                <Globe size={16} /> Audited Target Site: <span style={{ color: '#0284c7' }}>{audit.domain}</span>
+              </div>
+              <a 
+                href={auditedSiteUrl} 
+                target="_blank" 
+                rel="noreferrer"
+                className="btn btn-primary"
+                style={{ padding: '5px 12px', fontSize: '0.75rem', textDecoration: 'none' }}
+              >
+                Open Audited Site ↗
+              </a>
+            </div>
+          ) : (
+            <div style={{ padding: '8px 12px', background: '#fee2e2', color: '#dc2626', borderRadius: '6px', fontSize: '0.775rem', fontWeight: '600', marginBottom: '12px' }}>
+              ⚠️ No active website domain found for this business.
+            </div>
+          )}
+
+          {/* Audit Metrics */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '0.775rem', marginBottom: '12px' }}>
             <div style={{ background: '#f4f4f5', padding: '8px 10px', borderRadius: '6px' }}>
               <span style={{ color: '#71717a' }}>Mobile Layout:</span>{' '}
@@ -167,19 +176,32 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
           </div>
         </div>
 
+        {/* Quick Outreach CTA */}
+        <div style={{ background: '#f4f4f5', padding: '14px 16px', borderRadius: '10px', border: '1px solid #e4e4e7', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div>
+            <div style={{ fontWeight: '700', fontSize: '0.85rem', color: '#09090b' }}>AI Proposal Pitch</div>
+            <div style={{ fontSize: '0.75rem', color: '#71717a' }}>Fact-checked audit proposal</div>
+          </div>
+          <button 
+            className="btn btn-secondary"
+            onClick={() => onOpenPitchModal(lead)}
+            disabled={lead.isExpired}
+            style={{ padding: '6px 12px', fontSize: '0.8rem' }}
+          >
+            <Sparkles size={14} /> Pitch & Contact
+          </button>
+        </div>
+
         {/* Verified Contacts & Direct Links */}
         <div className="glass-panel" style={{ padding: '16px' }}>
           <h3 style={{ fontSize: '0.875rem', fontWeight: '700', marginBottom: '10px', color: '#09090b' }}>Verified Contacts & Direct Links</h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.8rem' }}>
             
-            {/* PROMINENT OFFICIAL COMPANY WEBSITE LINK */}
-            {lead.company.websiteUrl && (
-              <div style={{ background: '#f0f9ff', border: '1px solid #bae6fd', padding: '8px 10px', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#0369a1', fontWeight: '700' }}>
-                  <Globe size={15} /> Company Website: {audit.domain}
-                </div>
-                <a href={lead.company.websiteUrl} target="_blank" rel="noreferrer" style={{ color: '#0284c7', fontWeight: '700', fontSize: '0.775rem', textDecoration: 'none' }}>
-                  Visit Site ↗
+            {auditedSiteUrl && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Globe size={15} color="#0284c7" />
+                <a href={auditedSiteUrl} target="_blank" rel="noreferrer" style={{ color: '#0284c7', fontWeight: '700', textDecoration: 'none' }}>
+                  Visit Audited Website ({audit.domain}) ↗
                 </a>
               </div>
             )}
