@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  MapPin, 
   Globe, 
   Search, 
   Flame, 
@@ -26,18 +25,22 @@ interface LocalBizLeadsViewProps {
   onAddDiscoveredLeads: (newLeads: Lead[]) => void;
 }
 
-const POPULAR_PRESETS = [
-  { country: 'Sweden', city: 'Stockholm', label: '🇸🇪 Stockholm, Sweden' },
-  { country: 'United Kingdom', city: 'London', label: '🇬🇧 London, UK' },
-  { country: 'United States', city: 'New York', label: '🇺🇸 New York, USA' },
-  { country: 'United States', city: 'Chicago', label: '🇺🇸 Chicago, USA' },
-  { country: 'United States', city: 'Austin', label: '🇺🇸 Austin, USA' },
-  { country: 'Germany', city: 'Berlin', label: '🇩🇪 Berlin, Germany' },
-  { country: 'United Arab Emirates', city: 'Dubai', label: '🇦🇪 Dubai, UAE' },
-  { country: 'Japan', city: 'Tokyo', label: '🇯🇵 Tokyo, Japan' },
-  { country: 'Pakistan', city: 'Karachi', label: '🇵🇰 Karachi, Pakistan' },
-  { country: 'Canada', city: 'Toronto', label: '🇨🇦 Toronto, Canada' }
-];
+const COUNTRY_CITY_MAP: Record<string, string[]> = {
+  'Sweden': ['Stockholm', 'Gothenburg', 'Malmö'],
+  'United Kingdom': ['London', 'Manchester', '送信', 'Birmingham', 'Edinburgh'],
+  'United States': ['New York', 'Chicago', 'Austin', 'Los Angeles', 'Miami', 'San Francisco', 'Dallas', 'Seattle'],
+  'Germany': ['Berlin', 'Munich', 'Hamburg', 'Frankfurt'],
+  'France': ['Paris', 'Lyon', 'Marseille'],
+  'Canada': ['Toronto', 'Vancouver', 'Montreal'],
+  'United Arab Emirates': ['Dubai', 'Abu Dhabi'],
+  'Japan': ['Tokyo', 'Osaka', 'Kyoto'],
+  'Pakistan': ['Karachi', 'Lahore', 'Islamabad', 'Rawalpindi'],
+  'Australia': ['Sydney', 'Melbourne', 'Brisbane', 'Perth'],
+  'Italy': ['Rome', 'Milan', 'Florence'],
+  'Spain': ['Madrid', 'Barcelona', 'Valencia'],
+  'Netherlands': ['Amsterdam', 'Rotterdam'],
+  'Brazil': ['São Paulo', 'Rio de Janeiro']
+};
 
 export const LocalBizLeadsView: React.FC<LocalBizLeadsViewProps> = ({
   leads,
@@ -45,12 +48,27 @@ export const LocalBizLeadsView: React.FC<LocalBizLeadsViewProps> = ({
   onOpenPitchModal,
   onAddDiscoveredLeads
 }) => {
-  const [country, setCountry] = useState('Sweden');
-  const [city, setCity] = useState('Stockholm');
+  const [selectedCountry, setSelectedCountry] = useState('Sweden');
+  const [customCountry, setCustomCountry] = useState('');
+  
+  const [selectedCity, setSelectedCity] = useState('Stockholm');
+  const [customCity, setCustomCity] = useState('');
+
   const [category, setCategory] = useState<OsmSearchParams['category']>('restaurant');
   const [filterType, setFilterType] = useState<'ALL' | 'NO_WEBSITE' | 'HAS_WEBSITE_NO_APP'>('ALL');
   const [isSearchingOsm, setIsSearchingOsm] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+
+  // Active Country & City resolving
+  const activeCountry = selectedCountry === 'CUSTOM' ? customCountry : selectedCountry;
+  const activeCity = selectedCity === 'CUSTOM' ? customCity : selectedCity;
+
+  // Update cities dropdown whenever country changes
+  useEffect(() => {
+    if (selectedCountry !== 'CUSTOM' && COUNTRY_CITY_MAP[selectedCountry]) {
+      setSelectedCity(COUNTRY_CITY_MAP[selectedCountry][0]);
+    }
+  }, [selectedCountry]);
 
   // Strictly filter real OpenStreetMap local business nodes ONLY
   const localLeads = leads.filter(l => l.source === 'LOCAL_BIZ' && (l.tags.includes('OPENSTREETMAP') || l.sourceUrl.includes('openstreetmap')));
@@ -78,12 +96,15 @@ export const LocalBizLeadsView: React.FC<LocalBizLeadsViewProps> = ({
   });
 
   const handleRunOsmSearch = async () => {
-    if (!city.trim() || !country.trim()) return;
+    const finalCountry = activeCountry.trim();
+    const finalCity = activeCity.trim();
+    if (!finalCity || !finalCountry) return;
+
     setIsSearchingOsm(true);
     try {
       const results = await overpassService.discoverOsmBusinesses({
-        country: country.trim(),
-        city: city.trim(),
+        country: finalCountry,
+        city: finalCity,
         category,
         filterType
       });
@@ -121,7 +142,7 @@ export const LocalBizLeadsView: React.FC<LocalBizLeadsViewProps> = ({
               Worldwide Local Business Lead Finder
             </h2>
             <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-              Discover real local restaurants, bakeries, gyms, clinics, salons & shops via OpenStreetMap. Deep audit mobile responsiveness, booking widgets, and email/phone verification.
+              Select any country and city from the dropdowns (or enter custom ones) to query real OpenStreetMap business nodes for restaurants, bakeries, gyms, clinics, salons & shops!
             </p>
           </div>
 
@@ -131,7 +152,7 @@ export const LocalBizLeadsView: React.FC<LocalBizLeadsViewProps> = ({
             onClick={handleRunOsmSearch}
             disabled={isSearchingOsm}
           >
-            {isSearchingOsm ? '⏳ Geocoding & Scrape Overpass...' : `🚀 Search ${city}, ${country}`}
+            {isSearchingOsm ? '⏳ Geocoding & Scrape Overpass...' : `🚀 Search ${activeCity}, ${activeCountry}`}
           </button>
         </div>
       </div>
@@ -139,57 +160,77 @@ export const LocalBizLeadsView: React.FC<LocalBizLeadsViewProps> = ({
       {/* Dynamic Global Geocoding Search Controls */}
       <div className="glass-panel" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
         
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.9rem', fontWeight: '700', color: 'var(--text-main)' }}>
-            <Globe2 size={18} color="var(--primary)" /> Target Any City & Country in the World
-          </div>
-
-          {/* Quick Presets */}
-          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-            {POPULAR_PRESETS.slice(0, 5).map(p => (
-              <button 
-                key={p.city}
-                className="btn btn-secondary"
-                style={{ padding: '4px 8px', fontSize: '0.725rem' }}
-                onClick={() => {
-                  setCountry(p.country);
-                  setCity(p.city);
-                }}
-              >
-                {p.label}
-              </button>
-            ))}
-          </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.9rem', fontWeight: '700', color: 'var(--text-main)' }}>
+          <Globe2 size={18} color="var(--primary)" /> Select Country, City & Industry Category
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px' }}>
           
-          {/* Custom Country Field */}
+          {/* Country Dropdown */}
           <div>
             <label style={{ fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
-              Country (Type Any Country Worldwide)
+              Country Dropdown
             </label>
-            <input 
-              type="text"
+            <select 
               className="input-field"
-              placeholder="e.g. Sweden, United Kingdom, Pakistan, Japan, UAE..."
-              value={country}
-              onChange={(e) => setCountry(e.target.value)}
-            />
+              value={selectedCountry}
+              onChange={(e) => setSelectedCountry(e.target.value)}
+            >
+              <option value="Sweden">🇸🇪 Sweden</option>
+              <option value="United Kingdom">🇬🇧 United Kingdom</option>
+              <option value="United States">🇺🇸 United States</option>
+              <option value="Germany">🇩🇪 Germany</option>
+              <option value="France">🇫🇷 France</option>
+              <option value="Canada">🇨🇦 Canada</option>
+              <option value="United Arab Emirates">🇦🇪 United Arab Emirates</option>
+              <option value="Japan">🇯🇵 Japan</option>
+              <option value="Pakistan">🇵🇰 Pakistan</option>
+              <option value="Australia">🇦🇺 Australia</option>
+              <option value="Italy">🇮🇹 Italy</option>
+              <option value="Spain">🇪🇸 Spain</option>
+              <option value="Netherlands">🇳🇱 Netherlands</option>
+              <option value="Brazil">🇧🇷 Brazil</option>
+              <option value="CUSTOM">✍️ Enter Custom Country...</option>
+            </select>
+            {selectedCountry === 'CUSTOM' && (
+              <input 
+                type="text"
+                className="input-field"
+                style={{ marginTop: '6px' }}
+                placeholder="Type custom country name..."
+                value={customCountry}
+                onChange={(e) => setCustomCountry(e.target.value)}
+              />
+            )}
           </div>
 
-          {/* Custom City Field */}
+          {/* City Dropdown */}
           <div>
             <label style={{ fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
-              City (Type Any City Worldwide)
+              City Dropdown
             </label>
-            <input 
-              type="text"
+            <select 
               className="input-field"
-              placeholder="e.g. Stockholm, London, Karachi, Tokyo, Dubai..."
-              value={city}
-              onChange={(e) => setCity(e.target.value)}
-            />
+              value={selectedCity}
+              onChange={(e) => setSelectedCity(e.target.value)}
+            >
+              {selectedCountry !== 'CUSTOM' && COUNTRY_CITY_MAP[selectedCountry] ? (
+                COUNTRY_CITY_MAP[selectedCountry].map(c => (
+                  <option key={c} value={c}>{c}</option>
+                ))
+              ) : null}
+              <option value="CUSTOM">✍️ Enter Custom City...</option>
+            </select>
+            {selectedCity === 'CUSTOM' && (
+              <input 
+                type="text"
+                className="input-field"
+                style={{ marginTop: '6px' }}
+                placeholder="Type custom city name..."
+                value={customCity}
+                onChange={(e) => setCustomCity(e.target.value)}
+              />
+            )}
           </div>
 
           {/* Category Selector */}
@@ -209,7 +250,7 @@ export const LocalBizLeadsView: React.FC<LocalBizLeadsViewProps> = ({
             </select>
           </div>
 
-          {/* Filter Type */}
+          {/* Target Filter Type */}
           <div>
             <label style={{ fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
               Target Web & App Needs
@@ -246,7 +287,7 @@ export const LocalBizLeadsView: React.FC<LocalBizLeadsViewProps> = ({
               {isSearchingOsm ? '⏳ Querying OpenStreetMap Overpass API...' : 'No OpenStreetMap Local Businesses Loaded'}
             </h3>
             <p style={{ fontSize: '0.85rem', marginTop: '4px' }}>
-              Type any city & country above and click <strong>"🚀 Search {city}, {country}"</strong> to discover real physical businesses via OpenStreetMap!
+              Select city & country from the dropdowns above and click <strong>"🚀 Search {activeCity}, {activeCountry}"</strong> to discover real physical businesses via OpenStreetMap!
             </p>
           </div>
         ) : (
