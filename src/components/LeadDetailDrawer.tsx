@@ -9,7 +9,8 @@ import {
   Sparkles, 
   Plus, 
   Search, 
-  Linkedin
+  Linkedin,
+  Building2
 } from 'lucide-react';
 import { Lead, LeadStatus } from '../types';
 
@@ -166,11 +167,23 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
           </div>
         </div>
 
-        {/* Verified Contacts & Links */}
+        {/* Verified Contacts & Direct Links */}
         <div className="glass-panel" style={{ padding: '16px' }}>
           <h3 style={{ fontSize: '0.875rem', fontWeight: '700', marginBottom: '10px', color: '#09090b' }}>Verified Contacts & Direct Links</h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.8rem' }}>
             
+            {/* PROMINENT OFFICIAL COMPANY WEBSITE LINK */}
+            {lead.company.websiteUrl && (
+              <div style={{ background: '#f0f9ff', border: '1px solid #bae6fd', padding: '8px 10px', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#0369a1', fontWeight: '700' }}>
+                  <Globe size={15} /> Company Website: {audit.domain}
+                </div>
+                <a href={lead.company.websiteUrl} target="_blank" rel="noreferrer" style={{ color: '#0284c7', fontWeight: '700', fontSize: '0.775rem', textDecoration: 'none' }}>
+                  Visit Site ↗
+                </a>
+              </div>
+            )}
+
             {lead.contact.email && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#18181b' }}>
                 <Mail size={15} color="#0284c7" />

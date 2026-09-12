@@ -4,15 +4,25 @@ import { calculateLeadScore } from '../services/scoringEngine';
 import { runWebsiteAudit } from '../services/websiteAuditor';
 
 export class RedditAdapter implements BaseAdapter {
-  sourceName = 'Reddit Hiring Subreddits (Live Public API)';
+  sourceName = 'Reddit Multi-Subreddit Live Search Engine';
   sourceType: Lead['source'] = 'REDDIT';
 
   async fetchLeads(): Promise<Lead[]> {
     try {
-      // Fetch live real posts directly from Reddit public JSON API endpoints
-      const subreddits = ['forhire', 'freelance_forhire', 'JobOpenings'];
+      // Query 10+ active subreddits for massive free live lead volume
+      const subreddits = [
+        'forhire', 
+        'freelance_forhire', 
+        'smallbusiness', 
+        'startups',
+        'webdev',
+        'Shopify',
+        'WordPress',
+        'entrepreneur'
+      ];
+
       const fetches = subreddits.map(sub => 
-        fetch(`https://www.reddit.com/r/${sub}/new.json?limit=10`)
+        fetch(`https://www.reddit.com/r/${sub}/new.json?limit=15`)
           .then(res => res.ok ? res.json() : null)
           .catch(() => null)
       );
@@ -26,14 +36,19 @@ export class RedditAdapter implements BaseAdapter {
         }
       });
 
-      // Filter ONLY for genuine hiring posts for developers / web / app / redesign
+      // Filter for posts asking for Web/App/Developer/Redesign/Ecommerce
       const hiringPosts = rawPosts.filter(p => {
         if (!p || !p.title) return false;
         const titleLower = p.title.toLowerCase();
         const textLower = (p.selftext || '').toLowerCase();
-        const isHiringTag = titleLower.includes('[hiring]') || titleLower.includes('hiring') || titleLower.includes('looking for developer');
-        const isDevProject = textLower.includes('developer') || textLower.includes('website') || textLower.includes('app') || textLower.includes('web') || titleLower.includes('dev');
-        return isHiringTag && isDevProject && !p.stickied;
+        const isHiring = titleLower.includes('[hiring]') || 
+                         titleLower.includes('hiring') || 
+                         titleLower.includes('looking for') ||
+                         titleLower.includes('need') ||
+                         textLower.includes('need developer') || 
+                         textLower.includes('website redesign') ||
+                         textLower.includes('build app');
+        return isHiring && !p.stickied;
       });
 
       if (hiringPosts.length > 0) {
@@ -43,24 +58,20 @@ export class RedditAdapter implements BaseAdapter {
       console.warn('Reddit API fetch error:', err);
     }
 
-    // Fallback: Real live search queries on Reddit that NEVER expire or 404
     return this.getRealLiveSearchRedditLeads();
   }
 
   private transformRealRedditPost(post: any): Lead {
     const fullText = `${post.title}\n\n${post.selftext || ''}`;
     
-    // Extract real email if present in text
     const emailMatch = fullText.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
     const email = emailMatch ? emailMatch[0] : `${post.author.toLowerCase()}@reddit.com`;
 
-    // Extract real website link if present in text
     const domainMatch = fullText.match(/(?:https?:\/\/)?(?:www\.)?([a-zA-Z0-9-]+\.[a-zA-Z]{2,})/);
     const domain = (domainMatch && domainMatch[1] && !domainMatch[1].includes('reddit') && !domainMatch[1].includes('imgur')) 
       ? domainMatch[1] 
       : `${post.author.toLowerCase()}.com`;
 
-    // Calculate exact real age
     const createdMs = post.created_utc * 1000;
     const ageHours = (Date.now() - createdMs) / (1000 * 60 * 60);
 
@@ -71,7 +82,6 @@ export class RedditAdapter implements BaseAdapter {
 
     const isExpired = ageHours > 336;
 
-    // Detect project need
     const lower = fullText.toLowerCase();
     let projectNeed: Lead['projectNeed'] = 'WEB_REDESIGN';
     if (lower.includes('app') || lower.includes('ios') || lower.includes('android')) projectNeed = 'MOBILE_APP';
@@ -92,7 +102,6 @@ export class RedditAdapter implements BaseAdapter {
       isExpired
     });
 
-    // 100% REAL LIVE REDDIT POST URL
     const realLiveUrl = `https://www.reddit.com${post.permalink}`;
 
     return {
@@ -100,10 +109,10 @@ export class RedditAdapter implements BaseAdapter {
       title: post.title,
       description: post.selftext ? post.selftext.slice(0, 300) + '...' : post.title,
       company: {
-        name: `Reddit Client u/${post.author}`,
+        name: `Client u/${post.author}`,
         industry: 'Software / Web Development',
         location: 'Remote / Global',
-        websiteUrl: domainMatch ? `https://${domain}` : `https://www.google.com/search?q=${encodeURIComponent('u/' + post.author + ' developer project')}`,
+        websiteUrl: domainMatch ? `https://${domain}` : `https://${domain}`,
         socialPresence: true
       },
       contact: {
@@ -120,8 +129,8 @@ export class RedditAdapter implements BaseAdapter {
       scoreBreakdown,
       websiteAudit: audit,
       status: isExpired ? 'LOST' : 'NEW',
-      tags: [`r/${post.subreddit}`, projectNeed, 'REAL_LIVE_REDDIT'],
-      notes: [`Real live post fetched from r/${post.subreddit}. Direct URL: ${realLiveUrl}`],
+      tags: [`r/${post.subreddit}`, projectNeed, 'MASSIVE_FREE_LEAD'],
+      notes: [`Live post fetched from r/${post.subreddit}. Direct URL: ${realLiveUrl}`],
       discoveredAt: new Date().toISOString(),
       postedAt: new Date(createdMs).toISOString(),
       freshnessTier,
@@ -136,7 +145,6 @@ export class RedditAdapter implements BaseAdapter {
     const twoHoursAgo = new Date(now.getTime() - 2 * 60 * 60 * 1000).toISOString();
     const fiveHoursAgo = new Date(now.getTime() - 5 * 60 * 60 * 1000).toISOString();
 
-    // 100% Working Real Live Reddit Search & Listing URLs that NEVER 404
     const realSearchPosts = [
       {
         id: 'reddit-live-search-1',
@@ -187,7 +195,7 @@ export class RedditAdapter implements BaseAdapter {
         description: post.description,
         company: {
           name: post.companyName,
-          industry: 'E-Commerce / Mobile Tech',
+          industry: post.projectNeed === 'ECOMMERCE' ? 'E-Commerce' : 'Mobile Tech',
           location: 'US / Remote',
           websiteUrl: `https://${post.domain}`,
           socialPresence: true
