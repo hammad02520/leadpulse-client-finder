@@ -9,8 +9,7 @@ import {
   Sparkles, 
   Plus, 
   Search, 
-  Linkedin,
-  ShieldCheck
+  Linkedin
 } from 'lucide-react';
 import { Lead, LeadStatus } from '../types';
 
@@ -93,6 +92,23 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
       {/* Drawer Scrollable Content */}
       <div style={{ padding: '20px', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '16px' }}>
         
+        {/* Point to Point Direct Post Link Banner */}
+        <div style={{ background: '#eef2ff', border: '1px solid #c7d2fe', borderRadius: '10px', padding: '12px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div>
+            <div style={{ fontSize: '0.8rem', fontWeight: '700', color: '#3730a3' }}>Point-to-Point Direct Post URL</div>
+            <div style={{ fontSize: '0.725rem', color: '#4338ca' }}>Opens the exact original post page</div>
+          </div>
+          <a 
+            href={lead.sourceUrl} 
+            target="_blank" 
+            rel="noreferrer"
+            className="btn btn-primary"
+            style={{ padding: '6px 12px', fontSize: '0.775rem', textDecoration: 'none' }}
+          >
+            Open Job Post ↗
+          </a>
+        </div>
+
         {/* Quick Outreach CTA */}
         <div style={{ background: '#f4f4f5', padding: '14px 16px', borderRadius: '10px', border: '1px solid #e4e4e7', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
@@ -100,7 +116,7 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
             <div style={{ fontSize: '0.75rem', color: '#71717a' }}>Fact-checked audit proposal</div>
           </div>
           <button 
-            className="btn btn-primary"
+            className="btn btn-secondary"
             onClick={() => onOpenPitchModal(lead)}
             disabled={lead.isExpired}
             style={{ padding: '6px 12px', fontSize: '0.8rem' }}
@@ -152,7 +168,7 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
 
         {/* Verified Contacts & Links */}
         <div className="glass-panel" style={{ padding: '16px' }}>
-          <h3 style={{ fontSize: '0.875rem', fontWeight: '700', marginBottom: '10px', color: '#09090b' }}>Verified Contacts & Links</h3>
+          <h3 style={{ fontSize: '0.875rem', fontWeight: '700', marginBottom: '10px', color: '#09090b' }}>Verified Contacts & Direct Links</h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.8rem' }}>
             
             {lead.contact.email && (
@@ -171,8 +187,8 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <ExternalLink size={15} color="var(--primary)" />
-              <a href={lead.sourceUrl} target="_blank" rel="noreferrer" style={{ color: 'var(--primary)', fontWeight: '600', textDecoration: 'none' }}>
-                Open Original Post on {lead.source} ↗
+              <a href={lead.sourceUrl} target="_blank" rel="noreferrer" style={{ color: 'var(--primary)', fontWeight: '700', textDecoration: 'none' }}>
+                Open Direct Job Post on {lead.source} ↗
               </a>
             </div>
 

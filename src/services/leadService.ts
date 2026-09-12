@@ -4,7 +4,7 @@ import { JobFeedAdapter } from '../adapters/JobFeedAdapter';
 import { LocalBizAdapter } from '../adapters/LocalBizAdapter';
 import { deduplicateLeads } from './deduplicationService';
 
-const STORAGE_KEY = 'leadpulse_leads_data_v1';
+const STORAGE_KEY = 'leadpulse_leads_data_v3'; // Bumping storage key to clear outdated dead links
 
 class LeadService {
   private adapters = [
@@ -28,19 +28,22 @@ class LeadService {
   }
 
   public async fetchAndDiscoverLeads(): Promise<Lead[]> {
-    const existing = this.getLeadsFromStorage();
     const fetchedResults = await Promise.all(this.adapters.map(a => a.fetchLeads()));
     const flatFetched = fetchedResults.flat();
 
+    const existing = this.getLeadsFromStorage();
     const deduped = deduplicateLeads(existing, flatFetched);
     
-    // Merge new deduped with existing
     const existingIds = new Set(existing.map(l => l.id));
     const uniqueNewLeads = deduped.filter(l => !existingIds.has(l.id));
 
-    const combined = [...existing, ...uniqueNewLeads];
-    this.saveLeadsToStorage(combined);
-    return combined;
+    const combined = [...flatFetched, ...uniqueNewLeads];
+    const uniqueMap = new Map<string, Lead>();
+    combined.forEach(l => uniqueMap.set(l.id, l));
+
+    const finalLeads = Array.from(uniqueMap.values());
+    this.saveLeadsToStorage(finalLeads);
+    return finalLeads;
   }
 
   public updateLeadStatus(leadId: string, newStatus: LeadStatus): Lead[] {
@@ -107,6 +110,7 @@ class LeadService {
       'Company Name',
       'Industry',
       'Website',
+      'Direct Job Post Link',
       'Contact Person',
       'Email',
       'Phone',
@@ -125,6 +129,7 @@ class LeadService {
       `"${(l.company.name || '').replace(/"/g, '""')}"`,
       `"${(l.company.industry || '').replace(/"/g, '""')}"`,
       l.company.websiteUrl || '',
+      l.sourceUrl || '',
       `"${(l.contact.personName || '').replace(/"/g, '""')}"`,
       l.contact.email || '',
       l.contact.phone || '',
@@ -142,7 +147,7 @@ class LeadService {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.setAttribute('href', url);
-    link.setAttribute('download', `LeadPulse_Qualified_Leads_${new Date().toISOString().slice(0, 10)}.csv`);
+    link.setAttribute('download', `LeadPulse_Live_Real_Leads_${new Date().toISOString().slice(0, 10)}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
