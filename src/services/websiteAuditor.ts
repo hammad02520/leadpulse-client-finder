@@ -15,6 +15,9 @@ export function runWebsiteAudit(domain: string, presetIssues?: Partial<WebsiteAu
       hasModernUi: false,
       hasCta: false,
       hasContactForm: false,
+      hasOnlineBooking: false,
+      hasOnlineOrdering: false,
+      techFramework: 'None',
       opportunityScore: 95,
       issuesDetected: [
         'No digital presence or website found',
@@ -32,6 +35,9 @@ export function runWebsiteAudit(domain: string, presetIssues?: Partial<WebsiteAu
   const hasCta = presetIssues?.hasCta ?? Math.random() > 0.5;
   const hasContactForm = presetIssues?.hasContactForm ?? Math.random() > 0.3;
   const hasMobileApp = presetIssues?.hasMobileApp ?? false;
+  const hasOnlineBooking = presetIssues?.hasOnlineBooking ?? Math.random() > 0.6;
+  const hasOnlineOrdering = presetIssues?.hasOnlineOrdering ?? Math.random() > 0.6;
+  const techFramework = presetIssues?.techFramework ?? (Math.random() > 0.5 ? 'WordPress 6.4' : 'Custom HTML/PHP');
 
   const issuesDetected: string[] = [];
   if (!mobileFriendly) issuesDetected.push('Mobile Viewport Unoptimized (Text wrapping & overflow)');
@@ -40,6 +46,7 @@ export function runWebsiteAudit(domain: string, presetIssues?: Partial<WebsiteAu
   if (!hasModernUi) issuesDetected.push('Outdated Design Layout (Pre-2018 UI elements)');
   if (!hasCta) issuesDetected.push('No Prominent Call-To-Action or Lead Capture');
   if (!hasContactForm) issuesDetected.push('Missing Direct Contact Form / Booking Widget');
+  if (!hasOnlineBooking) issuesDetected.push('Missing Online Booking Widget');
 
   let opportunityScore = 30;
   if (!mobileFriendly) opportunityScore += 25;
@@ -69,9 +76,11 @@ export function runWebsiteAudit(domain: string, presetIssues?: Partial<WebsiteAu
     hasModernUi,
     hasCta,
     hasContactForm,
+    hasOnlineBooking,
+    hasOnlineOrdering,
+    techFramework,
     opportunityScore,
     issuesDetected,
     aiOpportunityReason
   };
 }
-

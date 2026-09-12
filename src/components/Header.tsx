@@ -5,13 +5,14 @@ import {
   Download,
   Clock,
   Search,
-  Filter
+  MapPin,
+  Briefcase
 } from 'lucide-react';
-import { Lead } from '../types';
+import { Lead, AppViewMode } from '../types';
 
 interface HeaderProps {
-  currentView: 'dashboard' | 'kanban' | 'table';
-  setCurrentView: (view: 'dashboard' | 'kanban' | 'table') => void;
+  currentView: AppViewMode;
+  setCurrentView: (view: AppViewMode) => void;
   leads: Lead[];
   onSyncSources: () => void;
   onOpenAddModal: () => void;
@@ -35,14 +36,23 @@ export const Header: React.FC<HeaderProps> = ({
   return (
     <header style={{ padding: '16px 24px', borderBottom: '1px solid var(--border-color)', background: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
       
-      {/* Search Input */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: '1', maxWidth: '400px' }}>
-        <Search size={18} color="var(--text-muted)" />
-        <input 
-          type="text" 
-          placeholder="Global search leads, companies, or tech stack..."
-          className="input-field"
-        />
+      {/* Category Quick Switcher Tabs */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <button 
+          onClick={() => setCurrentView('local_biz')}
+          className={`btn ${currentView === 'local_biz' ? 'btn-primary' : 'btn-secondary'}`}
+          style={{ padding: '7px 14px', fontSize: '0.8rem' }}
+        >
+          <MapPin size={15} /> 📍 Local SMB Finder
+        </button>
+
+        <button 
+          onClick={() => setCurrentView('remote_jobs')}
+          className={`btn ${currentView === 'remote_jobs' ? 'btn-primary' : 'btn-secondary'}`}
+          style={{ padding: '7px 14px', fontSize: '0.8rem' }}
+        >
+          <Briefcase size={15} /> 💼 Remote Dev Jobs
+        </button>
       </div>
 
       {/* Action Controls */}

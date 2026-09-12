@@ -4,14 +4,16 @@ import { Header } from './components/Header';
 import { Dashboard } from './components/Dashboard';
 import { LeadTable } from './components/LeadTable';
 import { KanbanBoard } from './components/KanbanBoard';
+import { LocalBizLeadsView } from './components/LocalBizLeadsView';
+import { RemoteJobsView } from './components/RemoteJobsView';
 import { LeadDetailDrawer } from './components/LeadDetailDrawer';
 import { OutreachModal } from './components/OutreachModal';
 import { ManualLeadModal } from './components/ManualLeadModal';
 import { leadService } from './services/leadService';
-import { Lead, LeadStatus } from './types';
+import { Lead, LeadStatus, AppViewMode } from './types';
 
 export const App: React.FC = () => {
-  const [currentView, setCurrentView] = useState<'dashboard' | 'kanban' | 'table'>('dashboard');
+  const [currentView, setCurrentView] = useState<AppViewMode>('dashboard');
   const [leads, setLeads] = useState<Lead[]>([]);
   const [isSyncing, setIsSyncing] = useState(false);
   const [freshOnly, setFreshOnly] = useState(false);
@@ -40,6 +42,16 @@ export const App: React.FC = () => {
     } finally {
       setIsSyncing(false);
     }
+  };
+
+  const handleAddDiscoveredLeads = (newLeads: Lead[]) => {
+    const currentLeads = leadService.getLeadsFromStorage();
+    const combined = [...newLeads, ...currentLeads];
+    const uniqueMap = new Map<string, Lead>();
+    combined.forEach(l => uniqueMap.set(l.id, l));
+    const finalLeads = Array.from(uniqueMap.values());
+    leadService.saveLeadsToStorage(finalLeads);
+    setLeads(finalLeads);
   };
 
   const handleStatusChange = (leadId: string, newStatus: LeadStatus) => {
@@ -80,7 +92,7 @@ export const App: React.FC = () => {
   return (
     <div className="app-container">
       
-      {/* Left Collapsible Enterprise Sidebar */}
+      {/* Left Enterprise Sidebar */}
       <Sidebar 
         currentView={currentView}
         setCurrentView={setCurrentView}
@@ -110,6 +122,24 @@ export const App: React.FC = () => {
               leads={freshOnly ? leads.filter(l => !l.isExpired && (l.freshnessTier === 'JUST_NOW' || l.freshnessTier === 'TODAY')) : leads}
               onSelectLead={(l) => setSelectedLead(l)}
               onOpenPitchModal={(l) => setPitchLead(l)}
+            />
+          )}
+
+          {currentView === 'local_biz' && (
+            <LocalBizLeadsView 
+              leads={leads}
+              onSelectLead={(l) => setSelectedLead(l)}
+              onOpenPitchModal={(l) => setPitchLead(l)}
+              onAddDiscoveredLeads={handleAddDiscoveredLeads}
+            />
+          )}
+
+          {currentView === 'remote_jobs' && (
+            <RemoteJobsView 
+              leads={leads}
+              onSelectLead={(l) => setSelectedLead(l)}
+              onOpenPitchModal={(l) => setPitchLead(l)}
+              onAddDiscoveredLeads={handleAddDiscoveredLeads}
             />
           )}
 
@@ -143,7 +173,7 @@ export const App: React.FC = () => {
         onStatusChange={handleStatusChange}
       />
 
-      {/* Truthful AI Pitch & Outreach Modal */}
+      {/* AI Pitch & Outreach Modal */}
       <OutreachModal 
         lead={pitchLead}
         onClose={() => setPitchLead(null)}

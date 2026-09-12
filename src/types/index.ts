@@ -30,6 +30,14 @@ export type ProjectNeedType =
 
 export type FreshnessTier = 'JUST_NOW' | 'TODAY' | 'RECENT' | 'STALE_EXPIRED';
 
+export type EmailValidationStage = 
+  | 'FOUND' 
+  | 'FORMAT_VALID' 
+  | 'DOMAIN_VALID' 
+  | 'MX_VALID' 
+  | 'DELIVERABILITY_CHECK' 
+  | 'VERIFIED';
+
 export interface WebsiteAudit {
   domain: string;
   hasWebsite: boolean;
@@ -40,6 +48,9 @@ export interface WebsiteAudit {
   hasModernUi: boolean;
   hasCta: boolean;
   hasContactForm: boolean;
+  hasOnlineBooking: boolean;
+  hasOnlineOrdering: boolean;
+  techFramework?: string;
   opportunityScore: number;
   issuesDetected: string[];
   aiOpportunityReason: string;
@@ -61,7 +72,11 @@ export interface ContactInfo {
   personName?: string;
   role?: string;
   email?: string;
+  emailValidationStage?: EmailValidationStage;
   phone?: string;
+  phoneNormalized?: string;
+  phoneCountryCode?: string;
+  isPhoneVerified?: boolean;
   hasWhatsapp: boolean;
   linkedinUrl?: string;
   twitterHandle?: string;
@@ -71,6 +86,10 @@ export interface CompanyInfo {
   name: string;
   industry: string;
   location: string;
+  country?: string;
+  city?: string;
+  lat?: number;
+  lon?: number;
   websiteUrl?: string;
   size?: string;
   socialPresence: boolean;
@@ -118,3 +137,12 @@ export interface SourceFilter {
   temperature?: LeadTemperature | 'ALL';
   freshOnly?: boolean;
 }
+
+export interface OsmSearchParams {
+  country: string;
+  city: string;
+  category: 'restaurant' | 'bakery' | 'gym' | 'clinic' | 'salon' | 'hotel' | 'car_repair' | 'boutique';
+  filterType?: 'ALL' | 'NO_WEBSITE' | 'HAS_WEBSITE_NO_APP';
+}
+
+export type AppViewMode = 'dashboard' | 'local_biz' | 'remote_jobs' | 'kanban' | 'table';

@@ -2,21 +2,18 @@ import React from 'react';
 import { 
   Zap, 
   LayoutDashboard, 
+  MapPin,
+  Briefcase,
   Kanban, 
   Table, 
-  Sparkles, 
   Flame, 
-  Globe, 
-  Settings,
-  Database,
-  Layers,
   Clock
 } from 'lucide-react';
-import { Lead } from '../types';
+import { Lead, AppViewMode } from '../types';
 
 interface SidebarProps {
-  currentView: 'dashboard' | 'kanban' | 'table';
-  setCurrentView: (view: 'dashboard' | 'kanban' | 'table') => void;
+  currentView: AppViewMode;
+  setCurrentView: (view: AppViewMode) => void;
   leads: Lead[];
 }
 
@@ -26,7 +23,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   leads
 }) => {
   const hotCount = leads.filter(l => l.scoreBreakdown.temperature === 'HOT' && !l.isExpired).length;
-  const freshCount = leads.filter(l => !l.isExpired && (l.freshnessTier === 'JUST_NOW' || l.freshnessTier === 'TODAY')).length;
+  const localCount = leads.filter(l => l.source === 'LOCAL_BIZ').length;
+  const remoteCount = leads.filter(l => l.source === 'JOB_FEED' || l.source === 'REDDIT').length;
 
   return (
     <aside className="sidebar">
@@ -50,7 +48,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             LeadPulse
           </h1>
           <span style={{ fontSize: '0.725rem', color: 'var(--text-muted)', fontWeight: '600' }}>
-            Enterprise Client CRM
+            Client & Business Lead Discovery
           </span>
         </div>
       </div>
@@ -62,6 +60,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           Workspace Nav
         </div>
 
+        {/* Dashboard */}
         <button 
           onClick={() => setCurrentView('dashboard')}
           style={{
@@ -82,6 +81,59 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <LayoutDashboard size={18} /> Overview Dashboard
         </button>
 
+        {/* Local Business Finder (OpenStreetMap) */}
+        <button 
+          onClick={() => setCurrentView('local_biz')}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '10px 12px',
+            borderRadius: '8px',
+            border: 'none',
+            fontSize: '0.875rem',
+            fontWeight: '600',
+            cursor: 'pointer',
+            background: currentView === 'local_biz' ? 'var(--primary-light)' : 'transparent',
+            color: currentView === 'local_biz' ? 'var(--primary)' : 'var(--text-main)',
+            textAlign: 'left'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <MapPin size={18} /> Local SMB Finder
+          </div>
+          <span style={{ fontSize: '0.725rem', background: '#d1fae5', color: '#059669', padding: '2px 6px', borderRadius: '999px', fontWeight: '700' }}>
+            {localCount}
+          </span>
+        </button>
+
+        {/* Remote Jobs & Developer Client Feed */}
+        <button 
+          onClick={() => setCurrentView('remote_jobs')}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '10px 12px',
+            borderRadius: '8px',
+            border: 'none',
+            fontSize: '0.875rem',
+            fontWeight: '600',
+            cursor: 'pointer',
+            background: currentView === 'remote_jobs' ? 'var(--primary-light)' : 'transparent',
+            color: currentView === 'remote_jobs' ? 'var(--primary)' : 'var(--text-main)',
+            textAlign: 'left'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <Briefcase size={18} /> Remote Dev Jobs
+          </div>
+          <span style={{ fontSize: '0.725rem', background: '#e0f2fe', color: '#0284c7', padding: '2px 6px', borderRadius: '999px', fontWeight: '700' }}>
+            {remoteCount}
+          </span>
+        </button>
+
+        {/* Pipeline Kanban */}
         <button 
           onClick={() => setCurrentView('kanban')}
           style={{
@@ -100,13 +152,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <Kanban size={18} /> Sales Pipeline
+            <Kanban size={18} /> Pipeline Kanban
           </div>
-          <span style={{ fontSize: '0.75rem', background: '#e2e8f0', color: '#475569', padding: '2px 6px', borderRadius: '999px', fontWeight: '700' }}>
-            {leads.length}
-          </span>
         </button>
 
+        {/* Master Database Table */}
         <button 
           onClick={() => setCurrentView('table')}
           style={{
@@ -125,7 +175,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <Table size={18} /> Leads Database
+            <Table size={18} /> Master Leads Grid
           </div>
         </button>
 
@@ -137,12 +187,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <Flame size={14} /> {hotCount} Hot Opportunities
         </div>
 
-        <div className="badge badge-fresh" style={{ justifyContent: 'center', padding: '6px 12px' }}>
-          <Clock size={14} /> {freshCount} Fresh (&lt;24h)
-        </div>
-
         <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textAlign: 'center', marginTop: '4px' }}>
-          LeadPulse v2.4 • Enterprise Edition
+          LeadPulse v3.0 • OpenStreetMap Engine
         </div>
       </div>
     </aside>
