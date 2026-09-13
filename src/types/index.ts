@@ -175,6 +175,7 @@ export interface OsmSearchParams {
   category: 'restaurant' | 'bakery' | 'gym' | 'clinic' | 'salon' | 'hotel' | 'car_repair' | 'boutique' | 'cafe' | 'all';
   filterType?: 'ALL' | 'NO_WEBSITE' | 'HAS_WEBSITE_NO_APP';
   limit?: number;
+  isNationwide?: boolean;
 }
 
 export type AppViewMode = 

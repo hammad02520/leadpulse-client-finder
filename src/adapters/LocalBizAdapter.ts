@@ -30,7 +30,7 @@ export class LocalBizAdapter implements BaseAdapter {
         city: savedCity,
         category: 'all',
         filterType: 'ALL',
-        limit: 150
+        limit: 300
       });
       return osmLeads;
     } catch (err) {

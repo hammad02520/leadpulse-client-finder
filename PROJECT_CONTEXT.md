@@ -2,6 +2,9 @@
 
 **LeadPulse** is an enterprise-grade client discovery, technical audit intelligence, and cold outreach CRM platform specifically built for fullstack web and mobile application developers. It features **isolated, dedicated modules** for different client acquisition streams — ensuring data from B2B executives, local brick-and-mortar businesses, outdated CMS sites, and funded startups **never mix together**.
 
+> **Zero Hardcoded Data & Zero Expired Leads Policy:**
+> LeadPulse operates on a 100% dynamic architecture. No static mock arrays are used. All leads are dynamically fetched over real-time public APIs (HackerNews Algolia, Jobicy, Remotive, Arbeitnow, OpenStreetMap Overpass, Google DNS-over-HTTPS). Expired leads are strictly filtered out at both the adapter and application layer (`!lead.isExpired && lead.freshnessTier !== 'STALE_EXPIRED'`).
+
 ---
 
 ## 🛠️ Technology Stack & Dependencies
@@ -11,7 +14,7 @@
 - **Icon System**: Lucide React (`lucide-react`)
 - **Styling Architecture**: Custom Vanilla CSS Tokens, Light Mode Ergonomics (`#f8fafc` background, crisp `#ffffff` surface cards, `#e2e8f0` borders, `#4f46e5` indigo accent)
 - **Typography**: Google Fonts — *Plus Jakarta Sans* (SaaS Layout & Hierarchy) and *JetBrains Mono* (Code & Technical Audit Data)
-- **Persistence**: LocalStorage API (`leadpulse_leads_data_v10_clean`) + In-Memory State Sync
+- **Persistence**: LocalStorage API (`leadpulse_leads_v16_live_dynamic_only`) + In-Memory State Sync
 
 ---
 

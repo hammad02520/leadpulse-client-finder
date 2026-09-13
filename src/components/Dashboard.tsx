@@ -41,6 +41,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const redditCount = leads.filter(l => l.source === 'REDDIT').length;
   const jobFeedCount = leads.filter(l => l.source === 'JOB_FEED').length;
   const localBizCount = leads.filter(l => l.source === 'LOCAL_BIZ').length;
+  const b2bCount = leads.filter(l => l.source === 'B2B_APOLLO').length;
+  const techStackCount = leads.filter(l => l.source === 'TECH_STACK').length;
+  const startupCount = leads.filter(l => l.source === 'FUNDED_STARTUP').length;
 
   return (
     <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
@@ -144,11 +147,44 @@ export const Dashboard: React.FC<DashboardProps> = ({
             {/* Local Business */}
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '4px' }}>
-                <span style={{ color: '#059669', fontWeight: '600' }}>Local Business Directories</span>
+                <span style={{ color: '#059669', fontWeight: '600' }}>Local Business (OpenStreetMap)</span>
                 <span style={{ fontWeight: '700' }}>{localBizCount} leads</span>
               </div>
               <div style={{ height: '8px', background: '#f1f5f9', borderRadius: '4px', overflow: 'hidden' }}>
                 <div style={{ width: `${(localBizCount / (total || 1)) * 100}%`, height: '100%', background: '#059669' }}></div>
+              </div>
+            </div>
+
+            {/* B2B Decision Makers */}
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '4px' }}>
+                <span style={{ color: '#8b5cf6', fontWeight: '600' }}>B2B Decision Makers (CEO/CTO)</span>
+                <span style={{ fontWeight: '700' }}>{b2bCount} leads</span>
+              </div>
+              <div style={{ height: '8px', background: '#f1f5f9', borderRadius: '4px', overflow: 'hidden' }}>
+                <div style={{ width: `${(b2bCount / (total || 1)) * 100}%`, height: '100%', background: '#8b5cf6' }}></div>
+              </div>
+            </div>
+
+            {/* Tech Stack Audits */}
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '4px' }}>
+                <span style={{ color: '#d97706', fontWeight: '600' }}>Tech Stack & Slow Sites</span>
+                <span style={{ fontWeight: '700' }}>{techStackCount} leads</span>
+              </div>
+              <div style={{ height: '8px', background: '#f1f5f9', borderRadius: '4px', overflow: 'hidden' }}>
+                <div style={{ width: `${(techStackCount / (total || 1)) * 100}%`, height: '100%', background: '#d97706' }}></div>
+              </div>
+            </div>
+
+            {/* Funded Startups */}
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '4px' }}>
+                <span style={{ color: '#f43f5e', fontWeight: '600' }}>Funded Startups & Launches</span>
+                <span style={{ fontWeight: '700' }}>{startupCount} leads</span>
+              </div>
+              <div style={{ height: '8px', background: '#f1f5f9', borderRadius: '4px', overflow: 'hidden' }}>
+                <div style={{ width: `${(startupCount / (total || 1)) * 100}%`, height: '100%', background: '#f43f5e' }}></div>
               </div>
             </div>
 

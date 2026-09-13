@@ -18,7 +18,7 @@ import { Lead, LeadStatus, AppViewMode } from './types';
 
 export const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<AppViewMode>('dashboard');
-  const [leads, setLeads] = useState<Lead[]>([]);
+  const [leads, setLeads] = useState<Lead[]>(() => leadService.getLeadsFromStorage());
   const [isSyncing, setIsSyncing] = useState(false);
   const [freshOnly, setFreshOnly] = useState(false);
 
@@ -48,9 +48,30 @@ export const App: React.FC = () => {
     }
   };
 
-  const handleAddDiscoveredLeads = (newLeads: Lead[]) => {
+  const handleAddDiscoveredLeads = (newLeads: Lead[], replaceCity?: string) => {
     const currentLeads = leadService.getLeadsFromStorage();
-    const finalLeads = strictDeduplicate([...newLeads, ...currentLeads]);
+    let baseLeads = currentLeads;
+
+    // When fetching a new volume batch for a local city or entire country, cleanly replace that scope's leads
+    // so the user sees EXACTLY the volume they selected (100, 300, 500, 1,000)
+    const targetCity = replaceCity || (newLeads.length > 0 && newLeads[0].source === 'LOCAL_BIZ' ? newLeads[0].company.city : undefined);
+    if (targetCity) {
+      if (targetCity.startsWith('NATIONWIDE_')) {
+        const cleanCountry = targetCity.replace('NATIONWIDE_', '').toLowerCase().trim();
+        baseLeads = currentLeads.filter(l => 
+          l.source !== 'LOCAL_BIZ' || 
+          (l.company.country?.toLowerCase().trim() !== cleanCountry && !l.company.location?.toLowerCase().includes(cleanCountry))
+        );
+      } else {
+        const cleanCity = targetCity.toLowerCase().trim();
+        baseLeads = currentLeads.filter(l => 
+          l.source !== 'LOCAL_BIZ' || 
+          (l.company.city?.toLowerCase().trim() !== cleanCity && !l.company.location?.toLowerCase().includes(cleanCity))
+        );
+      }
+    }
+
+    const finalLeads = strictDeduplicate([...newLeads, ...baseLeads]);
     leadService.saveLeadsToStorage(finalLeads);
     setLeads(finalLeads);
   };
@@ -108,12 +129,18 @@ export const App: React.FC = () => {
       const startupLeads = leads.filter(l => l.source === 'FUNDED_STARTUP');
       leadService.exportLeadsToCSV(startupLeads, 'FUNDED_STARTUPS');
     } else if (currentView === 'remote_jobs') {
-      const remoteLeads = leads.filter(l => l.source === 'JOB_FEED' || l.source === 'REDDIT');
+      const remoteLeads = visibleLeads.filter(l => l.source === 'JOB_FEED' || l.source === 'REDDIT');
       leadService.exportLeadsToCSV(remoteLeads, 'REMOTE_JOBS');
     } else {
-      leadService.exportLeadsToCSV(leads, 'ALL');
+      leadService.exportLeadsToCSV(visibleLeads, 'ALL');
     }
   };
+
+  // STRICT GUARANTEE: Never surface expired leads in any module
+  const unexpiredLeads = leads.filter(l => !l.isExpired && l.freshnessTier !== 'STALE_EXPIRED');
+  const visibleLeads = freshOnly 
+    ? unexpiredLeads.filter(l => l.freshnessTier === 'JUST_NOW' || l.freshnessTier === 'TODAY') 
+    : unexpiredLeads;
 
   return (
     <div className="app-container">
@@ -122,7 +149,7 @@ export const App: React.FC = () => {
       <Sidebar 
         currentView={currentView}
         setCurrentView={setCurrentView}
-        leads={leads}
+        leads={visibleLeads}
       />
 
       {/* Main Content View Container */}
@@ -132,7 +159,7 @@ export const App: React.FC = () => {
         <Header 
           currentView={currentView}
           setCurrentView={setCurrentView}
-          leads={leads}
+          leads={visibleLeads}
           onSyncSources={handleSyncSources}
           onOpenAddModal={() => setIsAddModalOpen(true)}
           onExportCSV={handleExportCSV}
@@ -145,7 +172,7 @@ export const App: React.FC = () => {
         <main style={{ flex: 1 }}>
           {currentView === 'dashboard' && (
             <Dashboard 
-              leads={freshOnly ? leads.filter(l => !l.isExpired && (l.freshnessTier === 'JUST_NOW' || l.freshnessTier === 'TODAY')) : leads}
+              leads={visibleLeads}
               onSelectLead={(l) => setSelectedLead(l)}
               onOpenPitchModal={(l) => setPitchLead(l)}
             />
@@ -153,7 +180,7 @@ export const App: React.FC = () => {
 
           {currentView === 'local_biz' && (
             <LocalBizLeadsView 
-              leads={leads}
+              leads={visibleLeads}
               onSelectLead={(l) => setSelectedLead(l)}
               onOpenPitchModal={(l) => setPitchLead(l)}
               onAddDiscoveredLeads={handleAddDiscoveredLeads}
@@ -162,7 +189,7 @@ export const App: React.FC = () => {
 
           {currentView === 'b2b_founders' && (
             <B2BDecisionMakersView 
-              leads={leads}
+              leads={visibleLeads}
               onSelectLead={(l) => setSelectedLead(l)}
               onOpenPitchModal={(l) => setPitchLead(l)}
               onStatusChange={handleStatusChange}
@@ -173,7 +200,7 @@ export const App: React.FC = () => {
 
           {currentView === 'tech_stack' && (
             <TechStackView 
-              leads={leads}
+              leads={visibleLeads}
               onSelectLead={(l) => setSelectedLead(l)}
               onOpenPitchModal={(l) => setPitchLead(l)}
               onStatusChange={handleStatusChange}
@@ -184,7 +211,7 @@ export const App: React.FC = () => {
 
           {currentView === 'funded_startups' && (
             <FundedStartupsView 
-              leads={leads}
+              leads={visibleLeads}
               onSelectLead={(l) => setSelectedLead(l)}
               onOpenPitchModal={(l) => setPitchLead(l)}
               onStatusChange={handleStatusChange}
@@ -195,7 +222,7 @@ export const App: React.FC = () => {
 
           {currentView === 'remote_jobs' && (
             <RemoteJobsView 
-              leads={leads}
+              leads={visibleLeads}
               onSelectLead={(l) => setSelectedLead(l)}
               onOpenPitchModal={(l) => setPitchLead(l)}
               onAddDiscoveredLeads={handleAddDiscoveredLeads}
@@ -204,7 +231,7 @@ export const App: React.FC = () => {
 
           {currentView === 'table' && (
             <LeadTable 
-              leads={leads}
+              leads={visibleLeads}
               onSelectLead={(l) => setSelectedLead(l)}
               onOpenPitchModal={(l) => setPitchLead(l)}
               onStatusChange={handleStatusChange}
@@ -214,7 +241,7 @@ export const App: React.FC = () => {
 
           {currentView === 'kanban' && (
             <KanbanBoard 
-              leads={freshOnly ? leads.filter(l => !l.isExpired) : leads}
+              leads={visibleLeads}
               onSelectLead={(l) => setSelectedLead(l)}
               onOpenPitchModal={(l) => setPitchLead(l)}
               onStatusChange={handleStatusChange}

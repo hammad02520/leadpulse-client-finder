@@ -110,3 +110,25 @@ export function normalizePhoneNumber(rawPhone?: string, defaultCountryCode: stri
 
   return `${cleanCode} ${localDigits}`;
 }
+
+/**
+ * Real Live DNS MX Record check via Google DNS-over-HTTPS (DoH)
+ * Checks live global DNS servers for real Mail Exchange records in real time
+ */
+export async function checkDomainMxRecord(domain: string): Promise<boolean> {
+  try {
+    const cleanDomain = domain.replace(/^https?:\/\//, '').replace(/\/.*$/, '').replace(/^www\./, '').trim();
+    if (!cleanDomain || cleanDomain.length < 3 || cleanDomain.includes('localhost') || cleanDomain === 'none') {
+      return false;
+    }
+    const res = await fetch(`https://dns.google/resolve?name=${encodeURIComponent(cleanDomain)}&type=MX`);
+    if (res.ok) {
+      const data = await res.json();
+      return Boolean(data && data.Answer && data.Answer.length > 0);
+    }
+  } catch {
+    // Network or silent fallback
+  }
+  return false;
+}
+

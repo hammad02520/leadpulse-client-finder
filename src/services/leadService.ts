@@ -3,8 +3,11 @@ import { RedditAdapter } from '../adapters/RedditAdapter';
 import { JobFeedAdapter } from '../adapters/JobFeedAdapter';
 import { LocalBizAdapter } from '../adapters/LocalBizAdapter';
 import { strictDeduplicate } from './deduplicationService';
+import { b2bDiscoveryService } from './b2bDiscoveryService';
+import { techStackService } from './techStackService';
+import { startupFundingService } from './startupFundingService';
 
-const STORAGE_KEY = 'leadpulse_leads_data_v10_clean';
+const STORAGE_KEY = 'leadpulse_leads_v18_high_volume_smb';
 
 class LeadService {
   private adapters = [
@@ -15,27 +18,121 @@ class LeadService {
 
   public getLeadsFromStorage(): Lead[] {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
-    try {
-      const parsed: Lead[] = JSON.parse(raw);
-      // Always guarantee strict uniqueness
-      return strictDeduplicate(parsed);
-    } catch {
-      return [];
+    if (raw) {
+      try {
+        const parsed: Lead[] = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const activeUnexpired = parsed.filter(l => !l.isExpired && l.freshnessTier !== 'STALE_EXPIRED');
+          if (activeUnexpired.length > 0) {
+            return strictDeduplicate(activeUnexpired);
+          }
+        }
+      } catch {
+        // proceed to fallbacks
+      }
     }
+
+    // 1. Check previous storage versions so app NEVER starts empty
+    for (const oldKey of [
+      'leadpulse_leads_v17_expanded_dynamic', 
+      'leadpulse_leads_v16_dynamic_live', 
+      'leadpulse_leads_v15_dynamic'
+    ]) {
+      const oldRaw = localStorage.getItem(oldKey);
+      if (oldRaw) {
+        try {
+          const parsed: Lead[] = JSON.parse(oldRaw);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            const activeUnexpired = parsed.filter(l => !l.isExpired && l.freshnessTier !== 'STALE_EXPIRED');
+            if (activeUnexpired.length > 0) {
+              const unique = strictDeduplicate(activeUnexpired);
+              this.saveLeadsToStorage(unique);
+              return unique;
+            }
+          }
+        } catch {
+          // ignore
+        }
+      }
+    }
+
+    return [];
   }
 
   public saveLeadsToStorage(leads: Lead[]): void {
-    const unique = strictDeduplicate(leads);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(unique));
+    try {
+      const activeUnexpired = leads.filter(l => !l.isExpired && l.freshnessTier !== 'STALE_EXPIRED');
+      const unique = strictDeduplicate(activeUnexpired);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(unique));
+    } catch (e) {
+      console.warn('localStorage quota warning, trimming to top 500 leads:', e);
+      try {
+        const activeUnexpired = leads.filter(l => !l.isExpired && l.freshnessTier !== 'STALE_EXPIRED');
+        const trimmed = strictDeduplicate(activeUnexpired).slice(0, 500);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(trimmed));
+      } catch {
+        // quota full
+      }
+    }
   }
 
   public async fetchAndDiscoverLeads(): Promise<Lead[]> {
+    // 1. Fetch from existing adapters (Live Jobicy, Remotive, Arbeitnow, HN, OSM)
     const fetchedResults = await Promise.all(this.adapters.map(a => a.fetchLeads()));
     const flatFetched = fetchedResults.flat();
 
+    // 2. Fetch from B2B, Tech-Stack, and Startup engines dynamically
+    let b2bLeads: Lead[] = [];
+    let techLeads: Lead[] = [];
+    let startupLeads: Lead[] = [];
+
+    try {
+      b2bLeads = await b2bDiscoveryService.discoverDecisionMakers({
+        role: 'ALL',
+        companySize: 'ALL',
+        industry: 'ALL',
+        country: 'ALL',
+        limit: 75
+      });
+    } catch (e) {
+      console.warn('B2B dynamic discover error:', e);
+    }
+
+    try {
+      techLeads = await techStackService.discoverTechStackLeads({
+        cms: 'ALL',
+        maxSpeedScore: 85,
+        country: 'ALL',
+        limit: 75
+      });
+    } catch (e) {
+      console.warn('Tech stack dynamic discover error:', e);
+    }
+
+    try {
+      startupLeads = await startupFundingService.discoverFundedStartups({
+        stage: 'ALL',
+        projectNeed: 'ALL',
+        country: 'ALL',
+        limit: 75
+      });
+    } catch (e) {
+      console.warn('Startup funding dynamic discover error:', e);
+    }
+
     const existing = this.getLeadsFromStorage();
-    const finalLeads = strictDeduplicate([...flatFetched, ...existing]);
+    const allFetched = [
+      ...existing,
+      ...flatFetched,
+      ...b2bLeads,
+      ...techLeads,
+      ...startupLeads
+    ];
+
+    // Guarantee unexpired & strictly deduplicated
+    const finalLeads = strictDeduplicate(
+      allFetched.filter(l => !l.isExpired && l.freshnessTier !== 'STALE_EXPIRED')
+    );
 
     this.saveLeadsToStorage(finalLeads);
     return finalLeads;

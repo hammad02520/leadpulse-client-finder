@@ -25,32 +25,14 @@ import {
 import { Lead, OsmSearchParams, EmailValidationStage } from '../types';
 import { overpassService } from '../services/overpassService';
 import { leadService } from '../services/leadService';
+import { GLOBAL_COUNTRY_CITIES, ALL_COUNTRIES, ALL_CITIES_KEY, ALL_CITIES_LABEL } from '../data/countryCityData';
 
 interface LocalBizLeadsViewProps {
   leads: Lead[];
   onSelectLead: (lead: Lead) => void;
   onOpenPitchModal: (lead: Lead) => void;
-  onAddDiscoveredLeads: (newLeads: Lead[]) => void;
+  onAddDiscoveredLeads: (newLeads: Lead[], replaceCity?: string) => void;
 }
-
-const COUNTRY_CITY_MAP: Record<string, string[]> = {
-  'Pakistan': ['Karachi', 'Lahore', 'Islamabad', 'Rawalpindi', 'Faisalabad', 'Peshawar', 'Multan'],
-  'United States': ['New York', 'Chicago', 'Austin', 'Los Angeles', 'Miami', 'San Francisco', 'Dallas', 'Houston', 'Seattle'],
-  'United Kingdom': ['London', 'Manchester', 'Birmingham', 'Edinburgh', 'Leeds', 'Glasgow'],
-  'United Arab Emirates': ['Dubai', 'Abu Dhabi', 'Sharjah'],
-  'Saudi Arabia': ['Riyadh', 'Jeddah', 'Dammam', 'Mecca', 'Medina'],
-  'Canada': ['Toronto', 'Vancouver', 'Montreal', 'Calgary', 'Ottawa'],
-  'Germany': ['Berlin', 'Munich', 'Hamburg', 'Frankfurt', 'Cologne'],
-  'Australia': ['Sydney', 'Melbourne', 'Brisbane', 'Perth'],
-  'Sweden': ['Stockholm', 'Gothenburg', 'Malmö'],
-  'France': ['Paris', 'Lyon', 'Marseille'],
-  'India': ['Mumbai', 'Delhi', 'Bangalore', 'Hyderabad'],
-  'Turkey': ['Istanbul', 'Ankara', 'Izmir'],
-  'Italy': ['Rome', 'Milan', 'Florence'],
-  'Spain': ['Madrid', 'Barcelona', 'Valencia'],
-  'Netherlands': ['Amsterdam', 'Rotterdam'],
-  'Brazil': ['São Paulo', 'Rio de Janeiro']
-};
 
 export const LocalBizLeadsView: React.FC<LocalBizLeadsViewProps> = ({
   leads,
@@ -69,7 +51,7 @@ export const LocalBizLeadsView: React.FC<LocalBizLeadsViewProps> = ({
     } catch {
       // ignore
     }
-    return { country: 'United States', city: 'New York' };
+    return { country: 'Sweden', city: ALL_CITIES_KEY };
   };
 
   const initialPref = getInitialPref();
@@ -93,11 +75,12 @@ export const LocalBizLeadsView: React.FC<LocalBizLeadsViewProps> = ({
   // Active Country & City resolving
   const activeCountry = selectedCountry === 'CUSTOM' ? customCountry : selectedCountry;
   const activeCity = selectedCity === 'CUSTOM' ? customCity : selectedCity;
+  const isNationwide = activeCity === ALL_CITIES_KEY || activeCity === 'ALL' || activeCity.toLowerCase().includes('all cities');
 
   // Update cities dropdown whenever country changes
   useEffect(() => {
-    if (selectedCountry !== 'CUSTOM' && COUNTRY_CITY_MAP[selectedCountry]) {
-      setSelectedCity(COUNTRY_CITY_MAP[selectedCountry][0]);
+    if (selectedCountry !== 'CUSTOM' && GLOBAL_COUNTRY_CITIES[selectedCountry]) {
+      setSelectedCity(GLOBAL_COUNTRY_CITIES[selectedCountry][0] || ALL_CITIES_KEY);
     }
   }, [selectedCountry]);
 
@@ -111,18 +94,38 @@ export const LocalBizLeadsView: React.FC<LocalBizLeadsViewProps> = ({
     }
   }, [activeCountry, activeCity]);
 
-  // Filter real OpenStreetMap local business nodes ONLY
-  const localLeads = leads.filter(l => l.source === 'LOCAL_BIZ' && (l.tags.includes('OPENSTREETMAP') || l.sourceUrl.includes('openstreetmap')));
+  // Filter real OpenStreetMap local business nodes
+  const allOsmLeads = leads.filter(l => l.source === 'LOCAL_BIZ' && (l.tags.includes('OPENSTREETMAP') || l.sourceUrl.includes('openstreetmap')));
 
-  // Auto-run initial search if zero OSM leads exist
+  // Filter leads matching the selected city or nationwide country
+  const cityOsmLeads = allOsmLeads.filter(l => {
+    if (isNationwide) {
+      if (!activeCountry) return true;
+      const cleanCountry = activeCountry.toLowerCase().trim();
+      const leadCountry = (l.company.country || '').toLowerCase().trim();
+      const leadLoc = (l.company.location || '').toLowerCase().trim();
+      return leadCountry.includes(cleanCountry) || leadLoc.includes(cleanCountry);
+    }
+    if (!activeCity) return true;
+    const cleanCity = activeCity.toLowerCase().trim();
+    const leadCity = (l.company.city || '').toLowerCase().trim();
+    const leadLoc = (l.company.location || '').toLowerCase().trim();
+    return leadCity.includes(cleanCity) || leadLoc.includes(cleanCity);
+  });
+
+  // Display leads for active city / country; if none yet, empty state allows 1-click authentic fetch
+  const localLeads = (activeCity || activeCountry) ? cityOsmLeads : allOsmLeads;
+
+  // Auto-run search for active city if no leads exist yet for this specific city
   useEffect(() => {
-    if (localLeads.length === 0 && !isSearchingOsm) {
+    if (cityOsmLeads.length === 0 && !isSearchingOsm && activeCity && activeCountry) {
       handleRunOsmSearch();
     }
-  }, []);
+  }, [activeCity, activeCountry]);
 
   const filteredLeads = localLeads.filter(l => {
     const matchesSearch = 
+      !searchTerm ||
       l.company.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       l.company.industry.toLowerCase().includes(searchTerm.toLowerCase()) ||
       l.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -133,7 +136,12 @@ export const LocalBizLeadsView: React.FC<LocalBizLeadsViewProps> = ({
       (filterType === 'NO_WEBSITE' && l.projectNeed === 'NO_WEBSITE_NO_APP') ||
       (filterType === 'HAS_WEBSITE_NO_APP' && l.projectNeed === 'HAS_WEBSITE_NO_APP');
 
-    return matchesSearch && matchesFilterType;
+    const matchesCategory = 
+      category === 'all' ||
+      l.tags.includes(category.toUpperCase()) ||
+      l.company.industry.toLowerCase().includes(category.toLowerCase());
+
+    return matchesSearch && matchesFilterType && matchesCategory;
   });
 
   // Reset to page 1 whenever filters or search changes
@@ -141,21 +149,24 @@ export const LocalBizLeadsView: React.FC<LocalBizLeadsViewProps> = ({
     setCurrentPage(1);
   }, [searchTerm, filterType, category, localLeads.length]);
 
-  const handleRunOsmSearch = async () => {
+  const handleRunOsmSearch = async (overrideNationwide?: boolean) => {
     const finalCountry = activeCountry.trim();
     const finalCity = activeCity.trim();
-    if (!finalCity || !finalCountry) return;
+    if (!finalCountry) return;
+
+    const runNationwide = overrideNationwide ?? isNationwide;
 
     setIsSearchingOsm(true);
     try {
       const results = await overpassService.discoverOsmBusinesses({
         country: finalCountry,
-        city: finalCity,
+        city: runNationwide ? ALL_CITIES_KEY : finalCity,
         category,
         filterType,
-        limit: fetchLimit
+        limit: runNationwide ? Math.max(fetchLimit, 500) : fetchLimit,
+        isNationwide: runNationwide
       });
-      onAddDiscoveredLeads(results);
+      onAddDiscoveredLeads(results, runNationwide ? `NATIONWIDE_${finalCountry}` : finalCity);
     } catch (e) {
       console.error('OSM Global Search Error:', e);
     } finally {
@@ -220,18 +231,38 @@ export const LocalBizLeadsView: React.FC<LocalBizLeadsViewProps> = ({
               Worldwide Local Business Lead Finder
             </h2>
             <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-              Search real physical businesses across Pakistan, United States, UK, UAE, Saudi Arabia, Canada, Germany & 50+ countries.
+              Search real physical businesses across Pakistan, United States, UK, UAE, Sweden, Canada, Germany & 50+ countries.
             </p>
           </div>
 
-          <button 
-            className="btn btn-primary"
-            style={{ padding: '10px 22px', fontSize: '0.875rem', fontWeight: '700' }}
-            onClick={handleRunOsmSearch}
-            disabled={isSearchingOsm}
-          >
-            {isSearchingOsm ? `⏳ Fetching ${fetchLimit} Leads...` : `🚀 Fetch ${fetchLimit} Leads in ${activeCity}, ${activeCountry}`}
-          </button>
+          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+            <button 
+              className="btn btn-primary"
+              style={{ padding: '10px 20px', fontSize: '0.875rem', fontWeight: '700' }}
+              onClick={() => handleRunOsmSearch()}
+              disabled={isSearchingOsm}
+            >
+              {isSearchingOsm 
+                ? (isNationwide ? `⏳ Harvesting All ${activeCountry} Leads...` : `⏳ Fetching ${fetchLimit} Leads...`) 
+                : (isNationwide ? `🌍 Fetch All Cities in ${activeCountry} (Nationwide)` : `🚀 Fetch ${fetchLimit} Leads in ${activeCity}, ${activeCountry}`)
+              }
+            </button>
+
+            {!isNationwide && (
+              <button 
+                className="btn btn-secondary"
+                style={{ padding: '10px 16px', fontSize: '0.85rem', fontWeight: '700', border: '1px solid var(--primary)', color: 'var(--primary)' }}
+                onClick={() => {
+                  setSelectedCity(ALL_CITIES_KEY);
+                  handleRunOsmSearch(true);
+                }}
+                disabled={isSearchingOsm}
+                title={`Harvest all cities across ${activeCountry} at once`}
+              >
+                🌟 Fetch All Cities in {activeCountry} (Nationwide)
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -243,7 +274,7 @@ export const LocalBizLeadsView: React.FC<LocalBizLeadsViewProps> = ({
             <Globe2 size={18} color="var(--primary)" /> Global Country, City & Category Filters
           </div>
           <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-            Configured Fetch Batch: <strong>{fetchLimit} Nodes</strong>
+            Configured Fetch Batch: <strong>{isNationwide ? 'Nationwide Multi-City' : `${fetchLimit} Nodes`}</strong>
           </div>
         </div>
 
@@ -252,29 +283,16 @@ export const LocalBizLeadsView: React.FC<LocalBizLeadsViewProps> = ({
           {/* Country Dropdown */}
           <div>
             <label style={{ fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
-              Country
+              Country ({ALL_COUNTRIES.length} Global Countries)
             </label>
             <select 
               className="input-field"
               value={selectedCountry}
               onChange={(e) => setSelectedCountry(e.target.value)}
             >
-              <option value="Pakistan">🇵🇰 Pakistan</option>
-              <option value="United States">🇺🇸 United States</option>
-              <option value="United Kingdom">🇬🇧 United Kingdom</option>
-              <option value="United Arab Emirates">🇦🇪 United Arab Emirates</option>
-              <option value="Saudi Arabia">🇸🇦 Saudi Arabia</option>
-              <option value="Canada">🇨🇦 Canada</option>
-              <option value="Germany">🇩🇪 Germany</option>
-              <option value="Australia">🇦🇺 Australia</option>
-              <option value="Sweden">🇸🇪 Sweden</option>
-              <option value="France">🇫🇷 France</option>
-              <option value="India">🇮🇳 India</option>
-              <option value="Turkey">🇹🇷 Turkey</option>
-              <option value="Italy">🇮🇹 Italy</option>
-              <option value="Spain">🇪🇸 Spain</option>
-              <option value="Netherlands">🇳🇱 Netherlands</option>
-              <option value="Brazil">🇧🇷 Brazil</option>
+              {ALL_COUNTRIES.map(c => (
+                <option key={c} value={c}>{c}</option>
+              ))}
               <option value="CUSTOM">✍️ Enter Custom Country...</option>
             </select>
             {selectedCountry === 'CUSTOM' && (
@@ -292,16 +310,18 @@ export const LocalBizLeadsView: React.FC<LocalBizLeadsViewProps> = ({
           {/* City Dropdown */}
           <div>
             <label style={{ fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
-              City
+              City Selection
             </label>
             <select 
               className="input-field"
               value={selectedCity}
               onChange={(e) => setSelectedCity(e.target.value)}
             >
-              {selectedCountry !== 'CUSTOM' && COUNTRY_CITY_MAP[selectedCountry] ? (
-                COUNTRY_CITY_MAP[selectedCountry].map(c => (
-                  <option key={c} value={c}>{c}</option>
+              {selectedCountry !== 'CUSTOM' && GLOBAL_COUNTRY_CITIES[selectedCountry] ? (
+                GLOBAL_COUNTRY_CITIES[selectedCountry].map(c => (
+                  <option key={c} value={c}>
+                    {c === ALL_CITIES_KEY ? ALL_CITIES_LABEL : c}
+                  </option>
                 ))
               ) : null}
               <option value="CUSTOM">✍️ Enter Custom City...</option>
@@ -359,8 +379,10 @@ export const LocalBizLeadsView: React.FC<LocalBizLeadsViewProps> = ({
               value={fetchLimit} 
               onChange={(e) => setFetchLimit(Number(e.target.value))}
             >
-              <option value={100}>⚡ 100 Leads (Fastest)</option>
-              <option value={300}>🎯 300 Leads (Balanced)</option>
+              <option value={50}>⚡ 50 Leads (Quick)</option>
+              <option value={100}>⚡ 100 Leads (Standard)</option>
+              <option value={200}>🎯 200 Leads (Balanced)</option>
+              <option value={300}>🎯 300 Leads (Recommended)</option>
               <option value={500}>🚀 500 Leads (High Volume)</option>
               <option value={1000}>🔥 1,000+ Leads (Deep Scan)</option>
             </select>
@@ -371,16 +393,19 @@ export const LocalBizLeadsView: React.FC<LocalBizLeadsViewProps> = ({
         {/* Dynamic Action Trigger Bar inside Filter Panel */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', background: '#f8fafc', padding: '12px 14px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
           <div style={{ fontSize: '0.85rem', color: 'var(--text-main)', fontWeight: '600' }}>
-            Selected: <span style={{ color: 'var(--primary)', fontWeight: '700' }}>{activeCity}, {activeCountry}</span> • Category: <span style={{ color: '#0284c7', fontWeight: '700' }}>{category.toUpperCase()}</span> • Volume: <span style={{ color: '#d97706', fontWeight: '700' }}>{fetchLimit} Leads</span>
+            Selected: <span style={{ color: 'var(--primary)', fontWeight: '700' }}>{isNationwide ? `All Cities in ${activeCountry}` : `${activeCity}, ${activeCountry}`}</span> • Category: <span style={{ color: '#0284c7', fontWeight: '700' }}>{category.toUpperCase()}</span> • Volume: <span style={{ color: '#d97706', fontWeight: '700' }}>{isNationwide ? 'Nationwide Multi-City' : `${fetchLimit} Leads`}</span>
           </div>
 
           <button 
             className="btn btn-primary"
             style={{ padding: '8px 20px', fontSize: '0.85rem', fontWeight: '800', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
-            onClick={handleRunOsmSearch}
+            onClick={() => handleRunOsmSearch()}
             disabled={isSearchingOsm}
           >
-            {isSearchingOsm ? `⏳ Fetching ${fetchLimit} Leads...` : `🚀 Fetch ${fetchLimit} Leads in ${activeCity}`}
+            {isSearchingOsm 
+              ? (isNationwide ? `⏳ Harvesting All ${activeCountry} Leads...` : `⏳ Fetching ${fetchLimit} Leads...`) 
+              : (isNationwide ? `🌍 Fetch All Cities in ${activeCountry} (Nationwide)` : `🚀 Fetch ${fetchLimit} Leads in ${activeCity}`)
+            }
           </button>
         </div>
 
@@ -422,6 +447,8 @@ export const LocalBizLeadsView: React.FC<LocalBizLeadsViewProps> = ({
                 <option value={25}>25 per page</option>
                 <option value={50}>50 per page</option>
                 <option value={100}>100 per page</option>
+                <option value={250}>250 per page</option>
+                <option value={500}>500 per page</option>
               </select>
             </div>
 

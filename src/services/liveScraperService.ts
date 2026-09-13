@@ -60,11 +60,11 @@ export class LiveScraperService {
     // Remotive API
     if (selectedSource === 'ALL' || selectedSource === 'REMOTIVE') {
       try {
-        const res = await fetch('https://remotive.com/api/remote-jobs?limit=25');
+        const res = await fetch('https://remotive.com/api/remote-jobs?limit=50');
         if (res.ok) {
           const data = await res.json();
           const jobs = data.jobs || [];
-        jobs.slice(0, 10).forEach((job: any) => {
+          jobs.slice(0, 35).forEach((job: any) => {
           const domain = this.extractDomainFromUrl(job.url, job.company_name);
           const projectNeed = this.classifyProjectNeed(job.title, job.description || '');
           const audit = runWebsiteAudit(domain);
@@ -128,7 +128,7 @@ export class LiveScraperService {
         if (res.ok) {
           const data = await res.json();
           const jobs = data.data || [];
-          jobs.slice(0, 15).forEach((job: any) => {
+          jobs.slice(0, 35).forEach((job: any) => {
             const domain = this.extractDomainFromUrl(job.url, job.company_name);
             const projectNeed = this.classifyProjectNeed(job.title, job.description || '');
             const audit = runWebsiteAudit(domain);
@@ -188,11 +188,11 @@ export class LiveScraperService {
     // Jobicy Live Remote Jobs API (100% Free Public API)
     if (selectedSource === 'ALL' || selectedSource === 'JOBICY') {
       try {
-        const res = await fetch('https://jobicy.com/api/v2/remote-jobs?count=25');
+        const res = await fetch('https://jobicy.com/api/v2/remote-jobs?count=50');
         if (res.ok) {
           const data = await res.json();
           const jobs = data.jobs || [];
-        jobs.slice(0, 15).forEach((job: any) => {
+          jobs.slice(0, 40).forEach((job: any) => {
           const domain = this.extractDomainFromUrl(job.url, job.companyName);
           const projectNeed = this.classifyProjectNeed(job.jobTitle, job.jobDescription || job.jobExcerpt || '');
           const audit = runWebsiteAudit(domain);
@@ -266,13 +266,13 @@ export class LiveScraperService {
   public async scrapeLiveRedditLeads(): Promise<Lead[]> {
     const leads: Lead[] = [];
 
-    // HackerNews Algolia Search API
+    // HackerNews Algolia Search API (40 hits)
     try {
-      const res = await fetch('https://hn.algolia.com/api/v1/search_by_date?tags=story&query=hiring');
+      const res = await fetch('https://hn.algolia.com/api/v1/search_by_date?tags=story&query=hiring&hitsPerPage=40');
       if (res.ok) {
         const data = await res.json();
         const hits = data.hits || [];
-        hits.slice(0, 10).forEach((hit: any) => {
+        hits.slice(0, 35).forEach((hit: any) => {
           const companyName = hit.author || 'Tech Startup';
           const url = hit.url || `https://news.ycombinator.com/item?id=${hit.objectID}`;
           const domain = this.extractDomainFromUrl(url, companyName);
