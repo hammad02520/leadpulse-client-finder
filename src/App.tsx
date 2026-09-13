@@ -5,6 +5,9 @@ import { Dashboard } from './components/Dashboard';
 import { LeadTable } from './components/LeadTable';
 import { KanbanBoard } from './components/KanbanBoard';
 import { LocalBizLeadsView } from './components/LocalBizLeadsView';
+import { B2BDecisionMakersView } from './components/B2BDecisionMakersView';
+import { TechStackView } from './components/TechStackView';
+import { FundedStartupsView } from './components/FundedStartupsView';
 import { RemoteJobsView } from './components/RemoteJobsView';
 import { LeadDetailDrawer } from './components/LeadDetailDrawer';
 import { OutreachModal } from './components/OutreachModal';
@@ -95,6 +98,15 @@ export const App: React.FC = () => {
     if (currentView === 'local_biz') {
       const localLeads = leads.filter(l => l.source === 'LOCAL_BIZ');
       leadService.exportLeadsToCSV(localLeads, 'LOCAL_SMB');
+    } else if (currentView === 'b2b_founders') {
+      const b2bLeads = leads.filter(l => l.source === 'B2B_APOLLO');
+      leadService.exportLeadsToCSV(b2bLeads, 'B2B_FOUNDERS');
+    } else if (currentView === 'tech_stack') {
+      const techLeads = leads.filter(l => l.source === 'TECH_STACK');
+      leadService.exportLeadsToCSV(techLeads, 'TECH_STACK');
+    } else if (currentView === 'funded_startups') {
+      const startupLeads = leads.filter(l => l.source === 'FUNDED_STARTUP');
+      leadService.exportLeadsToCSV(startupLeads, 'FUNDED_STARTUPS');
     } else if (currentView === 'remote_jobs') {
       const remoteLeads = leads.filter(l => l.source === 'JOB_FEED' || l.source === 'REDDIT');
       leadService.exportLeadsToCSV(remoteLeads, 'REMOTE_JOBS');
@@ -144,6 +156,39 @@ export const App: React.FC = () => {
               leads={leads}
               onSelectLead={(l) => setSelectedLead(l)}
               onOpenPitchModal={(l) => setPitchLead(l)}
+              onAddDiscoveredLeads={handleAddDiscoveredLeads}
+            />
+          )}
+
+          {currentView === 'b2b_founders' && (
+            <B2BDecisionMakersView 
+              leads={leads}
+              onSelectLead={(l) => setSelectedLead(l)}
+              onOpenPitchModal={(l) => setPitchLead(l)}
+              onStatusChange={handleStatusChange}
+              onExportCSV={handleExportCSV}
+              onAddDiscoveredLeads={handleAddDiscoveredLeads}
+            />
+          )}
+
+          {currentView === 'tech_stack' && (
+            <TechStackView 
+              leads={leads}
+              onSelectLead={(l) => setSelectedLead(l)}
+              onOpenPitchModal={(l) => setPitchLead(l)}
+              onStatusChange={handleStatusChange}
+              onExportCSV={handleExportCSV}
+              onAddDiscoveredLeads={handleAddDiscoveredLeads}
+            />
+          )}
+
+          {currentView === 'funded_startups' && (
+            <FundedStartupsView 
+              leads={leads}
+              onSelectLead={(l) => setSelectedLead(l)}
+              onOpenPitchModal={(l) => setPitchLead(l)}
+              onStatusChange={handleStatusChange}
+              onExportCSV={handleExportCSV}
               onAddDiscoveredLeads={handleAddDiscoveredLeads}
             />
           )}

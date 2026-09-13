@@ -7,7 +7,10 @@ import {
   Kanban, 
   Table, 
   Flame, 
-  Clock
+  Clock,
+  Users,
+  Code2,
+  Rocket
 } from 'lucide-react';
 import { Lead, AppViewMode } from '../types';
 import { strictDeduplicate } from '../services/deduplicationService';
@@ -26,6 +29,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const uniqueLeads = strictDeduplicate(leads);
   const hotCount = uniqueLeads.filter(l => l.scoreBreakdown.temperature === 'HOT' && !l.isExpired).length;
   const localCount = uniqueLeads.filter(l => l.source === 'LOCAL_BIZ').length;
+  const b2bCount = uniqueLeads.filter(l => l.source === 'B2B_APOLLO').length;
+  const techCount = uniqueLeads.filter(l => l.source === 'TECH_STACK').length;
+  const startupCount = uniqueLeads.filter(l => l.source === 'FUNDED_STARTUP').length;
   const remoteCount = uniqueLeads.filter(l => l.source === 'JOB_FEED' || l.source === 'REDDIT').length;
 
   return (
@@ -102,10 +108,88 @@ export const Sidebar: React.FC<SidebarProps> = ({
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <MapPin size={18} /> Local SMB Finder
+            <MapPin size={18} /> Local SMBs & Maps
           </div>
           <span style={{ fontSize: '0.725rem', background: '#d1fae5', color: '#059669', padding: '2px 6px', borderRadius: '999px', fontWeight: '700' }}>
             {localCount}
+          </span>
+        </button>
+
+        {/* B2B Decision Makers (Apollo) */}
+        <button 
+          onClick={() => setCurrentView('b2b_founders')}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '10px 12px',
+            borderRadius: '8px',
+            border: 'none',
+            fontSize: '0.875rem',
+            fontWeight: '600',
+            cursor: 'pointer',
+            background: currentView === 'b2b_founders' ? 'var(--primary-light)' : 'transparent',
+            color: currentView === 'b2b_founders' ? 'var(--primary)' : 'var(--text-main)',
+            textAlign: 'left'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <Users size={18} /> B2B Decision Makers
+          </div>
+          <span style={{ fontSize: '0.725rem', background: '#ede9fe', color: '#7c3aed', padding: '2px 6px', borderRadius: '999px', fontWeight: '700' }}>
+            {b2bCount}
+          </span>
+        </button>
+
+        {/* Tech-Stack & CMS Audits */}
+        <button 
+          onClick={() => setCurrentView('tech_stack')}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '10px 12px',
+            borderRadius: '8px',
+            border: 'none',
+            fontSize: '0.875rem',
+            fontWeight: '600',
+            cursor: 'pointer',
+            background: currentView === 'tech_stack' ? 'var(--primary-light)' : 'transparent',
+            color: currentView === 'tech_stack' ? 'var(--primary)' : 'var(--text-main)',
+            textAlign: 'left'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <Code2 size={18} /> Tech-Stack Audits
+          </div>
+          <span style={{ fontSize: '0.725rem', background: '#ecfdf5', color: '#059669', padding: '2px 6px', borderRadius: '999px', fontWeight: '700' }}>
+            {techCount}
+          </span>
+        </button>
+
+        {/* Funded Startups & Product Launches */}
+        <button 
+          onClick={() => setCurrentView('funded_startups')}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '10px 12px',
+            borderRadius: '8px',
+            border: 'none',
+            fontSize: '0.875rem',
+            fontWeight: '600',
+            cursor: 'pointer',
+            background: currentView === 'funded_startups' ? 'var(--primary-light)' : 'transparent',
+            color: currentView === 'funded_startups' ? 'var(--primary)' : 'var(--text-main)',
+            textAlign: 'left'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <Rocket size={18} /> Funded Startups
+          </div>
+          <span style={{ fontSize: '0.725rem', background: '#fae8ff', color: '#c026d3', padding: '2px 6px', borderRadius: '999px', fontWeight: '700' }}>
+            {startupCount}
           </span>
         </button>
 

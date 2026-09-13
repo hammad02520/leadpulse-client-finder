@@ -108,7 +108,7 @@ class LeadService {
   /**
    * Export Leads to CSV / Excel with tailored, high-value client outreach columns
    */
-  public exportLeadsToCSV(leads: Lead[], mode: 'LOCAL_SMB' | 'REMOTE_JOBS' | 'ALL' = 'ALL'): void {
+  public exportLeadsToCSV(leads: Lead[], mode: 'LOCAL_SMB' | 'REMOTE_JOBS' | 'B2B_FOUNDERS' | 'TECH_STACK' | 'FUNDED_STARTUPS' | 'ALL' = 'ALL'): void {
     const cleanLeads = strictDeduplicate(leads);
     if (cleanLeads.length === 0) return;
 
@@ -197,6 +197,110 @@ class LeadService {
         l.projectNeed,
         `"${(l.budgetSignal || 'Open').replace(/"/g, '""')}"`,
         l.scoreBreakdown.temperature,
+        l.scoreBreakdown.totalScore,
+        l.status
+      ]);
+
+    } else if (mode === 'B2B_FOUNDERS' || cleanLeads.every(l => l.source === 'B2B_APOLLO')) {
+      filename = `LeadPulse_B2B_Decision_Makers_${new Date().toISOString().slice(0, 10)}.csv`;
+      headers = [
+        'Executive Name',
+        'Executive Role',
+        'Company Name',
+        'Industry',
+        'Company Size',
+        'Estimated Revenue',
+        'Work Email',
+        'Email Deliverability Stage',
+        'LinkedIn Profile URL',
+        'Website URL',
+        'Location',
+        'Project Opportunity',
+        'Lead Score',
+        'Pipeline Status'
+      ];
+
+      rows = cleanLeads.map(l => [
+        `"${(l.contact.personName || '').replace(/"/g, '""')}"`,
+        `"${(l.contact.role || '').replace(/"/g, '""')}"`,
+        `"${(l.company.name || '').replace(/"/g, '""')}"`,
+        `"${(l.company.industry || '').replace(/"/g, '""')}"`,
+        `"${(l.b2bInfo?.employeeCount || l.company.size || '').replace(/"/g, '""')}"`,
+        `"${(l.b2bInfo?.estimatedRevenue || l.budgetSignal || '').replace(/"/g, '""')}"`,
+        l.contact.email ? `"${l.contact.email}"` : '',
+        l.contact.emailValidationStage || 'FOUND',
+        l.contact.linkedinUrl || '',
+        l.company.websiteUrl || '',
+        `"${(l.company.location || '').replace(/"/g, '""')}"`,
+        `"${(l.websiteAudit?.aiOpportunityReason || '').replace(/"/g, '""')}"`,
+        l.scoreBreakdown.totalScore,
+        l.status
+      ]);
+
+    } else if (mode === 'TECH_STACK' || cleanLeads.every(l => l.source === 'TECH_STACK')) {
+      filename = `LeadPulse_TechStack_CMS_Audits_${new Date().toISOString().slice(0, 10)}.csv`;
+      headers = [
+        'Company Name',
+        'Detected CMS / Framework',
+        'Website URL',
+        'PageSpeed Score',
+        'FCP Latency',
+        'LCP Latency',
+        'Rebuild Urgency',
+        'Contact Person',
+        'Phone Number',
+        'Email Address',
+        'Specific Bottlenecks Detected',
+        'Lead Score',
+        'Pipeline Status'
+      ];
+
+      rows = cleanLeads.map(l => [
+        `"${(l.company.name || '').replace(/"/g, '""')}"`,
+        `"${(l.techStackInfo?.detectedCms || l.websiteAudit?.techFramework || '').replace(/"/g, '""')}"`,
+        l.company.websiteUrl || '',
+        `${l.websiteAudit?.performanceScore || 0}/100`,
+        l.websiteAudit?.fcp || 'N/A',
+        l.websiteAudit?.lcp || 'N/A',
+        l.techStackInfo?.rebuildUrgency || 'MEDIUM',
+        `"${(l.contact.personName || '').replace(/"/g, '""')}"`,
+        l.contact.phone ? `"${l.contact.phone}"` : '',
+        l.contact.email ? `"${l.contact.email}"` : '',
+        `"${(l.websiteAudit?.issuesDetected?.join(' | ') || '').replace(/"/g, '""')}"`,
+        l.scoreBreakdown.totalScore,
+        l.status
+      ]);
+
+    } else if (mode === 'FUNDED_STARTUPS' || cleanLeads.every(l => l.source === 'FUNDED_STARTUP')) {
+      filename = `LeadPulse_Funded_Startups_${new Date().toISOString().slice(0, 10)}.csv`;
+      headers = [
+        'Startup Name',
+        'Funding Stage',
+        'Amount Raised',
+        'Lead Investor',
+        'Founder / Contact',
+        'Contact Role',
+        'Verified Email',
+        'LinkedIn Profile',
+        'Urgent Tech Need',
+        'Location',
+        'Website URL',
+        'Lead Score',
+        'Pipeline Status'
+      ];
+
+      rows = cleanLeads.map(l => [
+        `"${(l.company.name || '').replace(/"/g, '""')}"`,
+        l.fundingInfo?.stage || 'SEED',
+        `"${(l.fundingInfo?.amountRaised || '').replace(/"/g, '""')}"`,
+        `"${(l.fundingInfo?.leadInvestor || '').replace(/"/g, '""')}"`,
+        `"${(l.contact.personName || '').replace(/"/g, '""')}"`,
+        `"${(l.contact.role || '').replace(/"/g, '""')}"`,
+        l.contact.email ? `"${l.contact.email}"` : '',
+        l.contact.linkedinUrl || '',
+        l.projectNeed,
+        `"${(l.company.location || '').replace(/"/g, '""')}"`,
+        l.company.websiteUrl || '',
         l.scoreBreakdown.totalScore,
         l.status
       ]);

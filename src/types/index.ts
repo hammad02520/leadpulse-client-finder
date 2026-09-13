@@ -15,6 +15,10 @@ export type SourceType =
   | 'REDDIT' 
   | 'JOB_FEED' 
   | 'LOCAL_BIZ' 
+  | 'GOOGLE_PLACES'
+  | 'B2B_APOLLO'
+  | 'TECH_STACK'
+  | 'FUNDED_STARTUP'
   | 'TWITTER' 
   | 'MANUAL_IMPORT';
 
@@ -136,6 +140,24 @@ export interface Lead {
     pitchText: string;
     sentAt: string;
   }[];
+  b2bInfo?: {
+    employeeCount?: string;
+    estimatedRevenue?: string;
+    department?: string;
+    decisionLevel: 'FOUNDER_OWNER' | 'C_SUITE' | 'VP_DIRECTOR' | 'MANAGER';
+  };
+  techStackInfo?: {
+    detectedCms: string;
+    framework?: string;
+    legacyIssues: string[];
+    rebuildUrgency: 'HIGH' | 'MEDIUM' | 'LOW';
+  };
+  fundingInfo?: {
+    stage: 'PRE_SEED' | 'SEED' | 'SERIES_A' | 'SERIES_B' | 'BOOTSTRAPPED' | 'PRODUCT_HUNT';
+    amountRaised?: string;
+    leadInvestor?: string;
+    launchDate?: string;
+  };
 }
 
 export interface SourceFilter {
@@ -155,4 +177,12 @@ export interface OsmSearchParams {
   limit?: number;
 }
 
-export type AppViewMode = 'dashboard' | 'local_biz' | 'remote_jobs' | 'kanban' | 'table';
+export type AppViewMode = 
+  | 'dashboard' 
+  | 'local_biz' 
+  | 'b2b_founders' 
+  | 'tech_stack' 
+  | 'funded_startups' 
+  | 'remote_jobs' 
+  | 'kanban' 
+  | 'table';

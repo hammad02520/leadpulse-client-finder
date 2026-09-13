@@ -1,33 +1,47 @@
-# ⚡ LeadPulse — Enterprise Developer Client Discovery & Audit CRM
+# ⚡ LeadPulse — Enterprise Developer Client Discovery & Multi-Stream CRM
 
-> High-Intent Client Lead Aggregator, Technical Website Auditor, and Safe Cold Outreach Platform for Fullstack Web & App Developers.
+> High-Intent Client Lead Aggregator, Technical Website Auditor, and Multi-Module Outreach Platform for Fullstack Web & App Developers.
 
 ![LeadPulse Banner](https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/zap.svg)
 
 ---
 
-## 🌟 Key Capabilities
+## 🌟 Modular Lead Streams (Zero Data Mixing)
 
-- 🌐 **Multi-Source Ingestion**: Live public API ingestion from Reddit (`r/forhire`, `r/freelance_forhire`), Remote Job Feeds (HackerNews, RemoteOK, WWR), and Local Business Directories.
-- ⚡ **Freshness & Expired Filter**: Live timestamp analysis with bonus points for brand new leads and automatic penalties for stale/expired posts.
-- 🛠️ **Website Technical Audit Scanner**: Automated mobile responsiveness, Google Lighthouse speed score, HTTPS SSL, and CTA conversion analysis.
-- 🎯 **Truthful AI Pitch Engine**: Factual proposal generator tailored strictly to verified website audit signals.
-- 💬 **Safe WhatsApp & Email Outreach**: One-click `wa.me` pre-filled draft creator + `mailto` client launcher.
-- 📊 **8-Stage Sales Pipeline & Kanban**: Drag & drop workflow management with CSV export support.
+LeadPulse isolates client discovery into **5 dedicated streams** so leads from different sources are never cross-contaminated:
+
+1. 📍 **Local SMBs & Maps (`local_biz`)**: OpenStreetMap & Google Maps directory scanner for local businesses (Dentists, Roofers, Clinics, Salons). Includes high-value **"No Website"** and mobile-responsiveness filters.
+2. 🎯 **B2B Decision Makers (`b2b_founders`)**: Apollo & Hunter-style verified directory of direct **Founders, CEOs, CTOs & CMOs** with direct verified work emails, ARR metrics, and LinkedIn profiles.
+3. 🛠️ **Tech-Stack & Outdated CMS Audits (`tech_stack`)**: BuiltWith & PageSpeed diagnostic engine locating businesses running on slow **WordPress, Wix, Joomla, or Shopify** stores needing Next.js rebuilds.
+4. 🚀 **Funded Startups & Launches (`funded_startups`)**: Venture-backed startups (**Pre-Seed, Seed, Series A — $250k to $4M+**) and trending Product Hunt launches urgently hiring MVP and mobile app builders.
+5. 💼 **Remote Dev Jobs (`remote_jobs`)**: Live developer contract jobs aggregated from Remotive, Jobicy, Arbeitnow, and Reddit (`r/forhire`).
 
 ---
 
-## 🚀 Quick Start
+## 🚀 Key Features
+
+- 📬 **Multi-Stage Email Validation**: Real-time validation badges (`FOUND` ➔ `FORMAT_VALID` ➔ `DOMAIN_VALID` ➔ `📬 MX_VALID` ➔ `✅ VERIFIED`).
+- 📱 **Phone Normalization & WhatsApp Direct**: Automatic country code resolution (`+1`, `+44`, `+971`, `+92`) and instant 1-click pre-filled WhatsApp chat links.
+- ⚡ **Tailored AI Pitch Engine**: Factual, non-generic cold emails and LinkedIn pitches customized specifically to each module's value proposition.
+- 📊 **8-Stage Sales Pipeline & Kanban**: Drag & drop deal management (`NEW ➔ CONTACTED ➔ REPLIED ➔ WON`).
+- 📥 **Custom CSV Exporters**: Individual CSV export buttons per module with columns customized specifically to that niche.
+
+---
+
+## 💻 Local Setup & Running Instructions
 
 ```bash
-# Clone repository
+# 1. Clone repository
 git clone https://github.com/hammad02520/leadpulse-client-finder.git
 
-# Install dependencies
+# 2. Install dependencies
 npm install
 
-# Run dev server
+# 3. Start local dev server
 npm run dev
+
+# 4. Build for production (TypeScript verified)
+npm run build
 ```
 
 ---

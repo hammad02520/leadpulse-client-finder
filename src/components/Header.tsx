@@ -81,7 +81,14 @@ export const Header: React.FC<HeaderProps> = ({
           onClick={onExportCSV}
           title="Export qualified leads to CSV/Excel"
         >
-          <Download size={15} /> {currentView === 'local_biz' ? 'Export Local SMBs (CSV)' : 'Export Remote Jobs (CSV)'}
+          <Download size={15} /> {
+            currentView === 'local_biz' ? 'Export Local SMBs (CSV)' :
+            currentView === 'b2b_founders' ? 'Export B2B Executives (CSV)' :
+            currentView === 'tech_stack' ? 'Export Tech Audits (CSV)' :
+            currentView === 'funded_startups' ? 'Export Startups (CSV)' :
+            currentView === 'remote_jobs' ? 'Export Remote Jobs (CSV)' :
+            'Export Master Leads (CSV)'
+          }
         </button>
 
         <button 

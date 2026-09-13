@@ -19,8 +19,23 @@ export function generateAIPitch(lead: Lead): AIPitchResult {
   let solutionProposed = '';
   let cta = `Would you be open to a 10-minute quick chat or short video walkthrough this week?`;
 
-  // Build Truthful Pitch based on Audit Signals & Need
-  if (projectNeed === 'WEB_REDESIGN' || !audit.mobileFriendly || !audit.hasModernUi) {
+  // Source-Specific Tailored Pitch Strategies
+  if (lead.source === 'B2B_APOLLO' && lead.b2bInfo) {
+    emailSubject = `Quick thought on ${companyName}'s product development & engineering bandwidth`;
+    problemObserved = `I came across your profile as ${lead.contact.role || 'Executive'} at ${companyName}. At your current scale (${lead.b2bInfo.employeeCount} team, ${lead.b2bInfo.estimatedRevenue || 'growing ARR'}), keeping engineering velocity high without accumulating technical debt is often a delicate balance.`;
+    solutionProposed = `I partner with fast-moving founders as a senior fullstack contractor, shipping high-impact web apps, customer dashboards, and API integrations with zero hand-holding.`;
+    cta = `Would you have 10 minutes for a quick intro call this Tuesday or Thursday?`;
+  } else if (lead.source === 'FUNDED_STARTUP' && lead.fundingInfo) {
+    emailSubject = `Congrats on ${companyName}'s ${lead.fundingInfo.stage} round + engineering velocity`;
+    problemObserved = `Saw the exciting news about ${companyName} raising ${lead.fundingInfo.amountRaised || 'fresh capital'} backed by ${lead.fundingInfo.leadInvestor || 'top investors'}. Scaling the product quickly to hit post-raise milestones is crucial right now.`;
+    solutionProposed = `I build scalable SaaS MVPs, responsive frontend apps (Next.js/React), and cross-platform mobile apps (React Native/Flutter) that help venture-backed startups ship features in days instead of months.`;
+    cta = `Happy to share a 2-minute Loom walkthrough of relevant apps I've built if you're open to it.`;
+  } else if (lead.source === 'TECH_STACK' && lead.techStackInfo) {
+    emailSubject = `Speed & conversion bottleneck observed on ${audit.domain || companyName}`;
+    problemObserved = `I noticed ${companyName}'s website is running on ${lead.techStackInfo.detectedCms}. A quick Lighthouse diagnostic revealed a mobile performance score of ${audit.performanceScore}/100 with ${audit.fcp || 'high'} First Contentful Paint latency, which directly damages search ranking and paid ad conversion.`;
+    solutionProposed = `I specialize in migrating legacy ${lead.techStackInfo.detectedCms.split(' ')[0]} sites to modern, ultra-fast Next.js architecture — achieving 95+ Google Lighthouse scores, instant sub-second page loads, and seamless mobile conversion.`;
+    cta = `Can I send you a free 3-minute video breakdown of the specific bottlenecks hurting your site's load speed?`;
+  } else if (projectNeed === 'WEB_REDESIGN' || !audit.mobileFriendly || !audit.hasModernUi) {
     emailSubject = `Quick thought on ${companyName}'s digital experience & mobile conversion`;
     
     if (audit.hasWebsite && !audit.mobileFriendly) {
