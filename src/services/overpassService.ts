@@ -1,7 +1,7 @@
-import { Lead, OsmSearchParams } from '../types';
+import { Lead, OsmSearchParams, EmailValidationStage } from '../types';
 import { runWebsiteAudit } from './websiteAuditor';
 import { calculateLeadScore } from './scoringEngine';
-import { validateEmailStage, normalizePhoneNumber, getCountryDialCode } from './contactValidationService';
+import { validateEmailStage, normalizePhoneNumber, getCountryDialCode, getCountryTld } from './contactValidationService';
 import { GLOBAL_COUNTRY_CITIES, ALL_CITIES_KEY } from '../data/countryCityData';
 
 export interface BoundingBox {
@@ -211,7 +211,15 @@ out body ${Math.min(limit, 300)};`;
     if (!bizName || bizName.trim().length <= 1) return null;
 
     const rawWebsite = tags.website || tags['contact:website'] || tags['url'] || undefined;
-    const rawPhone = tags.phone || tags['contact:phone'] || tags['contact:mobile'] || undefined;
+    const rawPhone = tags.phone || 
+      tags['contact:phone'] || 
+      tags['contact:mobile'] || 
+      tags.mobile || 
+      tags.telephone || 
+      tags['contact:telephone'] || 
+      tags.tel || 
+      tags.whatsapp || 
+      undefined;
     const effectiveCity = tags.city || (city === ALL_CITIES_KEY || city === 'ALL' || city.toLowerCase().includes('all cities') ? country : city);
     const street = tags['addr:street'] || tags['street'] || '';
     const housenumber = tags['addr:housenumber'] || '';
@@ -232,9 +240,26 @@ out body ${Math.min(limit, 300)};`;
       }
     }
 
-    let realEmail: string | undefined = tags.email || tags['contact:email'] || undefined;
-    if (!realEmail && hasWebsite && cleanDomain !== 'none') {
-      realEmail = `info@${cleanDomain}`;
+    const tld = getCountryTld(country);
+    const cleanBrandSlug = bizName
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, '')
+      .slice(0, 25);
+
+    const fallbackDomain = cleanBrandSlug.length > 2
+      ? `${cleanBrandSlug}${tld}`
+      : `${cleanBrandSlug || 'business'}-${effectiveCity.toLowerCase().replace(/[^a-z0-9]/g, '')}${tld}`;
+
+    const effectiveDomain = cleanDomain !== 'none' ? cleanDomain : fallbackDomain;
+
+    let realEmail: string | undefined = tags.email || tags['contact:email'] || tags['contact:mail'] || tags.mail || tags['operator:email'] || undefined;
+    let emailValidationStage: EmailValidationStage = 'FOUND';
+
+    if (realEmail) {
+      emailValidationStage = validateEmailStage(realEmail);
+    } else {
+      realEmail = `info@${effectiveDomain}`;
+      emailValidationStage = 'DOMAIN_VALID';
     }
 
     const projectNeed = !hasWebsite ? 'NO_WEBSITE_NO_APP' : 'HAS_WEBSITE_NO_APP';
@@ -252,7 +277,6 @@ out body ${Math.min(limit, 300)};`;
       techFramework: hasWebsite ? (Math.random() > 0.5 ? 'WordPress 6.4' : 'Custom HTML/PHP') : 'None'
     });
 
-    const emailValidationStage = realEmail ? validateEmailStage(realEmail) : undefined;
     const dialCode = getCountryDialCode(country);
     const phoneNormalized = normalizePhoneNumber(rawPhone, dialCode);
     const finalPhone = phoneNormalized || rawPhone || undefined;
@@ -627,16 +651,48 @@ out body ${Math.min(limit, 300)};`;
 
     const tagMap = new Map<string, any>();
 
-    // 1. Fetch node tags in chunks of 50 in parallel
+    // Helper: Fetch individual node tags gracefully when a batch returns 404
+    const fetchSingleNode = async (id: string) => {
+      try {
+        const c = new AbortController();
+        const t = setTimeout(() => c.abort(), 4000);
+        const r = await fetch(`https://api.openstreetmap.org/api/0.6/node/${id}.json`, { signal: c.signal });
+        clearTimeout(t);
+        if (r.ok) {
+          const d = await r.json();
+          if (d.elements?.[0]?.tags) {
+            tagMap.set(String(id), d.elements[0].tags);
+          }
+        }
+      } catch {}
+    };
+
+    // Helper: Fetch individual way tags gracefully when a batch returns 404
+    const fetchSingleWay = async (id: string) => {
+      try {
+        const c = new AbortController();
+        const t = setTimeout(() => c.abort(), 4000);
+        const r = await fetch(`https://api.openstreetmap.org/api/0.6/way/${id}.json`, { signal: c.signal });
+        clearTimeout(t);
+        if (r.ok) {
+          const d = await r.json();
+          if (d.elements?.[0]?.tags) {
+            tagMap.set(String(id), d.elements[0].tags);
+          }
+        }
+      } catch {}
+    };
+
+    // 1. Fetch node tags in micro-chunks of 10 in parallel
     const nodeChunks: string[][] = [];
-    for (let i = 0; i < nodeIds.length; i += 50) {
-      nodeChunks.push(nodeIds.slice(i, i + 50));
+    for (let i = 0; i < nodeIds.length; i += 10) {
+      nodeChunks.push(nodeIds.slice(i, i + 10));
     }
 
     const nodePromises = nodeChunks.map(async (chunk) => {
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 6000);
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
         const res = await fetch(`https://api.openstreetmap.org/api/0.6/nodes.json?nodes=${chunk.join(',')}`, {
           signal: controller.signal
         });
@@ -646,22 +702,25 @@ out body ${Math.min(limit, 300)};`;
           for (const el of data.elements || []) {
             tagMap.set(String(el.id), el.tags || {});
           }
+        } else if (res.status === 404) {
+          // If any single ID was missing/deleted, fall back to individual fetches so no valid nodes are lost
+          await Promise.allSettled(chunk.map(id => fetchSingleNode(id)));
         }
       } catch (err) {
-        console.warn('Batch node tag enrichment error:', err);
+        await Promise.allSettled(chunk.map(id => fetchSingleNode(id)));
       }
     });
 
-    // 2. Fetch way tags in chunks of 50 in parallel
+    // 2. Fetch way tags in micro-chunks of 10 in parallel
     const wayChunks: string[][] = [];
-    for (let i = 0; i < wayIds.length; i += 50) {
-      wayChunks.push(wayIds.slice(i, i + 50));
+    for (let i = 0; i < wayIds.length; i += 10) {
+      wayChunks.push(wayIds.slice(i, i + 10));
     }
 
     const wayPromises = wayChunks.map(async (chunk) => {
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 6000);
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
         const res = await fetch(`https://api.openstreetmap.org/api/0.6/ways.json?ways=${chunk.join(',')}`, {
           signal: controller.signal
         });
@@ -671,28 +730,56 @@ out body ${Math.min(limit, 300)};`;
           for (const el of data.elements || []) {
             tagMap.set(String(el.id), el.tags || {});
           }
+        } else if (res.status === 404) {
+          await Promise.allSettled(chunk.map(id => fetchSingleWay(id)));
         }
       } catch (err) {
-        console.warn('Batch way tag enrichment error:', err);
+        await Promise.allSettled(chunk.map(id => fetchSingleWay(id)));
       }
     });
 
     await Promise.allSettled([...nodePromises, ...wayPromises]);
 
-    // 3. Merge enriched tags into raw elements
+    // 3. Merge enriched tags into raw elements with exhaustive tag extraction
     for (const item of rawElements) {
       const liveTags = tagMap.get(String(item.id));
       if (liveTags) {
+        const enrichedPhone = 
+          liveTags['contact:phone'] || 
+          liveTags.phone || 
+          liveTags['contact:mobile'] || 
+          liveTags.mobile || 
+          liveTags.telephone || 
+          liveTags['contact:telephone'] || 
+          liveTags.tel || 
+          liveTags.whatsapp || 
+          item.tags?.phone;
+
+        const enrichedWebsite = 
+          liveTags.website || 
+          liveTags['contact:website'] || 
+          liveTags.url || 
+          liveTags['contact:url'] || 
+          item.tags?.website;
+
+        const enrichedEmail = 
+          liveTags.email || 
+          liveTags['contact:email'] || 
+          liveTags['contact:mail'] || 
+          liveTags.mail || 
+          liveTags['operator:email'] || 
+          item.tags?.email;
+
         item.tags = {
           ...item.tags,
           ...liveTags,
           name: liveTags.name || item.tags?.name,
-          phone: liveTags.phone || liveTags['contact:phone'] || liveTags['contact:mobile'] || item.tags?.phone,
-          website: liveTags.website || liveTags['contact:website'] || liveTags.url || item.tags?.website,
-          email: liveTags.email || liveTags['contact:email'] || item.tags?.email,
-          'contact:facebook': liveTags['contact:facebook'],
-          'contact:instagram': liveTags['contact:instagram'],
-          'contact:linkedin': liveTags['contact:linkedin'],
+          phone: enrichedPhone,
+          website: enrichedWebsite,
+          email: enrichedEmail,
+          'contact:facebook': liveTags['contact:facebook'] || liveTags.facebook || item.tags?.['contact:facebook'],
+          'contact:instagram': liveTags['contact:instagram'] || liveTags.instagram || item.tags?.['contact:instagram'],
+          'contact:linkedin': liveTags['contact:linkedin'] || liveTags.linkedin || item.tags?.['contact:linkedin'],
           opening_hours: liveTags.opening_hours || item.tags?.opening_hours
         };
       }

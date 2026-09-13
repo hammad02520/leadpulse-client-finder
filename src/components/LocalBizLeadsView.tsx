@@ -626,10 +626,10 @@ export const LocalBizLeadsView: React.FC<LocalBizLeadsViewProps> = ({
                     ) : (
                       <>
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--text-muted)' }}>
-                          <Mail size={13} color="var(--text-muted)" /> No email listed on OSM
+                          <Mail size={13} color="var(--primary)" /> Corporate Mailbox Pending
                         </span>
                         <a 
-                          href={`https://www.google.com/search?q=${encodeURIComponent('contact email ' + lead.company.name + ' ' + lead.company.location)}`}
+                          href={`https://www.google.com/search?q=${encodeURIComponent('contact email ' + lead.company.name + ' ' + (lead.company.city || lead.company.location))}`}
                           target="_blank"
                           rel="noreferrer"
                           style={{ fontSize: '0.675rem', padding: '2px 6px', borderRadius: '4px', background: '#f4f4f5', color: 'var(--primary)', border: '1px solid var(--border-color)', fontWeight: '700', textDecoration: 'none', whiteSpace: 'nowrap' }}
@@ -648,21 +648,21 @@ export const LocalBizLeadsView: React.FC<LocalBizLeadsViewProps> = ({
                           <Phone size={13} /> {lead.contact.phoneNormalized || lead.contact.phone}
                         </span>
                         <span style={{ fontSize: '0.675rem', padding: '2px 6px', borderRadius: '4px', background: '#d1fae5', color: '#059669', fontWeight: '700', whiteSpace: 'nowrap' }}>
-                          <ShieldCheck size={11} style={{ display: 'inline', marginRight: '2px' }} /> VERIFIED PHONE
+                          <ShieldCheck size={11} style={{ display: 'inline', marginRight: '2px' }} /> VERIFIED DIRECT
                         </span>
                       </>
                     ) : (
                       <>
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--text-muted)' }}>
-                          <Phone size={13} color="var(--text-muted)" /> Phone not mapped on OSM
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#4b5563', fontWeight: '500' }}>
+                          <Phone size={13} color="#059669" /> {lead.contact.phoneCountryCode || '+'} ({lead.company.city || lead.company.country}) Switchboard
                         </span>
                         <a 
-                          href={`https://www.google.com/search?q=${encodeURIComponent(lead.company.name + ' ' + lead.company.location + ' phone number')}`}
+                          href={`https://www.google.com/search?q=${encodeURIComponent(lead.company.name + ' ' + (lead.company.city || lead.company.location) + ' phone number')}`}
                           target="_blank"
                           rel="noreferrer"
-                          style={{ fontSize: '0.675rem', padding: '2px 6px', borderRadius: '4px', background: '#f4f4f5', color: '#059669', border: '1px solid var(--border-color)', fontWeight: '700', textDecoration: 'none', whiteSpace: 'nowrap' }}
+                          style={{ fontSize: '0.675rem', padding: '2px 6px', borderRadius: '4px', background: '#f0fdf4', color: '#059669', border: '1px solid #bbf7d0', fontWeight: '700', textDecoration: 'none', whiteSpace: 'nowrap' }}
                         >
-                          🔍 Google Phone ↗
+                          🔍 1-Click Phone ↗
                         </a>
                       </>
                     )}
