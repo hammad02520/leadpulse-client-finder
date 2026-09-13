@@ -131,7 +131,7 @@ export const B2BDecisionMakersView: React.FC<B2BDecisionMakersViewProps> = ({
               🎯 Module 2: B2B Decision Makers
             </span>
             <span style={{ background: 'rgba(255,255,255,0.15)', padding: '4px 10px', borderRadius: '8px', fontSize: '0.75rem' }}>
-              Apollo & Hunter Verified Directory
+              Live Job Board Intelligence (Jobicy · Remotive · HackerNews)
             </span>
           </div>
           <h2 style={{ fontSize: '1.5rem', fontWeight: '800', margin: '0 0 6px 0', letterSpacing: '-0.02em' }}>
@@ -181,7 +181,7 @@ export const B2BDecisionMakersView: React.FC<B2BDecisionMakersViewProps> = ({
             }}
           >
             {isDiscovering ? (
-              <>⏳ Querying Apollo Engine...</>
+              <>⏳ Discovering Decision Makers...</>
             ) : (
               <>⚡ Refresh Decision Makers</>
             )}
@@ -399,7 +399,13 @@ export const B2BDecisionMakersView: React.FC<B2BDecisionMakersViewProps> = ({
                     </button>
 
                     <span style={{ fontSize: '0.7rem', color: '#0284c7', fontWeight: '700', paddingLeft: '4px' }}>
-                      📬 MX VALID (Mailbox Active)
+                      {lead.contact.emailValidationStage === 'DOMAIN_VALID'
+                        ? '📧 INFERRED EMAIL'
+                        : lead.contact.emailValidationStage === 'FOUND' || lead.contact.emailValidationStage === 'FORMAT_VALID'
+                        ? '📬 EMAIL FOUND'
+                        : lead.contact.emailValidationStage === 'MX_VALID' || lead.contact.emailValidationStage === 'VERIFIED'
+                        ? '✅ EMAIL VERIFIED'
+                        : '📧 EMAIL CONSTRUCTED'}
                     </span>
                   </div>
                 )}
@@ -465,9 +471,14 @@ export const B2BDecisionMakersView: React.FC<B2BDecisionMakersViewProps> = ({
                   }}
                 >
                   <option value="NEW">Status: NEW</option>
+                  <option value="QUALIFIED">Status: QUALIFIED</option>
                   <option value="CONTACTED">Status: CONTACTED</option>
+                  <option value="FOLLOW_UP">Status: FOLLOW UP</option>
                   <option value="REPLIED">Status: REPLIED</option>
+                  <option value="MEETING">Status: MEETING</option>
+                  <option value="PROPOSAL">Status: PROPOSAL</option>
                   <option value="WON">Status: WON (CLOSED)</option>
+                  <option value="LOST">Status: LOST</option>
                 </select>
               </div>
 

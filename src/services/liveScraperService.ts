@@ -308,7 +308,7 @@ export class LiveScraperService {
               email: domain !== 'none' ? `team@${domain}` : undefined,
               hasWhatsapp: false
             },
-            source: 'REDDIT',
+            source: 'JOB_FEED',
             sourceUrl: url,
             projectNeed,
             budgetSignal: '$5,000 - $9,000',

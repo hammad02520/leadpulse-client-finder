@@ -10,6 +10,7 @@ export function calculateLeadScore(data: {
   freshnessTier: FreshnessTier;
   isExpired: boolean;
   isDuplicate?: boolean;
+  outreachCount?: number;
 }): ScoreBreakdown {
   let needSignalScore = 0;
   let businessQualityScore = 0;
@@ -45,7 +46,12 @@ export function calculateLeadScore(data: {
   if (data.hasEmail) contactabilityScore += 10;
   if (data.hasWhatsapp) contactabilityScore += 10;
 
-  // 5. Freshness Score Signal (+15 to +0)
+  // 5. Activity Signal Score (+0 to +10)
+  if (data.outreachCount && data.outreachCount > 0) {
+    activitySignalScore = Math.min(10, data.outreachCount * 3);
+  }
+
+  // 6. Freshness Score Signal (+15 to +0)
   if (data.freshnessTier === 'JUST_NOW') freshnessScore = 15;
   else if (data.freshnessTier === 'TODAY') freshnessScore = 10;
   else if (data.freshnessTier === 'RECENT') freshnessScore = 5;

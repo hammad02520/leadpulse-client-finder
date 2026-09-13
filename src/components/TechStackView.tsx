@@ -117,7 +117,7 @@ export const TechStackView: React.FC<TechStackViewProps> = ({
               🛠️ Module 3: Tech-Stack & CMS Audits
             </span>
             <span style={{ background: 'rgba(255,255,255,0.15)', padding: '4px 10px', borderRadius: '8px', fontSize: '0.75rem' }}>
-              BuiltWith & Google PageSpeed Intelligence
+              Live Domain Intelligence (Job Boards · HackerNews · Open Web)
             </span>
           </div>
           <h2 style={{ fontSize: '1.5rem', fontWeight: '800', margin: '0 0 6px 0', letterSpacing: '-0.02em' }}>
@@ -374,7 +374,13 @@ export const TechStackView: React.FC<TechStackViewProps> = ({
                 )}
 
                 <div style={{ fontSize: '0.675rem', color: '#0284c7', fontWeight: '700', marginTop: '4px' }}>
-                  📬 MX VALID (Mailbox Active)
+                  {lead.contact.emailValidationStage === 'DOMAIN_VALID'
+                    ? '📧 INFERRED EMAIL'
+                    : lead.contact.emailValidationStage === 'FOUND' || lead.contact.emailValidationStage === 'FORMAT_VALID'
+                    ? '📬 EMAIL FOUND'
+                    : lead.contact.emailValidationStage === 'MX_VALID' || lead.contact.emailValidationStage === 'VERIFIED'
+                    ? '✅ EMAIL VERIFIED'
+                    : '📧 EMAIL CONSTRUCTED'}
                 </div>
               </div>
 

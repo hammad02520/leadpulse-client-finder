@@ -35,10 +35,17 @@ export const LeadTable: React.FC<LeadTableProps> = ({
   const [sourceFilter, setSourceFilter] = useState<SourceType | 'ALL'>('ALL');
   const [needFilter, setNeedFilter] = useState<ProjectNeedType | 'ALL'>('ALL');
   const [hideExpired, setHideExpired] = useState(true);
+  const [sortBy, setSortBy] = useState<'score' | 'name' | 'temperature' | 'date'>('score');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
 
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
+
+  const toggleSort = (col: typeof sortBy) => {
+    if (sortBy === col) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    else { setSortBy(col); setSortDir('desc'); }
+  };
 
   const filteredLeads = leads.filter(l => {
     if (freshOnly && (l.isExpired || l.freshnessTier === 'STALE_EXPIRED')) return false;
@@ -58,15 +65,26 @@ export const LeadTable: React.FC<LeadTableProps> = ({
     return matchesSearch && matchesTemp && matchesSource && matchesNeed;
   });
 
+  const sortedLeads = [...filteredLeads].sort((a, b) => {
+    let cmp = 0;
+    if (sortBy === 'score') cmp = a.scoreBreakdown.totalScore - b.scoreBreakdown.totalScore;
+    else if (sortBy === 'name') cmp = a.company.name.localeCompare(b.company.name);
+    else if (sortBy === 'temperature') {
+      const order: Record<string, number> = { HOT: 3, WARM: 2, COLD: 1, IGNORE: 0 };
+      cmp = (order[a.scoreBreakdown.temperature] || 0) - (order[b.scoreBreakdown.temperature] || 0);
+    } else if (sortBy === 'date') cmp = new Date(a.discoveredAt).getTime() - new Date(b.discoveredAt).getTime();
+    return sortDir === 'desc' ? -cmp : cmp;
+  });
+
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, tempFilter, sourceFilter, needFilter, hideExpired, freshOnly]);
+  }, [searchTerm, tempFilter, sourceFilter, needFilter, hideExpired, freshOnly, sortBy, sortDir]);
 
-  const totalItems = filteredLeads.length;
+  const totalItems = sortedLeads.length;
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
   const startIndex = (currentPage - 1) * pageSize;
   const endIndex = Math.min(startIndex + pageSize, totalItems);
-  const paginatedLeads = filteredLeads.slice(startIndex, endIndex);
+  const paginatedLeads = sortedLeads.slice(startIndex, endIndex);
 
   const getTimeAgoText = (postedAtStr: string) => {
     const diffMs = new Date().getTime() - new Date(postedAtStr).getTime();
@@ -124,6 +142,9 @@ export const LeadTable: React.FC<LeadTableProps> = ({
             >
               <option value="ALL">🌐 All Sources</option>
               <option value="LOCAL_BIZ">📍 Local SMBs (OpenStreetMap Worldwide)</option>
+              <option value="B2B_APOLLO">🎯 B2B Decision Makers</option>
+              <option value="TECH_STACK">🛠️ Tech-Stack & CMS Audits</option>
+              <option value="FUNDED_STARTUP">🚀 Funded Startups & Launches</option>
               <option value="JOB_FEED">💼 Remote Feeds (Jobicy, Remotive, Arbeitnow)</option>
               <option value="REDDIT">🟧 Community / HackerNews Hiring</option>
               <option value="MANUAL_IMPORT">📥 Custom Manual Leads</option>
@@ -180,9 +201,15 @@ export const LeadTable: React.FC<LeadTableProps> = ({
           
           <thead>
             <tr style={{ borderBottom: '1px solid var(--border-color)', background: '#f8fafc', color: 'var(--text-muted)' }}>
-              <th style={{ padding: '14px 16px' }}>Company & Need</th>
-              <th style={{ padding: '14px 16px' }}>Freshness / Posted</th>
-              <th style={{ padding: '14px 16px' }}>Lead Score</th>
+              <th style={{ padding: '14px 16px', cursor: 'pointer', userSelect: 'none' }} onClick={() => toggleSort('name')}>
+                Company & Need {sortBy === 'name' ? (sortDir === 'asc' ? '▲' : '▼') : '↕'}
+              </th>
+              <th style={{ padding: '14px 16px', cursor: 'pointer', userSelect: 'none' }} onClick={() => toggleSort('date')}>
+                Freshness / Posted {sortBy === 'date' ? (sortDir === 'asc' ? '▲' : '▼') : '↕'}
+              </th>
+              <th style={{ padding: '14px 16px', cursor: 'pointer', userSelect: 'none' }} onClick={() => toggleSort('score')}>
+                Lead Score {sortBy === 'score' ? (sortDir === 'asc' ? '▲' : '▼') : '↕'}
+              </th>
               <th style={{ padding: '14px 16px' }}>Website Audit</th>
               <th style={{ padding: '14px 16px' }}>Contact Options</th>
               <th style={{ padding: '14px 16px' }}>Source Link</th>

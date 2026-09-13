@@ -22,7 +22,8 @@ const STAGES: { id: LeadStatus; label: string; color: string }[] = [
   { id: 'REPLIED', label: '💬 REPLIED', color: '#7c3aed' },
   { id: 'MEETING', label: '📅 MEETING', color: '#2563eb' },
   { id: 'PROPOSAL', label: '📝 PROPOSAL', color: '#0d9488' },
-  { id: 'WON', label: '🏆 WON', color: '#16a34a' }
+  { id: 'WON', label: '🏆 WON', color: '#16a34a' },
+  { id: 'LOST', label: '❌ LOST', color: '#dc2626' }
 ];
 
 export const KanbanBoard: React.FC<KanbanBoardProps> = ({

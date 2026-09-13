@@ -115,7 +115,13 @@ export const App: React.FC = () => {
     setLeads(updated);
   };
 
-  const handleExportCSV = () => {
+  // STRICT GUARANTEE: Never surface expired leads in any module
+  const unexpiredLeads = leads.filter(l => !l.isExpired && l.freshnessTier !== 'STALE_EXPIRED');
+  const visibleLeads = freshOnly 
+    ? unexpiredLeads.filter(l => l.freshnessTier === 'JUST_NOW' || l.freshnessTier === 'TODAY') 
+    : unexpiredLeads;
+
+  const handleExportCSV = (leadsToExport: Lead[] = visibleLeads) => {
     if (currentView === 'local_biz') {
       const localLeads = leads.filter(l => l.source === 'LOCAL_BIZ');
       leadService.exportLeadsToCSV(localLeads, 'LOCAL_SMB');
@@ -129,18 +135,12 @@ export const App: React.FC = () => {
       const startupLeads = leads.filter(l => l.source === 'FUNDED_STARTUP');
       leadService.exportLeadsToCSV(startupLeads, 'FUNDED_STARTUPS');
     } else if (currentView === 'remote_jobs') {
-      const remoteLeads = visibleLeads.filter(l => l.source === 'JOB_FEED' || l.source === 'REDDIT');
+      const remoteLeads = leadsToExport.filter(l => l.source === 'JOB_FEED' || l.source === 'REDDIT');
       leadService.exportLeadsToCSV(remoteLeads, 'REMOTE_JOBS');
     } else {
-      leadService.exportLeadsToCSV(visibleLeads, 'ALL');
+      leadService.exportLeadsToCSV(leadsToExport, 'ALL');
     }
   };
-
-  // STRICT GUARANTEE: Never surface expired leads in any module
-  const unexpiredLeads = leads.filter(l => !l.isExpired && l.freshnessTier !== 'STALE_EXPIRED');
-  const visibleLeads = freshOnly 
-    ? unexpiredLeads.filter(l => l.freshnessTier === 'JUST_NOW' || l.freshnessTier === 'TODAY') 
-    : unexpiredLeads;
 
   return (
     <div className="app-container">

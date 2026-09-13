@@ -161,6 +161,13 @@ class LeadService {
     return updated;
   }
 
+  public deleteLead(leadId: string): Lead[] {
+    const leads = this.getLeadsFromStorage();
+    const updated = leads.filter(l => l.id !== leadId);
+    this.saveLeadsToStorage(updated);
+    return updated;
+  }
+
   public addLeadNote(leadId: string, note: string): Lead[] {
     const leads = this.getLeadsFromStorage();
     const updated = leads.map(l => {

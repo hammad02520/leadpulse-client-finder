@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { 
   Zap, 
   LayoutDashboard, 
@@ -26,7 +26,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   setCurrentView,
   leads
 }) => {
-  const uniqueLeads = strictDeduplicate(leads);
+  const uniqueLeads = useMemo(() => strictDeduplicate(leads), [leads]);
   const hotCount = uniqueLeads.filter(l => l.scoreBreakdown.temperature === 'HOT' && !l.isExpired).length;
   const localCount = uniqueLeads.filter(l => l.source === 'LOCAL_BIZ').length;
   const b2bCount = uniqueLeads.filter(l => l.source === 'B2B_APOLLO').length;

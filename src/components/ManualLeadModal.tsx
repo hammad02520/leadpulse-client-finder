@@ -15,11 +15,11 @@ export const ManualLeadModal: React.FC<ManualLeadModalProps> = ({
   onClose,
   onAddLead
 }) => {
-  if (!isOpen) return null;
-
   const [companyName, setCompanyName] = useState('');
   const [industry, setIndustry] = useState('E-Commerce');
   const [websiteDomain, setWebsiteDomain] = useState('');
+  const [city, setCity] = useState('');
+  const [country, setCountry] = useState('');
   const [personName, setPersonName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -27,6 +27,8 @@ export const ManualLeadModal: React.FC<ManualLeadModalProps> = ({
   const [budget, setBudget] = useState('$2,500 - $5,000');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
+
+  if (!isOpen) return null;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,7 +53,9 @@ export const ManualLeadModal: React.FC<ManualLeadModalProps> = ({
       company: {
         name: companyName,
         industry,
-        location: 'Custom Location',
+        location: [city, country].filter(Boolean).join(', ') || 'Custom Location',
+        city: city || undefined,
+        country: country || undefined,
         websiteUrl: websiteDomain ? `https://${websiteDomain}` : undefined,
         socialPresence: true
       },

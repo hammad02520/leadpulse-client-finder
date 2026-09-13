@@ -37,11 +37,11 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
   onStatusChange,
   onUpdateLead
 }) => {
-  if (!lead) return null;
-
   const [newNote, setNewNote] = useState('');
   const [isAuditingPageSpeed, setIsAuditingPageSpeed] = useState(false);
   const [pageSpeedStatus, setPageSpeedStatus] = useState<string | null>(null);
+
+  if (!lead) return null;
 
   const handleNoteSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -409,6 +409,23 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
             </button>
           </form>
         </div>
+        {/* Outreach History */}
+        {lead.outreachHistory && lead.outreachHistory.length > 0 && (
+          <div className="glass-panel" style={{ padding: '16px' }}>
+            <h3 style={{ fontSize: '0.875rem', fontWeight: '700', marginBottom: '10px', color: '#09090b' }}>📤 Outreach History ({lead.outreachHistory.length})</h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {lead.outreachHistory.map((item) => (
+                <div key={item.id} style={{ fontSize: '0.75rem', background: item.type === 'EMAIL' ? '#eff6ff' : '#f0fdf4', padding: '8px 12px', borderRadius: '6px', border: `1px solid ${item.type === 'EMAIL' ? '#bfdbfe' : '#bbf7d0'}` }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                    <strong style={{ color: item.type === 'EMAIL' ? '#1d4ed8' : '#15803d' }}>{item.type === 'EMAIL' ? '📧 Email Sent' : '💬 WhatsApp Sent'}</strong>
+                    <span style={{ color: '#71717a' }}>{new Date(item.sentAt).toLocaleDateString()}</span>
+                  </div>
+                  <p style={{ color: '#52525b', margin: 0, lineHeight: '1.4' }}>{item.pitchText.slice(0, 120)}...</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
       </div>
     </div>

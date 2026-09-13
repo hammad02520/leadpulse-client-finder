@@ -22,8 +22,6 @@ export const OutreachModal: React.FC<OutreachModalProps> = ({
   onClose,
   onRecordOutreach
 }) => {
-  if (!lead) return null;
-
   const [pitchData, setPitchData] = useState<AIPitchResult | null>(null);
   const [emailSubject, setEmailSubject] = useState('');
   const [emailBody, setEmailBody] = useState('');
@@ -35,10 +33,12 @@ export const OutreachModal: React.FC<OutreachModalProps> = ({
       setPitchData(generated);
       setEmailSubject(generated.emailSubject);
       setEmailBody(generated.emailBody);
+    } else {
+      setPitchData(null);
     }
   }, [lead]);
 
-  if (!pitchData) return null;
+  if (!lead || !pitchData) return null;
 
   const handleCopy = () => {
     navigator.clipboard.writeText(`Subject: ${emailSubject}\n\n${emailBody}`);
@@ -47,9 +47,11 @@ export const OutreachModal: React.FC<OutreachModalProps> = ({
   };
 
   const handleLaunchEmail = () => {
-    const mailtoUrl = `mailto:${lead.contact.email || ''}?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`;
-    onRecordOutreach(lead.id, 'EMAIL', emailBody);
-    window.location.href = mailtoUrl;
+    const mailtoUrl = `mailto:${lead?.contact.email || ''}?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`;
+    if (lead) onRecordOutreach(lead.id, 'EMAIL', emailBody);
+    const a = document.createElement('a');
+    a.href = mailtoUrl;
+    a.click();
   };
 
   const handleLaunchWhatsApp = () => {

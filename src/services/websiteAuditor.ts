@@ -1,5 +1,8 @@
 import { WebsiteAudit } from '../types';
 
+// Module-level stable cache — domain → audit result
+const auditCache = new Map<string, WebsiteAudit>();
+
 export function runWebsiteAudit(domain: string, presetIssues?: Partial<WebsiteAudit>): WebsiteAudit {
   const cleanDomain = domain.replace(/^https?:\/\//, '').replace(/\/.*$/, '');
   const hasWebsite = cleanDomain !== 'none' && cleanDomain.length > 3;
@@ -28,6 +31,23 @@ export function runWebsiteAudit(domain: string, presetIssues?: Partial<WebsiteAu
     };
   }
 
+  // If presets are provided (e.g., from live PageSpeed), skip cache and compute fresh
+  if (presetIssues && Object.keys(presetIssues).length > 0) {
+    return buildAudit(cleanDomain, presetIssues);
+  }
+
+  // Return cached result if available
+  const cacheKey = cleanDomain || 'no-domain';
+  if (auditCache.has(cacheKey)) {
+    return auditCache.get(cacheKey)!;
+  }
+
+  const result = buildAudit(cleanDomain, undefined);
+  auditCache.set(cacheKey, result);
+  return result;
+}
+
+function buildAudit(cleanDomain: string, presetIssues?: Partial<WebsiteAudit>): WebsiteAudit {
   const mobileFriendly = presetIssues?.mobileFriendly ?? Math.random() > 0.4;
   const performanceScore = presetIssues?.performanceScore ?? Math.floor(Math.random() * 45 + 40); // 40-85
   const hasHttps = presetIssues?.hasHttps ?? Math.random() > 0.2;
