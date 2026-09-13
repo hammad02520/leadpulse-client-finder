@@ -1,10 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Search, 
   Flame, 
   Globe, 
   ExternalLink, 
   ChevronRight,
+  ChevronLeft,
+  ChevronsLeft,
+  ChevronsRight,
   Sparkles,
   Clock,
   Code2,
@@ -33,6 +36,10 @@ export const LeadTable: React.FC<LeadTableProps> = ({
   const [needFilter, setNeedFilter] = useState<ProjectNeedType | 'ALL'>('ALL');
   const [hideExpired, setHideExpired] = useState(true);
 
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+
   const filteredLeads = leads.filter(l => {
     if (freshOnly && (l.isExpired || l.freshnessTier === 'STALE_EXPIRED')) return false;
     if (hideExpired && l.isExpired) return false;
@@ -50,6 +57,16 @@ export const LeadTable: React.FC<LeadTableProps> = ({
 
     return matchesSearch && matchesTemp && matchesSource && matchesNeed;
   });
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, tempFilter, sourceFilter, needFilter, hideExpired, freshOnly]);
+
+  const totalItems = filteredLeads.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+  const startIndex = (currentPage - 1) * pageSize;
+  const endIndex = Math.min(startIndex + pageSize, totalItems);
+  const paginatedLeads = filteredLeads.slice(startIndex, endIndex);
 
   const getTimeAgoText = (postedAtStr: string) => {
     const diffMs = new Date().getTime() - new Date(postedAtStr).getTime();
@@ -182,7 +199,7 @@ export const LeadTable: React.FC<LeadTableProps> = ({
                 </td>
               </tr>
             ) : (
-              filteredLeads.map(lead => {
+              paginatedLeads.map(lead => {
                 const tempClass = 
                   lead.scoreBreakdown.temperature === 'HOT' ? 'badge-hot' :
                   lead.scoreBreakdown.temperature === 'WARM' ? 'badge-warm' : 'badge-cold';
@@ -213,7 +230,7 @@ export const LeadTable: React.FC<LeadTableProps> = ({
                           {lead.projectNeed}
                         </span>
                         {lead.budgetSignal && (
-                          <span style={{ fontSize: '0.7rem', padding: '2px 6px', background: '#d1fae5', color: '#059669', borderRadius: '4px', fontWeight: '700' }}>
+                          <span style={{ fontSize: '0.7rem', padding: '2px 6px', background: '#fef3c7', color: '#b45309', borderRadius: '4px', fontWeight: '700' }}>
                             💰 {lead.budgetSignal}
                           </span>
                         )}
@@ -233,58 +250,83 @@ export const LeadTable: React.FC<LeadTableProps> = ({
                       )}
                     </td>
 
-                    {/* Lead Score */}
+                    {/* Lead Score & Temperature */}
                     <td style={{ padding: '14px 16px' }}>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                         <span className={`badge ${tempClass}`}>
                           {lead.scoreBreakdown.temperature === 'HOT' && <Flame size={12} />}
-                          Score {lead.scoreBreakdown.totalScore}/100
+                          {lead.scoreBreakdown.totalScore}
                         </span>
-                        <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-                          Need: +{lead.scoreBreakdown.needSignalScore} | Audit: +{lead.scoreBreakdown.websiteProblemsScore}
+                        <span style={{ fontSize: '0.75rem', fontWeight: '600', color: 'var(--text-muted)' }}>
+                          {lead.scoreBreakdown.temperature}
                         </span>
+                      </div>
+                      <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                        Audit Opp: {lead.websiteAudit.opportunityScore}%
                       </div>
                     </td>
 
-                    {/* Website Audit with target="_blank" link */}
-                    <td style={{ padding: '14px 16px', minWidth: '180px' }}>
-                      {lead.websiteAudit.hasWebsite && auditedSiteUrl ? (
-                        <div style={{ fontSize: '0.8rem' }}>
-                          <a 
-                            href={auditedSiteUrl} 
-                            target="_blank" 
-                            rel="noreferrer" 
-                            style={{ color: '#0284c7', fontWeight: '700', display: 'inline-flex', alignItems: 'center', gap: '4px', textDecoration: 'none' }}
-                            title="Open audited client site in new blank tab"
-                          >
-                            <Globe size={13} /> {lead.websiteAudit.domain} ↗
-                          </a>
-                          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-                            Mobile: {lead.websiteAudit.mobileFriendly ? '✅ OK' : '❌ Poor'} | Speed: {lead.websiteAudit.performanceScore}/100
-                          </div>
+                    {/* Website Audit Flaws */}
+                    <td style={{ padding: '14px 16px', maxWidth: '220px' }}>
+                      {lead.websiteAudit.issuesDetected.length > 0 ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                          {lead.websiteAudit.issuesDetected.slice(0, 2).map((issue, i) => (
+                            <span key={i} style={{ fontSize: '0.75rem', color: '#b91c1c', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                              • {issue}
+                            </span>
+                          ))}
+                          {lead.websiteAudit.issuesDetected.length > 2 && (
+                            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                              +{lead.websiteAudit.issuesDetected.length - 2} more issues
+                            </span>
+                          )}
                         </div>
                       ) : (
-                        <span style={{ fontSize: '0.75rem', color: '#dc2626', background: '#fee2e2', padding: '2px 6px', borderRadius: '4px', fontWeight: '600' }}>
-                          ⚠️ No Website
+                        <span style={{ fontSize: '0.75rem', color: '#15803d' }}>
+                          ✓ Healthy Base Site
                         </span>
                       )}
                     </td>
 
-                    {/* Contact Info */}
+                    {/* Audited Domain Link */}
                     <td style={{ padding: '14px 16px' }}>
-                      <div style={{ fontSize: '0.8rem' }}>
-                        <div style={{ fontWeight: '600', color: 'var(--text-main)' }}>
-                          {lead.contact.personName || 'Manager'}
-                        </div>
+                      {auditedSiteUrl ? (
+                        <a 
+                          href={auditedSiteUrl} 
+                          target="_blank" 
+                          rel="noreferrer"
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#0284c7', fontSize: '0.8rem', textDecoration: 'none', fontWeight: '600' }}
+                          title="Open client website in new tab"
+                        >
+                          <Globe size={13} /> {lead.websiteAudit.domain} <ExternalLink size={11} />
+                        </a>
+                      ) : (
+                        <span style={{ fontSize: '0.75rem', color: '#dc2626', background: '#fee2e2', padding: '2px 6px', borderRadius: '4px', fontWeight: '600' }}>
+                          🚫 No Website
+                        </span>
+                      )}
+                    </td>
+
+                    {/* Contact Channels */}
+                    <td style={{ padding: '14px 16px' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                         {lead.contact.email && (
                           <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>
                             ✉️ {lead.contact.email}
+                          </div>
+                        )}
+                        {lead.contact.personName && (
+                          <div style={{ fontWeight: '600', color: 'var(--text-main)', fontSize: '0.8rem' }}>
+                            👤 {lead.contact.personName}
                           </div>
                         )}
                         {lead.contact.phone && (
                           <div style={{ color: '#059669', fontSize: '0.75rem', fontWeight: '600' }}>
                             💬 {lead.contact.phone}
                           </div>
+                        )}
+                        {!lead.contact.email && !lead.contact.personName && !lead.contact.phone && (
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Direct Web Form</span>
                         )}
                       </div>
                     </td>
@@ -357,6 +399,81 @@ export const LeadTable: React.FC<LeadTableProps> = ({
 
         </table>
       </div>
+
+      {/* Table Pagination Bar */}
+      {totalItems > 0 && (
+        <div className="glass-panel" style={{ padding: '14px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+          <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+            Showing <strong>{startIndex + 1}–{endIndex}</strong> of <strong>{totalItems.toLocaleString()}</strong> leads
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem' }}>
+              <span style={{ color: 'var(--text-muted)' }}>Rows:</span>
+              <select 
+                className="input-field" 
+                style={{ padding: '4px 8px', fontSize: '0.8rem' }}
+                value={pageSize}
+                onChange={(e) => {
+                  setPageSize(Number(e.target.value));
+                  setCurrentPage(1);
+                }}
+              >
+                <option value={15}>15</option>
+                <option value={25}>25</option>
+                <option value={50}>50</option>
+                <option value={100}>100</option>
+              </select>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <button 
+                className="btn btn-secondary"
+                style={{ padding: '4px 8px' }}
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage(1)}
+                title="First Page"
+              >
+                <ChevronsLeft size={16} />
+              </button>
+
+              <button 
+                className="btn btn-secondary"
+                style={{ padding: '4px 8px' }}
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                title="Previous Page"
+              >
+                <ChevronLeft size={16} />
+              </button>
+
+              <span style={{ fontSize: '0.85rem', fontWeight: '700', padding: '0 8px', color: 'var(--text-main)' }}>
+                Page {currentPage} of {totalPages}
+              </span>
+
+              <button 
+                className="btn btn-secondary"
+                style={{ padding: '4px 8px' }}
+                disabled={currentPage === totalPages}
+                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                title="Next Page"
+              >
+                <ChevronRight size={16} />
+              </button>
+
+              <button 
+                className="btn btn-secondary"
+                style={{ padding: '4px 8px' }}
+                disabled={currentPage === totalPages}
+                onClick={() => setCurrentPage(totalPages)}
+                title="Last Page"
+              >
+                <ChevronsRight size={16} />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

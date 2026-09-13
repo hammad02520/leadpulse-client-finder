@@ -10,6 +10,7 @@ import { LeadDetailDrawer } from './components/LeadDetailDrawer';
 import { OutreachModal } from './components/OutreachModal';
 import { ManualLeadModal } from './components/ManualLeadModal';
 import { leadService } from './services/leadService';
+import { strictDeduplicate } from './services/deduplicationService';
 import { Lead, LeadStatus, AppViewMode } from './types';
 
 export const App: React.FC = () => {
@@ -46,10 +47,7 @@ export const App: React.FC = () => {
 
   const handleAddDiscoveredLeads = (newLeads: Lead[]) => {
     const currentLeads = leadService.getLeadsFromStorage();
-    const combined = [...newLeads, ...currentLeads];
-    const uniqueMap = new Map<string, Lead>();
-    combined.forEach(l => uniqueMap.set(l.id, l));
-    const finalLeads = Array.from(uniqueMap.values());
+    const finalLeads = strictDeduplicate([...newLeads, ...currentLeads]);
     leadService.saveLeadsToStorage(finalLeads);
     setLeads(finalLeads);
   };
@@ -78,15 +76,31 @@ export const App: React.FC = () => {
     setLeads(updated);
   };
 
+  const handleUpdateLead = (updatedLead: Lead) => {
+    const updated = leadService.updateLead(updatedLead);
+    setLeads(updated);
+    if (selectedLead && selectedLead.id === updatedLead.id) {
+      setSelectedLead(updatedLead);
+    }
+  };
+
   const handleAddCustomLead = (newLead: Lead) => {
     const currentLeads = leadService.getLeadsFromStorage();
-    const updated = [newLead, ...currentLeads];
+    const updated = strictDeduplicate([newLead, ...currentLeads]);
     leadService.saveLeadsToStorage(updated);
     setLeads(updated);
   };
 
   const handleExportCSV = () => {
-    leadService.exportLeadsToCSV(leads);
+    if (currentView === 'local_biz') {
+      const localLeads = leads.filter(l => l.source === 'LOCAL_BIZ');
+      leadService.exportLeadsToCSV(localLeads, 'LOCAL_SMB');
+    } else if (currentView === 'remote_jobs') {
+      const remoteLeads = leads.filter(l => l.source === 'JOB_FEED' || l.source === 'REDDIT');
+      leadService.exportLeadsToCSV(remoteLeads, 'REMOTE_JOBS');
+    } else {
+      leadService.exportLeadsToCSV(leads, 'ALL');
+    }
   };
 
   return (
@@ -171,6 +185,7 @@ export const App: React.FC = () => {
         onOpenPitchModal={(l) => setPitchLead(l)}
         onAddNote={handleAddNote}
         onStatusChange={handleStatusChange}
+        onUpdateLead={handleUpdateLead}
       />
 
       {/* AI Pitch & Outreach Modal */}

@@ -73,8 +73,8 @@ export class LiveScraperService {
             hasExplicitHiringSignal: true,
             hasBusinessQuality: true,
             websiteAudit: audit,
-            hasEmail: true,
-            hasWhatsapp: true,
+            hasEmail: domain !== 'none',
+            hasWhatsapp: false,
             hasSocialPresence: true,
             freshnessTier: 'JUST_NOW',
             isExpired: false
@@ -94,9 +94,8 @@ export class LiveScraperService {
             contact: {
               personName: 'Hiring Lead',
               role: 'Product / Tech Owner',
-              email: `careers@${domain !== 'none' ? domain : 'company.com'}`,
-              phone: '+1 (800) 555-0199',
-              hasWhatsapp: true
+              email: domain !== 'none' ? `careers@${domain}` : undefined,
+              hasWhatsapp: false
             },
             source: 'JOB_FEED',
             sourceUrl: job.url,
@@ -136,8 +135,8 @@ export class LiveScraperService {
             hasExplicitHiringSignal: true,
             hasBusinessQuality: true,
             websiteAudit: audit,
-            hasEmail: true,
-            hasWhatsapp: true,
+            hasEmail: domain !== 'none',
+            hasWhatsapp: false,
             hasSocialPresence: true,
             freshnessTier: 'JUST_NOW',
             isExpired: false
@@ -157,9 +156,8 @@ export class LiveScraperService {
             contact: {
               personName: 'Hiring Manager',
               role: 'Founder / CTO',
-              email: `contact@${domain !== 'none' ? domain : 'company.com'}`,
-              phone: '+1 (800) 555-0144',
-              hasWhatsapp: true
+              email: domain !== 'none' ? `jobs@${domain}` : undefined,
+              hasWhatsapp: false
             },
             source: 'JOB_FEED',
             sourceUrl: job.url,
@@ -210,8 +208,8 @@ export class LiveScraperService {
             hasExplicitHiringSignal: true,
             hasBusinessQuality: true,
             websiteAudit: audit,
-            hasEmail: true,
-            hasWhatsapp: true,
+            hasEmail: domain !== 'none',
+            hasWhatsapp: false,
             hasSocialPresence: true,
             freshnessTier: 'JUST_NOW',
             isExpired: false
@@ -231,9 +229,8 @@ export class LiveScraperService {
             contact: {
               personName: hit.author,
               role: 'Hiring Founder',
-              email: `hn-${hit.author}@gmail.com`,
-              phone: '+1 (555) 321-9876',
-              hasWhatsapp: true
+              email: domain !== 'none' ? `team@${domain}` : undefined,
+              hasWhatsapp: false
             },
             source: 'REDDIT',
             sourceUrl: url,
@@ -263,13 +260,20 @@ export class LiveScraperService {
   /**
    * 3. Scrape Real OpenStreetMap Local Business Nodes Worldwide (Overpass API)
    */
-  public async scrapeLiveLocalBizLeads(): Promise<Lead[]> {
+  public async scrapeLiveLocalBizLeads(customParams?: Partial<import('../types').OsmSearchParams>): Promise<Lead[]> {
     try {
+      const country = customParams?.country || 'United States';
+      const city = customParams?.city || 'New York';
+      const category = customParams?.category || 'all';
+      const filterType = customParams?.filterType || 'ALL';
+      const limit = customParams?.limit || 300;
+
       const osmResults = await overpassService.discoverOsmBusinesses({
-        country: 'Sweden',
-        city: 'Stockholm',
-        category: 'restaurant',
-        filterType: 'ALL'
+        country,
+        city,
+        category,
+        filterType,
+        limit
       });
       return osmResults;
     } catch (e) {

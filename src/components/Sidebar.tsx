@@ -10,6 +10,7 @@ import {
   Clock
 } from 'lucide-react';
 import { Lead, AppViewMode } from '../types';
+import { strictDeduplicate } from '../services/deduplicationService';
 
 interface SidebarProps {
   currentView: AppViewMode;
@@ -22,9 +23,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
   setCurrentView,
   leads
 }) => {
-  const hotCount = leads.filter(l => l.scoreBreakdown.temperature === 'HOT' && !l.isExpired).length;
-  const localCount = leads.filter(l => l.source === 'LOCAL_BIZ').length;
-  const remoteCount = leads.filter(l => l.source === 'JOB_FEED' || l.source === 'REDDIT').length;
+  const uniqueLeads = strictDeduplicate(leads);
+  const hotCount = uniqueLeads.filter(l => l.scoreBreakdown.temperature === 'HOT' && !l.isExpired).length;
+  const localCount = uniqueLeads.filter(l => l.source === 'LOCAL_BIZ').length;
+  const remoteCount = uniqueLeads.filter(l => l.source === 'JOB_FEED' || l.source === 'REDDIT').length;
 
   return (
     <aside className="sidebar">

@@ -11,9 +11,14 @@ import {
   Search, 
   Linkedin,
   Building2,
-  AlertCircle
+  AlertCircle,
+  Zap,
+  Activity,
+  CheckCircle2
 } from 'lucide-react';
 import { Lead, LeadStatus } from '../types';
+import { pageSpeedService } from '../services/pageSpeedService';
+import { calculateLeadScore } from '../services/scoringEngine';
 
 interface LeadDetailDrawerProps {
   lead: Lead | null;
@@ -21,6 +26,7 @@ interface LeadDetailDrawerProps {
   onOpenPitchModal: (lead: Lead) => void;
   onAddNote: (leadId: string, note: string) => void;
   onStatusChange: (leadId: string, status: LeadStatus) => void;
+  onUpdateLead?: (lead: Lead) => void;
 }
 
 export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
@@ -28,17 +34,64 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
   onClose,
   onOpenPitchModal,
   onAddNote,
-  onStatusChange
+  onStatusChange,
+  onUpdateLead
 }) => {
   if (!lead) return null;
 
   const [newNote, setNewNote] = useState('');
+  const [isAuditingPageSpeed, setIsAuditingPageSpeed] = useState(false);
+  const [pageSpeedStatus, setPageSpeedStatus] = useState<string | null>(null);
 
   const handleNoteSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newNote.trim()) return;
     onAddNote(lead.id, newNote);
     setNewNote('');
+  };
+
+  const handleRunLivePageSpeed = async () => {
+    if (!auditedSiteUrl) return;
+    setIsAuditingPageSpeed(true);
+    setPageSpeedStatus('Contacting Google PageSpeed Insights API...');
+    try {
+      const res = await pageSpeedService.runLiveLighthouseAudit(auditedSiteUrl);
+      if (res.success && res.audit) {
+        const updatedScore = calculateLeadScore({
+          hasExplicitHiringSignal: true,
+          hasBusinessQuality: true,
+          websiteAudit: res.audit,
+          hasEmail: Boolean(lead.contact.email),
+          hasWhatsapp: Boolean(lead.contact.hasWhatsapp),
+          hasSocialPresence: Boolean(lead.company.socialPresence),
+          freshnessTier: lead.freshnessTier,
+          isExpired: lead.isExpired
+        });
+
+        const updatedLead: Lead = {
+          ...lead,
+          websiteAudit: res.audit,
+          scoreBreakdown: updatedScore,
+          lastVerifiedAt: new Date().toISOString(),
+          notes: [
+            ...lead.notes,
+            `${new Date().toLocaleDateString()}: ⚡ Ran Official Google Lighthouse Audit (Score: ${res.audit.performanceScore}/100, FCP: ${res.audit.fcp}, LCP: ${res.audit.lcp})`
+          ]
+        };
+
+        if (onUpdateLead) {
+          onUpdateLead(updatedLead);
+        }
+        setPageSpeedStatus('✅ Official Google Lighthouse audit completed!');
+      } else {
+        setPageSpeedStatus(res.errorMessage || 'Lighthouse audit could not be completed.');
+      }
+    } catch (e: any) {
+      setPageSpeedStatus(e.message || 'PageSpeed API error');
+    } finally {
+      setIsAuditingPageSpeed(false);
+      setTimeout(() => setPageSpeedStatus(null), 6000);
+    }
   };
 
   const audit = lead.websiteAudit;
@@ -114,9 +167,29 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
 
         {/* Website Technical Audit Card with Prominent Audited Link */}
         <div className="glass-panel" style={{ padding: '16px' }}>
-          <h3 style={{ fontSize: '0.875rem', fontWeight: '700', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px', color: '#09090b' }}>
-            <Globe size={16} color="#0284c7" /> Technical Website Audit Signals
-          </h3>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
+            <h3 style={{ fontSize: '0.875rem', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '6px', color: '#09090b', margin: 0 }}>
+              <Globe size={16} color="#0284c7" /> Technical Website Audit Signals
+            </h3>
+
+            {auditedSiteUrl && (
+              <button
+                className="btn btn-primary"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', fontWeight: '700', padding: '6px 12px' }}
+                onClick={handleRunLivePageSpeed}
+                disabled={isAuditingPageSpeed}
+              >
+                <Zap size={13} /> {isAuditingPageSpeed ? '⏳ Auditing PageSpeed...' : '⚡ Run Live Lighthouse Audit'}
+              </button>
+            )}
+          </div>
+
+          {/* Status notification */}
+          {pageSpeedStatus && (
+            <div style={{ padding: '8px 12px', background: pageSpeedStatus.includes('✅') ? '#d1fae5' : '#e0f2fe', color: pageSpeedStatus.includes('✅') ? '#065f46' : '#0369a1', borderRadius: '6px', fontSize: '0.75rem', fontWeight: '600', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Activity size={14} /> {pageSpeedStatus}
+            </div>
+          )}
 
           {/* EXACT AUDITED WEBSITE LINK BANNER */}
           {auditedSiteUrl ? (
@@ -170,6 +243,45 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
               </strong>
             </div>
           </div>
+
+          {/* Real-Time Google Lighthouse Verified Metrics */}
+          {audit.isLiveAudit && (
+            <div style={{ background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: '8px', padding: '12px', marginBottom: '12px', fontSize: '0.75rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                <span style={{ fontWeight: '800', color: '#065f46', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <CheckCircle2 size={14} color="#059669" /> Google Lighthouse Live Metrics
+                </span>
+                <span style={{ fontSize: '0.7rem', color: '#047857', fontWeight: '700' }}>
+                  Live Verified
+                </span>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', color: '#064e3b' }}>
+                <div>FCP (First Paint): <strong>{audit.fcp || 'N/A'}</strong></div>
+                <div>LCP (Largest Content): <strong>{audit.lcp || 'N/A'}</strong></div>
+                <div>CLS (Layout Shift): <strong>{audit.cls || 'N/A'}</strong></div>
+                <div>Speed Index: <strong>{audit.speedIndex || 'N/A'}</strong></div>
+                {audit.seoScore !== undefined && (
+                  <div>SEO Score: <strong>{audit.seoScore}/100</strong></div>
+                )}
+                {audit.accessibilityScore !== undefined && (
+                  <div>Accessibility: <strong>{audit.accessibilityScore}/100</strong></div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Detected Bottlenecks List */}
+          {audit.issuesDetected && audit.issuesDetected.length > 0 && (
+            <div style={{ marginBottom: '12px', fontSize: '0.75rem' }}>
+              <div style={{ fontWeight: '700', color: '#991b1b', marginBottom: '4px' }}>Audit Bottlenecks & Weaknesses:</div>
+              <ul style={{ margin: 0, paddingLeft: '18px', color: '#b91c1c' }}>
+                {audit.issuesDetected.map((issue, idx) => (
+                  <li key={idx} style={{ marginBottom: '2px' }}>{issue}</li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           <div style={{ fontSize: '0.775rem', background: '#f0f9ff', borderLeft: '3px solid #0284c7', padding: '8px 10px', borderRadius: '4px', color: '#0369a1' }}>
             <strong>AI Pitch Angle:</strong> {audit.aiOpportunityReason}

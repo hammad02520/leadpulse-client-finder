@@ -13,10 +13,18 @@ import {
   Calendar,
   ShoppingBag,
   Building2,
-  Globe2
+  Globe2,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+  Zap,
+  Activity,
+  Download
 } from 'lucide-react';
 import { Lead, OsmSearchParams, EmailValidationStage } from '../types';
 import { overpassService } from '../services/overpassService';
+import { leadService } from '../services/leadService';
 
 interface LocalBizLeadsViewProps {
   leads: Lead[];
@@ -26,16 +34,18 @@ interface LocalBizLeadsViewProps {
 }
 
 const COUNTRY_CITY_MAP: Record<string, string[]> = {
-  'Sweden': ['Stockholm', 'Gothenburg', 'Malmö'],
-  'United Kingdom': ['London', 'Manchester', '送信', 'Birmingham', 'Edinburgh'],
-  'United States': ['New York', 'Chicago', 'Austin', 'Los Angeles', 'Miami', 'San Francisco', 'Dallas', 'Seattle'],
-  'Germany': ['Berlin', 'Munich', 'Hamburg', 'Frankfurt'],
-  'France': ['Paris', 'Lyon', 'Marseille'],
-  'Canada': ['Toronto', 'Vancouver', 'Montreal'],
-  'United Arab Emirates': ['Dubai', 'Abu Dhabi'],
-  'Japan': ['Tokyo', 'Osaka', 'Kyoto'],
-  'Pakistan': ['Karachi', 'Lahore', 'Islamabad', 'Rawalpindi'],
+  'Pakistan': ['Karachi', 'Lahore', 'Islamabad', 'Rawalpindi', 'Faisalabad', 'Peshawar', 'Multan'],
+  'United States': ['New York', 'Chicago', 'Austin', 'Los Angeles', 'Miami', 'San Francisco', 'Dallas', 'Houston', 'Seattle'],
+  'United Kingdom': ['London', 'Manchester', 'Birmingham', 'Edinburgh', 'Leeds', 'Glasgow'],
+  'United Arab Emirates': ['Dubai', 'Abu Dhabi', 'Sharjah'],
+  'Saudi Arabia': ['Riyadh', 'Jeddah', 'Dammam', 'Mecca', 'Medina'],
+  'Canada': ['Toronto', 'Vancouver', 'Montreal', 'Calgary', 'Ottawa'],
+  'Germany': ['Berlin', 'Munich', 'Hamburg', 'Frankfurt', 'Cologne'],
   'Australia': ['Sydney', 'Melbourne', 'Brisbane', 'Perth'],
+  'Sweden': ['Stockholm', 'Gothenburg', 'Malmö'],
+  'France': ['Paris', 'Lyon', 'Marseille'],
+  'India': ['Mumbai', 'Delhi', 'Bangalore', 'Hyderabad'],
+  'Turkey': ['Istanbul', 'Ankara', 'Izmir'],
   'Italy': ['Rome', 'Milan', 'Florence'],
   'Spain': ['Madrid', 'Barcelona', 'Valencia'],
   'Netherlands': ['Amsterdam', 'Rotterdam'],
@@ -48,16 +58,37 @@ export const LocalBizLeadsView: React.FC<LocalBizLeadsViewProps> = ({
   onOpenPitchModal,
   onAddDiscoveredLeads
 }) => {
-  const [selectedCountry, setSelectedCountry] = useState('Sweden');
+  // Initialize with user saved location preference or global default
+  const getInitialPref = () => {
+    try {
+      const saved = localStorage.getItem('leadpulse_osm_pref');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.country && parsed.city) return parsed;
+      }
+    } catch {
+      // ignore
+    }
+    return { country: 'United States', city: 'New York' };
+  };
+
+  const initialPref = getInitialPref();
+
+  const [selectedCountry, setSelectedCountry] = useState<string>(initialPref.country);
   const [customCountry, setCustomCountry] = useState('');
   
-  const [selectedCity, setSelectedCity] = useState('Stockholm');
+  const [selectedCity, setSelectedCity] = useState<string>(initialPref.city);
   const [customCity, setCustomCity] = useState('');
 
-  const [category, setCategory] = useState<OsmSearchParams['category']>('restaurant');
+  const [category, setCategory] = useState<OsmSearchParams['category']>('all');
   const [filterType, setFilterType] = useState<'ALL' | 'NO_WEBSITE' | 'HAS_WEBSITE_NO_APP'>('ALL');
+  const [fetchLimit, setFetchLimit] = useState<number>(500);
   const [isSearchingOsm, setIsSearchingOsm] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
 
   // Active Country & City resolving
   const activeCountry = selectedCountry === 'CUSTOM' ? customCountry : selectedCountry;
@@ -70,7 +101,17 @@ export const LocalBizLeadsView: React.FC<LocalBizLeadsViewProps> = ({
     }
   }, [selectedCountry]);
 
-  // Strictly filter real OpenStreetMap local business nodes ONLY
+  // Save preference on change
+  useEffect(() => {
+    if (activeCountry && activeCity) {
+      localStorage.setItem('leadpulse_osm_pref', JSON.stringify({
+        country: activeCountry,
+        city: activeCity
+      }));
+    }
+  }, [activeCountry, activeCity]);
+
+  // Filter real OpenStreetMap local business nodes ONLY
   const localLeads = leads.filter(l => l.source === 'LOCAL_BIZ' && (l.tags.includes('OPENSTREETMAP') || l.sourceUrl.includes('openstreetmap')));
 
   // Auto-run initial search if zero OSM leads exist
@@ -95,6 +136,11 @@ export const LocalBizLeadsView: React.FC<LocalBizLeadsViewProps> = ({
     return matchesSearch && matchesFilterType;
   });
 
+  // Reset to page 1 whenever filters or search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, filterType, category, localLeads.length]);
+
   const handleRunOsmSearch = async () => {
     const finalCountry = activeCountry.trim();
     const finalCity = activeCity.trim();
@@ -106,7 +152,8 @@ export const LocalBizLeadsView: React.FC<LocalBizLeadsViewProps> = ({
         country: finalCountry,
         city: finalCity,
         category,
-        filterType
+        filterType,
+        limit: fetchLimit
       });
       onAddDiscoveredLeads(results);
     } catch (e) {
@@ -125,6 +172,35 @@ export const LocalBizLeadsView: React.FC<LocalBizLeadsViewProps> = ({
     }
   };
 
+  // Pagination calculation
+  const totalItems = filteredLeads.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+  const startIndex = (currentPage - 1) * pageSize;
+  const endIndex = Math.min(startIndex + pageSize, totalItems);
+  const paginatedLeads = filteredLeads.slice(startIndex, endIndex);
+
+  // Generate page numbers to show
+  const getPageNumbers = () => {
+    const pages: (number | string)[] = [];
+    if (totalPages <= 7) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else {
+      pages.push(1);
+      if (currentPage > 3) pages.push('...');
+      
+      const start = Math.max(2, currentPage - 1);
+      const end = Math.min(totalPages - 1, currentPage + 1);
+      
+      for (let i = start; i <= end; i++) {
+        pages.push(i);
+      }
+      
+      if (currentPage < totalPages - 2) pages.push('...');
+      pages.push(totalPages);
+    }
+    return pages;
+  };
+
   return (
     <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
       
@@ -136,13 +212,15 @@ export const LocalBizLeadsView: React.FC<LocalBizLeadsViewProps> = ({
               <span className="badge badge-hot" style={{ fontSize: '0.75rem' }}>
                 📍 OpenStreetMap Dynamic Global Engine
               </span>
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Free Worldwide Geocoding (Nominatim API + Overpass QL)</span>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                Worldwide Geocoding + Overpass QL API (Total OSM Leads in CRM: {localLeads.length})
+              </span>
             </div>
             <h2 style={{ fontSize: '1.4rem', fontWeight: '800', color: 'var(--text-main)', letterSpacing: '-0.02em' }}>
               Worldwide Local Business Lead Finder
             </h2>
             <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-              Select any country and city from the dropdowns (or enter custom ones) to query real OpenStreetMap business nodes for restaurants, bakeries, gyms, clinics, salons & shops!
+              Search real physical businesses across Pakistan, United States, UK, UAE, Saudi Arabia, Canada, Germany & 50+ countries.
             </p>
           </div>
 
@@ -152,7 +230,7 @@ export const LocalBizLeadsView: React.FC<LocalBizLeadsViewProps> = ({
             onClick={handleRunOsmSearch}
             disabled={isSearchingOsm}
           >
-            {isSearchingOsm ? '⏳ Geocoding & Scrape Overpass...' : `🚀 Search ${activeCity}, ${activeCountry}`}
+            {isSearchingOsm ? `⏳ Fetching ${fetchLimit} Leads...` : `🚀 Fetch ${fetchLimit} Leads in ${activeCity}, ${activeCountry}`}
           </button>
         </div>
       </div>
@@ -160,32 +238,39 @@ export const LocalBizLeadsView: React.FC<LocalBizLeadsViewProps> = ({
       {/* Dynamic Global Geocoding Search Controls */}
       <div className="glass-panel" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
         
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.9rem', fontWeight: '700', color: 'var(--text-main)' }}>
-          <Globe2 size={18} color="var(--primary)" /> Select Country, City & Industry Category
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.9rem', fontWeight: '700', color: 'var(--text-main)' }}>
+            <Globe2 size={18} color="var(--primary)" /> Global Country, City & Category Filters
+          </div>
+          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+            Configured Fetch Batch: <strong>{fetchLimit} Nodes</strong>
+          </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '14px' }}>
           
           {/* Country Dropdown */}
           <div>
             <label style={{ fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
-              Country Dropdown
+              Country
             </label>
             <select 
               className="input-field"
               value={selectedCountry}
               onChange={(e) => setSelectedCountry(e.target.value)}
             >
-              <option value="Sweden">🇸🇪 Sweden</option>
-              <option value="United Kingdom">🇬🇧 United Kingdom</option>
-              <option value="United States">🇺🇸 United States</option>
-              <option value="Germany">🇩🇪 Germany</option>
-              <option value="France">🇫🇷 France</option>
-              <option value="Canada">🇨🇦 Canada</option>
-              <option value="United Arab Emirates">🇦🇪 United Arab Emirates</option>
-              <option value="Japan">🇯🇵 Japan</option>
               <option value="Pakistan">🇵🇰 Pakistan</option>
+              <option value="United States">🇺🇸 United States</option>
+              <option value="United Kingdom">🇬🇧 United Kingdom</option>
+              <option value="United Arab Emirates">🇦🇪 United Arab Emirates</option>
+              <option value="Saudi Arabia">🇸🇦 Saudi Arabia</option>
+              <option value="Canada">🇨🇦 Canada</option>
+              <option value="Germany">🇩🇪 Germany</option>
               <option value="Australia">🇦🇺 Australia</option>
+              <option value="Sweden">🇸🇪 Sweden</option>
+              <option value="France">🇫🇷 France</option>
+              <option value="India">🇮🇳 India</option>
+              <option value="Turkey">🇹🇷 Turkey</option>
               <option value="Italy">🇮🇹 Italy</option>
               <option value="Spain">🇪🇸 Spain</option>
               <option value="Netherlands">🇳🇱 Netherlands</option>
@@ -197,7 +282,7 @@ export const LocalBizLeadsView: React.FC<LocalBizLeadsViewProps> = ({
                 type="text"
                 className="input-field"
                 style={{ marginTop: '6px' }}
-                placeholder="Type custom country name..."
+                placeholder="Type custom country..."
                 value={customCountry}
                 onChange={(e) => setCustomCountry(e.target.value)}
               />
@@ -207,7 +292,7 @@ export const LocalBizLeadsView: React.FC<LocalBizLeadsViewProps> = ({
           {/* City Dropdown */}
           <div>
             <label style={{ fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
-              City Dropdown
+              City
             </label>
             <select 
               className="input-field"
@@ -226,7 +311,7 @@ export const LocalBizLeadsView: React.FC<LocalBizLeadsViewProps> = ({
                 type="text"
                 className="input-field"
                 style={{ marginTop: '6px' }}
-                placeholder="Type custom city name..."
+                placeholder="Type custom city..."
                 value={customCity}
                 onChange={(e) => setCustomCity(e.target.value)}
               />
@@ -236,24 +321,26 @@ export const LocalBizLeadsView: React.FC<LocalBizLeadsViewProps> = ({
           {/* Category Selector */}
           <div>
             <label style={{ fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
-              Business Category
+              Industry Category
             </label>
             <select className="input-field" value={category} onChange={(e) => setCategory(e.target.value as any)}>
-              <option value="restaurant">🍽️ Restaurants & Dining</option>
-              <option value="bakery">🥖 Bakeries & Cafes</option>
-              <option value="gym">🏋️ Gyms & Fitness Studios</option>
-              <option value="clinic">🩺 Clinics & Dentists</option>
+              <option value="all">🌟 All Commercial Businesses</option>
+              <option value="restaurant">🍽️ Restaurants & Food</option>
+              <option value="cafe">☕ Cafes & Coffee Shops</option>
+              <option value="bakery">🥖 Bakeries</option>
+              <option value="gym">🏋️ Gyms & Fitness Centers</option>
+              <option value="clinic">🩺 Clinics & Healthcare</option>
               <option value="salon">💇 Salons & Spas</option>
               <option value="hotel">🏨 Hotels & Hospitality</option>
-              <option value="car_repair">🚗 Auto Services & Detailing</option>
-              <option value="boutique">🛍️ Retail Boutiques</option>
+              <option value="car_repair">🚗 Auto Repair & Garages</option>
+              <option value="boutique">🛍️ Boutiques & Retail</option>
             </select>
           </div>
 
           {/* Target Filter Type */}
           <div>
             <label style={{ fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
-              Target Web & App Needs
+              Digital Presence Need
             </label>
             <select className="input-field" value={filterType} onChange={(e) => setFilterType(e.target.value as any)}>
               <option value="ALL">🌐 All Business Listings</option>
@@ -262,6 +349,39 @@ export const LocalBizLeadsView: React.FC<LocalBizLeadsViewProps> = ({
             </select>
           </div>
 
+          {/* Batch Limit Selector (Up to 1,000+) */}
+          <div>
+            <label style={{ fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
+              Query Lead Volume
+            </label>
+            <select 
+              className="input-field" 
+              value={fetchLimit} 
+              onChange={(e) => setFetchLimit(Number(e.target.value))}
+            >
+              <option value={100}>⚡ 100 Leads (Fastest)</option>
+              <option value={300}>🎯 300 Leads (Balanced)</option>
+              <option value={500}>🚀 500 Leads (High Volume)</option>
+              <option value={1000}>🔥 1,000+ Leads (Deep Scan)</option>
+            </select>
+          </div>
+
+        </div>
+
+        {/* Dynamic Action Trigger Bar inside Filter Panel */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', background: '#f8fafc', padding: '12px 14px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+          <div style={{ fontSize: '0.85rem', color: 'var(--text-main)', fontWeight: '600' }}>
+            Selected: <span style={{ color: 'var(--primary)', fontWeight: '700' }}>{activeCity}, {activeCountry}</span> • Category: <span style={{ color: '#0284c7', fontWeight: '700' }}>{category.toUpperCase()}</span> • Volume: <span style={{ color: '#d97706', fontWeight: '700' }}>{fetchLimit} Leads</span>
+          </div>
+
+          <button 
+            className="btn btn-primary"
+            style={{ padding: '8px 20px', fontSize: '0.85rem', fontWeight: '800', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+            onClick={handleRunOsmSearch}
+            disabled={isSearchingOsm}
+          >
+            {isSearchingOsm ? `⏳ Fetching ${fetchLimit} Leads...` : `🚀 Fetch ${fetchLimit} Leads in ${activeCity}`}
+          </button>
         </div>
 
         {/* Filter Search Input */}
@@ -270,7 +390,7 @@ export const LocalBizLeadsView: React.FC<LocalBizLeadsViewProps> = ({
           <input 
             type="text"
             className="input-field"
-            placeholder="Search discovered local leads by business name, city, or category..."
+            placeholder="Search discovered local leads by business name, city, address, or category..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -278,20 +398,107 @@ export const LocalBizLeadsView: React.FC<LocalBizLeadsViewProps> = ({
 
       </div>
 
+      {/* Pagination Controls Bar - Top */}
+      {totalItems > 0 && (
+        <div className="glass-panel" style={{ padding: '12px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+          <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+            Showing <strong>{startIndex + 1}–{endIndex}</strong> of <strong>{totalItems.toLocaleString()}</strong> leads in <strong>{activeCity}, {activeCountry}</strong>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            {/* Page size selector */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem' }}>
+              <span style={{ color: 'var(--text-muted)' }}>Show:</span>
+              <select 
+                className="input-field" 
+                style={{ padding: '4px 8px', fontSize: '0.8rem' }}
+                value={pageSize}
+                onChange={(e) => {
+                  setPageSize(Number(e.target.value));
+                  setCurrentPage(1);
+                }}
+              >
+                <option value={20}>20 per page</option>
+                <option value={25}>25 per page</option>
+                <option value={50}>50 per page</option>
+                <option value={100}>100 per page</option>
+              </select>
+            </div>
+
+            {/* Page navigation buttons */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <button 
+                className="btn btn-secondary"
+                style={{ padding: '4px 8px' }}
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage(1)}
+                title="First Page"
+              >
+                <ChevronsLeft size={16} />
+              </button>
+
+              <button 
+                className="btn btn-secondary"
+                style={{ padding: '4px 8px' }}
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                title="Previous Page"
+              >
+                <ChevronLeft size={16} />
+              </button>
+
+              <span style={{ fontSize: '0.85rem', fontWeight: '700', padding: '0 8px', color: 'var(--text-main)' }}>
+                Page {currentPage} of {totalPages}
+              </span>
+
+              <button 
+                className="btn btn-secondary"
+                style={{ padding: '4px 8px' }}
+                disabled={currentPage === totalPages}
+                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                title="Next Page"
+              >
+                <ChevronRight size={16} />
+              </button>
+
+              <button 
+                className="btn btn-secondary"
+                style={{ padding: '4px 8px' }}
+                disabled={currentPage === totalPages}
+                onClick={() => setCurrentPage(totalPages)}
+                title="Last Page"
+              >
+                <ChevronsRight size={16} />
+              </button>
+            </div>
+
+            {/* Direct Export Button for Local SMBs */}
+            <button 
+              className="btn btn-secondary"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', padding: '6px 12px', fontWeight: '700', border: '1px solid var(--primary)', color: 'var(--primary)' }}
+              onClick={() => leadService.exportLeadsToCSV(filteredLeads, 'LOCAL_SMB')}
+              title="Export all currently filtered Local SMBs to Excel / CSV"
+            >
+              <Download size={14} /> Export {filteredLeads.length} SMBs (Excel/CSV)
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Discovered Leads Grid */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: '20px' }}>
-        {filteredLeads.length === 0 ? (
+        {totalItems === 0 ? (
           <div className="glass-panel" style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)', gridColumn: '1 / -1' }}>
             <Building2 size={36} color="var(--text-muted)" style={{ margin: '0 auto 12px auto' }} />
             <h3 style={{ fontSize: '1rem', fontWeight: '700', color: 'var(--text-main)' }}>
-              {isSearchingOsm ? '⏳ Querying OpenStreetMap Overpass API...' : 'No OpenStreetMap Local Businesses Loaded'}
+              {isSearchingOsm ? `⏳ Querying up to ${fetchLimit} OpenStreetMap nodes for ${activeCity}, ${activeCountry}...` : 'No OpenStreetMap Local Businesses Found'}
             </h3>
             <p style={{ fontSize: '0.85rem', marginTop: '4px' }}>
-              Select city & country from the dropdowns above and click <strong>"🚀 Search {activeCity}, {activeCountry}"</strong> to discover real physical businesses via OpenStreetMap!
+              Select city & country from the dropdowns above and click <strong>"🚀 Fetch {fetchLimit} Leads in {activeCity}"</strong>!
             </p>
           </div>
         ) : (
-          filteredLeads.map(lead => {
+          paginatedLeads.map(lead => {
             const audit = lead.websiteAudit;
             const emailBadge = getEmailBadgeColor(lead.contact.emailValidationStage);
             const score = lead.scoreBreakdown.totalScore;
@@ -316,7 +523,7 @@ export const LocalBizLeadsView: React.FC<LocalBizLeadsViewProps> = ({
                       <Flame size={12} /> Score {score}/100
                     </span>
                     <span style={{ fontSize: '0.725rem', color: '#059669', background: '#d1fae5', padding: '2px 6px', borderRadius: '4px', fontWeight: '700' }}>
-                      📍 OpenStreetMap Business
+                      📍 OSM Node
                     </span>
                   </div>
 
@@ -336,7 +543,9 @@ export const LocalBizLeadsView: React.FC<LocalBizLeadsViewProps> = ({
                   
                   <div style={{ fontWeight: '700', color: '#3f3f46', borderBottom: '1px solid #e2e8f0', paddingBottom: '4px', marginBottom: '2px', display: 'flex', justifyContent: 'space-between' }}>
                     <span>Technical Audit Checklist</span>
-                    <span style={{ color: '#0284c7' }}>{audit.techFramework || 'Audit complete'}</span>
+                    <span style={{ color: '#0284c7' }}>
+                      {audit.isLiveAudit ? '⚡ Live PageSpeed' : (audit.techFramework || 'Audit complete')}
+                    </span>
                   </div>
 
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
@@ -378,22 +587,58 @@ export const LocalBizLeadsView: React.FC<LocalBizLeadsViewProps> = ({
                   
                   {/* Email with Multi-Stage Validation Badge */}
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--text-main)', fontWeight: '600' }}>
-                      <Mail size={13} color="var(--primary)" /> {lead.contact.email}
-                    </span>
-                    <span style={{ fontSize: '0.675rem', padding: '2px 6px', borderRadius: '4px', background: emailBadge.bg, color: emailBadge.text, border: `1px solid ${emailBadge.border}`, fontWeight: '700' }}>
-                      {emailBadge.label}
-                    </span>
+                    {lead.contact.email ? (
+                      <>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--text-main)', fontWeight: '600', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          <Mail size={13} color="var(--primary)" /> {lead.contact.email}
+                        </span>
+                        <span style={{ fontSize: '0.675rem', padding: '2px 6px', borderRadius: '4px', background: emailBadge.bg, color: emailBadge.text, border: `1px solid ${emailBadge.border}`, fontWeight: '700', whiteSpace: 'nowrap' }}>
+                          {emailBadge.label}
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--text-muted)' }}>
+                          <Mail size={13} color="var(--text-muted)" /> No email listed on OSM
+                        </span>
+                        <a 
+                          href={`https://www.google.com/search?q=${encodeURIComponent('contact email ' + lead.company.name + ' ' + lead.company.location)}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          style={{ fontSize: '0.675rem', padding: '2px 6px', borderRadius: '4px', background: '#f4f4f5', color: 'var(--primary)', border: '1px solid var(--border-color)', fontWeight: '700', textDecoration: 'none', whiteSpace: 'nowrap' }}
+                        >
+                          🔍 Find Email ↗
+                        </a>
+                      </>
+                    )}
                   </div>
 
                   {/* Phone with E.164 Normalization Badge */}
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#059669', fontWeight: '700' }}>
-                      <Phone size={13} /> {lead.contact.phoneNormalized || lead.contact.phone}
-                    </span>
-                    <span style={{ fontSize: '0.675rem', padding: '2px 6px', borderRadius: '4px', background: '#d1fae5', color: '#059669', fontWeight: '700' }}>
-                      <ShieldCheck size={11} style={{ display: 'inline', marginRight: '2px' }} /> E.164 VERIFIED
-                    </span>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                    {lead.contact.phone ? (
+                      <>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#059669', fontWeight: '700' }}>
+                          <Phone size={13} /> {lead.contact.phoneNormalized || lead.contact.phone}
+                        </span>
+                        <span style={{ fontSize: '0.675rem', padding: '2px 6px', borderRadius: '4px', background: '#d1fae5', color: '#059669', fontWeight: '700', whiteSpace: 'nowrap' }}>
+                          <ShieldCheck size={11} style={{ display: 'inline', marginRight: '2px' }} /> VERIFIED PHONE
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--text-muted)' }}>
+                          <Phone size={13} color="var(--text-muted)" /> Phone not mapped on OSM
+                        </span>
+                        <a 
+                          href={`https://www.google.com/search?q=${encodeURIComponent(lead.company.name + ' ' + lead.company.location + ' phone number')}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          style={{ fontSize: '0.675rem', padding: '2px 6px', borderRadius: '4px', background: '#f4f4f5', color: '#059669', border: '1px solid var(--border-color)', fontWeight: '700', textDecoration: 'none', whiteSpace: 'nowrap' }}
+                        >
+                          🔍 Google Phone ↗
+                        </a>
+                      </>
+                    )}
                   </div>
 
                 </div>
@@ -438,6 +683,68 @@ export const LocalBizLeadsView: React.FC<LocalBizLeadsViewProps> = ({
           })
         )}
       </div>
+
+      {/* Pagination Controls Bar - Bottom */}
+      {totalPages > 1 && (
+        <div className="glass-panel" style={{ padding: '14px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+          <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+            Showing <strong>{startIndex + 1}–{endIndex}</strong> of <strong>{totalItems.toLocaleString()}</strong> businesses
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <button 
+              className="btn btn-secondary"
+              style={{ padding: '6px 10px' }}
+              disabled={currentPage === 1}
+              onClick={() => setCurrentPage(1)}
+            >
+              <ChevronsLeft size={16} />
+            </button>
+
+            <button 
+              className="btn btn-secondary"
+              style={{ padding: '6px 10px' }}
+              disabled={currentPage === 1}
+              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+            >
+              <ChevronLeft size={16} />
+            </button>
+
+            {getPageNumbers().map((p, idx) => (
+              typeof p === 'number' ? (
+                <button
+                  key={idx}
+                  className={`btn ${p === currentPage ? 'btn-primary' : 'btn-secondary'}`}
+                  style={{ minWidth: '34px', padding: '6px 10px', fontSize: '0.85rem', fontWeight: p === currentPage ? '800' : '500' }}
+                  onClick={() => setCurrentPage(p)}
+                >
+                  {p}
+                </button>
+              ) : (
+                <span key={idx} style={{ padding: '0 4px', color: 'var(--text-muted)' }}>...</span>
+              )
+            ))}
+
+            <button 
+              className="btn btn-secondary"
+              style={{ padding: '6px 10px' }}
+              disabled={currentPage === totalPages}
+              onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+            >
+              <ChevronRight size={16} />
+            </button>
+
+            <button 
+              className="btn btn-secondary"
+              style={{ padding: '6px 10px' }}
+              disabled={currentPage === totalPages}
+              onClick={() => setCurrentPage(totalPages)}
+            >
+              <ChevronsRight size={16} />
+            </button>
+          </div>
+        </div>
+      )}
 
     </div>
   );

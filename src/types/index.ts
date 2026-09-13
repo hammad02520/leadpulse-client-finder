@@ -54,6 +54,13 @@ export interface WebsiteAudit {
   opportunityScore: number;
   issuesDetected: string[];
   aiOpportunityReason: string;
+  isLiveAudit?: boolean;
+  fcp?: string;
+  lcp?: string;
+  cls?: string;
+  speedIndex?: string;
+  seoScore?: number;
+  accessibilityScore?: number;
 }
 
 export interface ScoreBreakdown {
@@ -141,8 +148,9 @@ export interface SourceFilter {
 export interface OsmSearchParams {
   country: string;
   city: string;
-  category: 'restaurant' | 'bakery' | 'gym' | 'clinic' | 'salon' | 'hotel' | 'car_repair' | 'boutique';
+  category: 'restaurant' | 'bakery' | 'gym' | 'clinic' | 'salon' | 'hotel' | 'car_repair' | 'boutique' | 'cafe' | 'all';
   filterType?: 'ALL' | 'NO_WEBSITE' | 'HAS_WEBSITE_NO_APP';
+  limit?: number;
 }
 
 export type AppViewMode = 'dashboard' | 'local_biz' | 'remote_jobs' | 'kanban' | 'table';

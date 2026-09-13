@@ -8,12 +8,29 @@ export class LocalBizAdapter implements BaseAdapter {
 
   async fetchLeads(): Promise<Lead[]> {
     try {
-      // Automatically query real OpenStreetMap business nodes for default location
+      // Read saved location preference or use default global location
+      let savedCountry = 'United States';
+      let savedCity = 'New York';
+
+      try {
+        const storedPref = localStorage.getItem('leadpulse_osm_pref');
+        if (storedPref) {
+          const parsed = JSON.parse(storedPref);
+          if (parsed.country && parsed.city) {
+            savedCountry = parsed.country;
+            savedCity = parsed.city;
+          }
+        }
+      } catch {
+        // use defaults
+      }
+
       const osmLeads = await overpassService.discoverOsmBusinesses({
-        country: 'Sweden',
-        city: 'Stockholm',
-        category: 'restaurant',
-        filterType: 'ALL'
+        country: savedCountry,
+        city: savedCity,
+        category: 'all',
+        filterType: 'ALL',
+        limit: 150
       });
       return osmLeads;
     } catch (err) {
