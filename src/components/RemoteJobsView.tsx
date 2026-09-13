@@ -7,10 +7,17 @@ import {
   Sparkles, 
   Code2, 
   Clock, 
-  Layers
+  Layers,
+  Building2,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+  Download
 } from 'lucide-react';
-import { Lead, ProjectNeedType } from '../types';
+import { Lead, ProjectNeedType, JobFeedSource } from '../types';
 import { liveScraperService } from '../services/liveScraperService';
+import { leadService } from '../services/leadService';
 
 interface RemoteJobsViewProps {
   leads: Lead[];
@@ -27,7 +34,13 @@ export const RemoteJobsView: React.FC<RemoteJobsViewProps> = ({
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [needFilter, setNeedFilter] = useState<ProjectNeedType | 'ALL'>('ALL');
+  const [sourceFilter, setSourceFilter] = useState<JobFeedSource>('ALL');
   const [isScrapingLive, setIsScrapingLive] = useState(false);
+  const [scrapeSuccessMsg, setScrapeSuccessMsg] = useState<string | null>(null);
+
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
 
   // Filter remote developer jobs & reddit hiring posts
   const remoteLeads = leads.filter(l => l.source === 'JOB_FEED' || l.source === 'REDDIT');
@@ -36,24 +49,58 @@ export const RemoteJobsView: React.FC<RemoteJobsViewProps> = ({
     const matchesSearch = 
       l.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       l.company.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      l.description.toLowerCase().includes(searchTerm.toLowerCase());
+      l.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (l.company.location && l.company.location.toLowerCase().includes(searchTerm.toLowerCase()));
 
     const matchesNeed = needFilter === 'ALL' || l.projectNeed === needFilter;
 
-    return matchesSearch && matchesNeed;
+    let matchesSource = true;
+    if (sourceFilter === 'REMOTIVE') {
+      matchesSource = l.tags.includes('REMOTIVE_API') || l.sourceUrl.includes('remotive');
+    } else if (sourceFilter === 'ARBEITNOW') {
+      matchesSource = l.tags.includes('ARBEITNOW_API') || l.sourceUrl.includes('arbeitnow');
+    } else if (sourceFilter === 'JOBICY') {
+      matchesSource = l.tags.includes('JOBICY_API') || l.sourceUrl.includes('jobicy');
+    } else if (sourceFilter === 'HACKERNEWS') {
+      matchesSource = l.tags.includes('HN_ALGOLIA_API') || l.sourceUrl.includes('ycombinator');
+    }
+
+    return matchesSearch && matchesNeed && matchesSource;
   });
+
+  // Pagination calculations
+  const totalItems = filteredLeads.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+  const startIndex = (currentPage - 1) * pageSize;
+  const endIndex = Math.min(startIndex + pageSize, totalItems);
+  const paginatedLeads = filteredLeads.slice(startIndex, endIndex);
 
   const handleRunLiveScrape = async () => {
     setIsScrapingLive(true);
+    setScrapeSuccessMsg(null);
     try {
-      const jobFeedResults = await liveScraperService.scrapeLiveJobFeedLeads();
-      const redditResults = await liveScraperService.scrapeLiveRedditLeads();
-      onAddDiscoveredLeads([...jobFeedResults, ...redditResults]);
+      let newDiscovered: Lead[] = [];
+      if (sourceFilter === 'HACKERNEWS') {
+        newDiscovered = await liveScraperService.scrapeLiveRedditLeads();
+      } else if (sourceFilter === 'ALL') {
+        const jobs = await liveScraperService.scrapeLiveJobFeedLeads('ALL');
+        const hn = await liveScraperService.scrapeLiveRedditLeads();
+        newDiscovered = [...jobs, ...hn];
+      } else {
+        newDiscovered = await liveScraperService.scrapeLiveJobFeedLeads(sourceFilter as any);
+      }
+      onAddDiscoveredLeads(newDiscovered);
+      setScrapeSuccessMsg(`✅ Successfully fetched ${newDiscovered.length} fresh leads from ${sourceFilter === 'ALL' ? 'all remote sources' : sourceFilter}!`);
+      setTimeout(() => setScrapeSuccessMsg(null), 5000);
     } catch (e) {
       console.error('Live Job Scrape Error:', e);
     } finally {
       setIsScrapingLive(false);
     }
+  };
+
+  const handleExportRemoteLeads = () => {
+    leadService.exportLeadsToCSV(filteredLeads, 'REMOTE_JOBS');
   };
 
   return (
@@ -65,54 +112,97 @@ export const RemoteJobsView: React.FC<RemoteJobsViewProps> = ({
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
               <span className="badge badge-hot" style={{ fontSize: '0.75rem', background: '#e0f2fe', color: '#0284c7', border: '1px solid #bae6fd' }}>
-                💼 Remote Developer & Client Project Feed
+                💼 Multi-Source Remote Developer Feed
               </span>
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Real-Time Open Web API Ingestion</span>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Real-Time Open APIs (Remotive, Arbeitnow, Jobicy, HackerNews)</span>
             </div>
             <h2 style={{ fontSize: '1.4rem', fontWeight: '800', color: 'var(--text-main)', letterSpacing: '-0.02em' }}>
-              Remote Fullstack & Mobile Developer Project Finder
+              Remote Fullstack, Mobile & SaaS Project Finder
             </h2>
             <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-              Scrape live tech hiring posts from Remotive, Arbeitnow, Jobicy, HackerNews Algolia, and GitHub Hiring Issues.
+              Filter and scrape live hiring projects across specific free boards or aggregate them simultaneously.
             </p>
           </div>
 
-          <button 
-            className="btn btn-primary"
-            style={{ padding: '10px 20px', fontSize: '0.875rem', fontWeight: '700' }}
-            onClick={handleRunLiveScrape}
-            disabled={isScrapingLive}
-          >
-            {isScrapingLive ? '⏳ Scraping Live Jobs...' : '🔄 Scrape Live Remote Jobs Now'}
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+            <button 
+              className="btn btn-secondary"
+              style={{ padding: '10px 16px', fontSize: '0.825rem', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '6px' }}
+              onClick={handleExportRemoteLeads}
+              disabled={filteredLeads.length === 0}
+            >
+              <Download size={15} /> Export {filteredLeads.length} Jobs (CSV)
+            </button>
+
+            <button 
+              className="btn btn-primary"
+              style={{ padding: '10px 20px', fontSize: '0.875rem', fontWeight: '700' }}
+              onClick={handleRunLiveScrape}
+              disabled={isScrapingLive}
+            >
+              {isScrapingLive ? '⏳ Scraping Live Jobs...' : `🔄 Scrape Live Jobs (${sourceFilter === 'ALL' ? 'All Sources' : sourceFilter})`}
+            </button>
+          </div>
         </div>
+
+        {scrapeSuccessMsg && (
+          <div style={{ marginTop: '14px', padding: '10px 14px', background: '#dcfce7', border: '1px solid #86efac', borderRadius: '8px', color: '#15803d', fontSize: '0.825rem', fontWeight: '600' }}>
+            {scrapeSuccessMsg}
+          </div>
+        )}
       </div>
 
       {/* Filter Controls Panel */}
       <div className="glass-panel" style={{ padding: '16px 20px', display: 'flex', gap: '14px', flexWrap: 'wrap', alignItems: 'center' }}>
         
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: '1', minWidth: '260px' }}>
+        {/* Keyword Search */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: '1', minWidth: '240px' }}>
           <Search size={18} color="var(--text-muted)" />
           <input 
             type="text"
             className="input-field"
-            placeholder="Search remote developer jobs by title, company, or tech..."
+            placeholder="Search jobs by title, company, tech, or location..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
 
+        {/* Source Filter Selector */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <Building2 size={16} color="#4f46e5" />
+          <span style={{ fontSize: '0.8rem', fontWeight: '700', color: '#3f3f46' }}>Source Board:</span>
+          <select 
+            className="input-field" 
+            style={{ width: 'auto', fontSize: '0.8rem', padding: '6px 12px' }}
+            value={sourceFilter}
+            onChange={(e) => {
+              setSourceFilter(e.target.value as JobFeedSource);
+              setCurrentPage(1);
+            }}
+          >
+            <option value="ALL">🌐 All Remote Boards (Aggregated)</option>
+            <option value="JOBICY">⚡ Jobicy (200+ Daily Remote Jobs)</option>
+            <option value="REMOTIVE">💼 Remotive (US / Europe Tech)</option>
+            <option value="ARBEITNOW">🇪🇺 Arbeitnow (EU Remote / Visa)</option>
+            <option value="HACKERNEWS">🟧 HackerNews ("Who is Hiring?")</option>
+          </select>
+        </div>
+
+        {/* Category Need Filter */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           <Code2 size={16} color="#0284c7" />
-          <span style={{ fontSize: '0.8rem', fontWeight: '700', color: '#3f3f46' }}>Category Need:</span>
+          <span style={{ fontSize: '0.8rem', fontWeight: '700', color: '#3f3f46' }}>Category:</span>
           <select 
             className="input-field" 
             style={{ width: 'auto', fontSize: '0.8rem', padding: '6px 12px' }}
             value={needFilter}
-            onChange={(e) => setNeedFilter(e.target.value as any)}
+            onChange={(e) => {
+              setNeedFilter(e.target.value as any);
+              setCurrentPage(1);
+            }}
           >
             <option value="ALL">🛠️ All Project Needs</option>
-            <option value="EBOOK_CREATOR_NEED_APP">📚 E-Book Author / Course Creator App</option>
+            <option value="EBOOK_CREATOR_NEED_APP">📚 E-Book Author / Course App</option>
             <option value="HAS_WEBSITE_NO_APP">🌐 Has Website, Missing Mobile App</option>
             <option value="MOBILE_APP">📱 Mobile App (iOS / Android)</option>
             <option value="WEB_REDESIGN">🎨 Web Redesign</option>
@@ -123,7 +213,7 @@ export const RemoteJobsView: React.FC<RemoteJobsViewProps> = ({
         </div>
 
         <div style={{ marginLeft: 'auto', fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: '600' }}>
-          Showing <strong>{filteredLeads.length}</strong> live remote leads
+          Showing <strong>{filteredLeads.length}</strong> matching jobs
         </div>
 
       </div>
@@ -139,7 +229,7 @@ export const RemoteJobsView: React.FC<RemoteJobsViewProps> = ({
             </p>
           </div>
         ) : (
-          filteredLeads.map(lead => {
+          paginatedLeads.map(lead => {
             const score = lead.scoreBreakdown.totalScore;
 
             return (
@@ -174,6 +264,11 @@ export const RemoteJobsView: React.FC<RemoteJobsViewProps> = ({
                       {lead.company.name}
                     </span>
                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>• {lead.company.industry}</span>
+                    {lead.company.location && (
+                      <span style={{ fontSize: '0.725rem', color: '#6366f1', background: '#e0e7ff', padding: '1px 6px', borderRadius: '4px', fontWeight: '600' }}>
+                        📍 {lead.company.location}
+                      </span>
+                    )}
                   </div>
 
                   <p style={{ fontSize: '0.775rem', color: 'var(--text-muted)', marginTop: '8px', lineHeight: '1.4' }}>
@@ -227,6 +322,74 @@ export const RemoteJobsView: React.FC<RemoteJobsViewProps> = ({
           })
         )}
       </div>
+
+      {/* Pagination Controls */}
+      {totalItems > 0 && (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', padding: '16px 20px', background: '#ffffff', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
+          <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+            Showing <strong>{startIndex + 1}</strong>–<strong>{endIndex}</strong> of <strong>{totalItems}</strong> jobs
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Per Page:</span>
+            <select 
+              className="input-field" 
+              style={{ width: 'auto', padding: '4px 8px', fontSize: '0.8rem' }}
+              value={pageSize}
+              onChange={(e) => {
+                setPageSize(Number(e.target.value));
+                setCurrentPage(1);
+              }}
+            >
+              <option value={10}>10</option>
+              <option value={20}>20</option>
+              <option value={50}>50</option>
+            </select>
+
+            <button 
+              className="btn btn-secondary" 
+              style={{ padding: '6px 10px' }} 
+              disabled={currentPage === 1}
+              onClick={() => setCurrentPage(1)}
+              title="First Page"
+            >
+              <ChevronsLeft size={16} />
+            </button>
+            <button 
+              className="btn btn-secondary" 
+              style={{ padding: '6px 10px' }} 
+              disabled={currentPage === 1}
+              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              title="Previous Page"
+            >
+              <ChevronLeft size={16} />
+            </button>
+            
+            <span style={{ fontSize: '0.85rem', fontWeight: '700', padding: '0 8px', color: 'var(--text-main)' }}>
+              {currentPage} / {totalPages}
+            </span>
+
+            <button 
+              className="btn btn-secondary" 
+              style={{ padding: '6px 10px' }} 
+              disabled={currentPage === totalPages}
+              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+              title="Next Page"
+            >
+              <ChevronRight size={16} />
+            </button>
+            <button 
+              className="btn btn-secondary" 
+              style={{ padding: '6px 10px' }} 
+              disabled={currentPage === totalPages}
+              onClick={() => setCurrentPage(totalPages)}
+              title="Last Page"
+            >
+              <ChevronsRight size={16} />
+            </button>
+          </div>
+        </div>
+      )}
 
     </div>
   );

@@ -54,15 +54,16 @@ export class LiveScraperService {
   /**
    * 1. Scrape Live Remote Job Feeds (Remotive, Arbeitnow, Jobicy)
    */
-  public async scrapeLiveJobFeedLeads(): Promise<Lead[]> {
+  public async scrapeLiveJobFeedLeads(selectedSource: 'ALL' | 'REMOTIVE' | 'ARBEITNOW' | 'JOBICY' = 'ALL'): Promise<Lead[]> {
     const leads: Lead[] = [];
 
     // Remotive API
-    try {
-      const res = await fetch('https://remotive.com/api/remote-jobs?limit=15');
-      if (res.ok) {
-        const data = await res.json();
-        const jobs = data.jobs || [];
+    if (selectedSource === 'ALL' || selectedSource === 'REMOTIVE') {
+      try {
+        const res = await fetch('https://remotive.com/api/remote-jobs?limit=25');
+        if (res.ok) {
+          const data = await res.json();
+          const jobs = data.jobs || [];
         jobs.slice(0, 10).forEach((job: any) => {
           const domain = this.extractDomainFromUrl(job.url, job.company_name);
           const projectNeed = this.classifyProjectNeed(job.title, job.description || '');
@@ -118,16 +119,82 @@ export class LiveScraperService {
     } catch (e) {
       console.warn('Remotive live scrape failed:', e);
     }
+  }
 
     // Arbeitnow API
-    try {
-      const res = await fetch('https://www.arbeitnow.com/api/job-board-api');
-      if (res.ok) {
-        const data = await res.json();
-        const jobs = data.data || [];
-        jobs.slice(0, 10).forEach((job: any) => {
-          const domain = this.extractDomainFromUrl(job.url, job.company_name);
-          const projectNeed = this.classifyProjectNeed(job.title, job.description || '');
+    if (selectedSource === 'ALL' || selectedSource === 'ARBEITNOW') {
+      try {
+        const res = await fetch('https://www.arbeitnow.com/api/job-board-api');
+        if (res.ok) {
+          const data = await res.json();
+          const jobs = data.data || [];
+          jobs.slice(0, 15).forEach((job: any) => {
+            const domain = this.extractDomainFromUrl(job.url, job.company_name);
+            const projectNeed = this.classifyProjectNeed(job.title, job.description || '');
+            const audit = runWebsiteAudit(domain);
+            audit.hasMobileApp = false;
+
+            const scoreBreakdown = calculateLeadScore({
+              hasExplicitHiringSignal: true,
+              hasBusinessQuality: true,
+              websiteAudit: audit,
+              hasEmail: domain !== 'none',
+              hasWhatsapp: false,
+              hasSocialPresence: true,
+              freshnessTier: 'JUST_NOW',
+              isExpired: false
+            });
+
+            leads.push({
+              id: `live-arbeitnow-${job.slug}`,
+              title: job.title,
+              description: (job.description || '').replace(/<[^>]*>?/gm, '').slice(0, 300) + '...',
+              company: {
+                name: job.company_name,
+                industry: 'Digital Company',
+                location: job.location || 'Remote',
+                websiteUrl: domain !== 'none' ? `https://${domain}` : undefined,
+                socialPresence: true
+              },
+              contact: {
+                personName: 'Hiring Manager',
+                role: 'Founder / CTO',
+                email: domain !== 'none' ? `jobs@${domain}` : undefined,
+                hasWhatsapp: false
+              },
+              source: 'JOB_FEED',
+              sourceUrl: job.url,
+              projectNeed,
+              budgetSignal: '$4,000 - $8,000',
+              scoreBreakdown,
+              websiteAudit: audit,
+              status: 'NEW',
+              tags: ['LIVE_SCRAPED', 'ARBEITNOW_API', projectNeed],
+              notes: [`Live Scraped from Arbeitnow API: ${job.url}`],
+              discoveredAt: new Date().toISOString(),
+              postedAt: new Date().toISOString(),
+              freshnessTier: 'JUST_NOW',
+              isExpired: false,
+              lastVerifiedAt: new Date().toISOString(),
+              outreachHistory: []
+            });
+          });
+        }
+      } catch (e) {
+        console.warn('Arbeitnow live scrape failed:', e);
+      }
+    }
+
+    // Jobicy Live Remote Jobs API (100% Free Public API)
+    if (selectedSource === 'ALL' || selectedSource === 'JOBICY') {
+      try {
+        const res = await fetch('https://jobicy.com/api/v2/remote-jobs?count=25');
+        if (res.ok) {
+          const data = await res.json();
+          const jobs = data.jobs || [];
+        jobs.slice(0, 15).forEach((job: any) => {
+          const domain = this.extractDomainFromUrl(job.url, job.companyName);
+          const projectNeed = this.classifyProjectNeed(job.jobTitle, job.jobDescription || job.jobExcerpt || '');
           const audit = runWebsiteAudit(domain);
           audit.hasMobileApp = false;
 
@@ -142,34 +209,42 @@ export class LiveScraperService {
             isExpired: false
           });
 
+          // Calculate formatted budget if provided by Jobicy
+          let budget = '$3,500 - $7,500';
+          if (job.salaryMin && job.salaryMax) {
+            const minFormatted = Math.round(job.salaryMin / 1000);
+            const maxFormatted = Math.round(job.salaryMax / 1000);
+            budget = `$${minFormatted}k - $${maxFormatted}k / yr (${job.salaryCurrency || 'USD'})`;
+          }
+
           leads.push({
-            id: `live-arbeitnow-${job.slug}`,
-            title: job.title,
-            description: (job.description || '').replace(/<[^>]*>?/gm, '').slice(0, 300) + '...',
+            id: `live-jobicy-${job.id}`,
+            title: job.jobTitle,
+            description: (job.jobExcerpt || job.jobDescription || '').replace(/<[^>]*>?/gm, '').slice(0, 300) + '...',
             company: {
-              name: job.company_name,
-              industry: 'Digital Company',
-              location: job.location || 'Remote',
+              name: job.companyName,
+              industry: Array.isArray(job.jobIndustry) ? job.jobIndustry.join(', ') : 'Tech & Software',
+              location: job.jobGeo || 'Worldwide Remote',
               websiteUrl: domain !== 'none' ? `https://${domain}` : undefined,
               socialPresence: true
             },
             contact: {
-              personName: 'Hiring Manager',
-              role: 'Founder / CTO',
-              email: domain !== 'none' ? `jobs@${domain}` : undefined,
+              personName: 'Engineering Recruiter',
+              role: 'Talent Acquisition',
+              email: domain !== 'none' ? `talent@${domain}` : undefined,
               hasWhatsapp: false
             },
             source: 'JOB_FEED',
             sourceUrl: job.url,
             projectNeed,
-            budgetSignal: '$4,000 - $8,000',
+            budgetSignal: budget,
             scoreBreakdown,
             websiteAudit: audit,
             status: 'NEW',
-            tags: ['LIVE_SCRAPED', 'ARBEITNOW_API', projectNeed],
-            notes: [`Live Scraped from Arbeitnow API: ${job.url}`],
+            tags: ['LIVE_SCRAPED', 'JOBICY_API', projectNeed],
+            notes: [`Live Scraped from Jobicy API: ${job.url}`],
             discoveredAt: new Date().toISOString(),
-            postedAt: new Date().toISOString(),
+            postedAt: job.pubDate || new Date().toISOString(),
             freshnessTier: 'JUST_NOW',
             isExpired: false,
             lastVerifiedAt: new Date().toISOString(),
@@ -178,8 +253,9 @@ export class LiveScraperService {
         });
       }
     } catch (e) {
-      console.warn('Arbeitnow live scrape failed:', e);
+      console.warn('Jobicy live scrape failed:', e);
     }
+  }
 
     return leads;
   }

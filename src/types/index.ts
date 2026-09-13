@@ -18,6 +18,8 @@ export type SourceType =
   | 'TWITTER' 
   | 'MANUAL_IMPORT';
 
+export type JobFeedSource = 'ALL' | 'REMOTIVE' | 'ARBEITNOW' | 'JOBICY' | 'HACKERNEWS';
+
 export type ProjectNeedType = 
   | 'NO_WEBSITE_NO_APP'
   | 'HAS_WEBSITE_NO_APP'

@@ -123,9 +123,9 @@ export const LeadTable: React.FC<LeadTableProps> = ({
               onChange={(e) => setSourceFilter(e.target.value as any)}
             >
               <option value="ALL">🌐 All Sources</option>
-              <option value="LOCAL_BIZ">📍 Local Business Directory</option>
-              <option value="JOB_FEED">💼 Remote Job Feeds (HN, WWR)</option>
-              <option value="REDDIT">🔴 Reddit Hiring Subreddits</option>
+              <option value="LOCAL_BIZ">📍 Local SMBs (OpenStreetMap Worldwide)</option>
+              <option value="JOB_FEED">💼 Remote Feeds (Jobicy, Remotive, Arbeitnow)</option>
+              <option value="REDDIT">🟧 Community / HackerNews Hiring</option>
               <option value="MANUAL_IMPORT">📥 Custom Manual Leads</option>
             </select>
           </div>
