@@ -594,6 +594,9 @@ out body ${Math.min(limit, 300)};`;
       }
     }
 
+    // Enrich raw OpenStreetMap elements with authentic Phone, Website, Email & Socials
+    await this.enrichOsmElements(rawElements);
+
     const leads: Lead[] = [];
 
     // Convert 100% genuine real elements to Lead objects
@@ -605,6 +608,95 @@ out body ${Math.min(limit, 300)};`;
     }
 
     return leads;
+  }
+
+  /**
+   * Batch enrich OpenStreetMap nodes and ways with authentic contact details
+   * (Phone, Website, Email, Opening Hours, Social links) directly from OpenStreetMap official API
+   */
+  private async enrichOsmElements(rawElements: any[]): Promise<void> {
+    const nodeIds = rawElements
+      .filter(el => el.osm_type === 'N' || !el.osm_type)
+      .map(el => el.id)
+      .filter(id => id && !isNaN(Number(id)));
+
+    const wayIds = rawElements
+      .filter(el => el.osm_type === 'W')
+      .map(el => el.id)
+      .filter(id => id && !isNaN(Number(id)));
+
+    const tagMap = new Map<string, any>();
+
+    // 1. Fetch node tags in chunks of 50 in parallel
+    const nodeChunks: string[][] = [];
+    for (let i = 0; i < nodeIds.length; i += 50) {
+      nodeChunks.push(nodeIds.slice(i, i + 50));
+    }
+
+    const nodePromises = nodeChunks.map(async (chunk) => {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 6000);
+        const res = await fetch(`https://api.openstreetmap.org/api/0.6/nodes.json?nodes=${chunk.join(',')}`, {
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+        if (res.ok) {
+          const data = await res.json();
+          for (const el of data.elements || []) {
+            tagMap.set(String(el.id), el.tags || {});
+          }
+        }
+      } catch (err) {
+        console.warn('Batch node tag enrichment error:', err);
+      }
+    });
+
+    // 2. Fetch way tags in chunks of 50 in parallel
+    const wayChunks: string[][] = [];
+    for (let i = 0; i < wayIds.length; i += 50) {
+      wayChunks.push(wayIds.slice(i, i + 50));
+    }
+
+    const wayPromises = wayChunks.map(async (chunk) => {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 6000);
+        const res = await fetch(`https://api.openstreetmap.org/api/0.6/ways.json?ways=${chunk.join(',')}`, {
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+        if (res.ok) {
+          const data = await res.json();
+          for (const el of data.elements || []) {
+            tagMap.set(String(el.id), el.tags || {});
+          }
+        }
+      } catch (err) {
+        console.warn('Batch way tag enrichment error:', err);
+      }
+    });
+
+    await Promise.allSettled([...nodePromises, ...wayPromises]);
+
+    // 3. Merge enriched tags into raw elements
+    for (const item of rawElements) {
+      const liveTags = tagMap.get(String(item.id));
+      if (liveTags) {
+        item.tags = {
+          ...item.tags,
+          ...liveTags,
+          name: liveTags.name || item.tags?.name,
+          phone: liveTags.phone || liveTags['contact:phone'] || liveTags['contact:mobile'] || item.tags?.phone,
+          website: liveTags.website || liveTags['contact:website'] || liveTags.url || item.tags?.website,
+          email: liveTags.email || liveTags['contact:email'] || item.tags?.email,
+          'contact:facebook': liveTags['contact:facebook'],
+          'contact:instagram': liveTags['contact:instagram'],
+          'contact:linkedin': liveTags['contact:linkedin'],
+          opening_hours: liveTags.opening_hours || item.tags?.opening_hours
+        };
+      }
+    }
   }
 }
 
