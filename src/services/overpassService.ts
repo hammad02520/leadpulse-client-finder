@@ -341,7 +341,7 @@ out body ${limit};`;
         source: 'LOCAL_BIZ',
         sourceUrl: `https://www.openstreetmap.org/node/${item.id}`,
         projectNeed,
-        budgetSignal: '$2,000 - $5,000',
+        budgetSignal: undefined,
         scoreBreakdown,
         websiteAudit: audit,
         status: 'NEW',

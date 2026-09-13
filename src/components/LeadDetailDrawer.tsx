@@ -151,8 +151,12 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
         {/* Point to Point Direct Post Link Banner */}
         <div style={{ background: '#eef2ff', border: '1px solid #c7d2fe', borderRadius: '10px', padding: '12px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
-            <div style={{ fontSize: '0.8rem', fontWeight: '700', color: '#3730a3' }}>Point-to-Point Direct Post URL</div>
-            <div style={{ fontSize: '0.725rem', color: '#4338ca' }}>Opens the exact original post page</div>
+            <div style={{ fontSize: '0.8rem', fontWeight: '700', color: '#3730a3' }}>
+              {lead.source === 'LOCAL_BIZ' ? 'OpenStreetMap Verified Node' : 'Point-to-Point Direct Post URL'}
+            </div>
+            <div style={{ fontSize: '0.725rem', color: '#4338ca' }}>
+              {lead.source === 'LOCAL_BIZ' ? 'View physical business coordinates & map tags' : 'Opens the exact original post page'}
+            </div>
           </div>
           <a 
             href={lead.sourceUrl} 
@@ -161,7 +165,7 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
             className="btn btn-primary"
             style={{ padding: '6px 12px', fontSize: '0.775rem', textDecoration: 'none' }}
           >
-            Open Job Post ↗
+            {lead.source === 'LOCAL_BIZ' ? 'View on OSM ↗' : 'Open Job Post ↗'}
           </a>
         </div>
 
@@ -335,7 +339,7 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <ExternalLink size={15} color="var(--primary)" />
               <a href={lead.sourceUrl} target="_blank" rel="noreferrer" style={{ color: 'var(--primary)', fontWeight: '700', textDecoration: 'none' }}>
-                Open Direct Job Post on {lead.source} ↗
+                {lead.source === 'LOCAL_BIZ' ? 'View Business on OpenStreetMap ↗' : `Open Direct Job Post on ${lead.source} ↗`}
               </a>
             </div>
 

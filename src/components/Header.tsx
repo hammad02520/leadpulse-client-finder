@@ -79,9 +79,9 @@ export const Header: React.FC<HeaderProps> = ({
         <button 
           className="btn btn-secondary"
           onClick={onExportCSV}
-          title="Export qualified leads to CSV"
+          title="Export qualified leads to CSV/Excel"
         >
-          <Download size={15} /> Export CSV
+          <Download size={15} /> {currentView === 'local_biz' ? 'Export Local SMBs (CSV)' : 'Export Remote Jobs (CSV)'}
         </button>
 
         <button 
