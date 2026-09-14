@@ -44,8 +44,16 @@ export const FundedStartupsView: React.FC<FundedStartupsViewProps> = ({
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 20;
 
-  // Filter ONLY leads from FUNDED_STARTUP source
-  const startupLeads = leads.filter(l => l.source === 'FUNDED_STARTUP');
+  const [fetchLimit, setFetchLimit] = useState<number>(100);
+
+  // Filter leads from all Startup & Launch sources
+  const startupLeads = leads.filter(l => 
+    l.source === 'FUNDED_STARTUP' || 
+    l.source === 'Y_COMBINATOR' || 
+    l.source === 'PRODUCT_HUNT' || 
+    l.source === 'BETALIST' || 
+    l.source === 'INDIE_HACKERS'
+  );
 
   useEffect(() => {
     if (startupLeads.length === 0 && !isScanning) {
@@ -61,7 +69,7 @@ export const FundedStartupsView: React.FC<FundedStartupsViewProps> = ({
         projectNeed: needFilter,
         country: selectedCountry,
         query: searchTerm,
-        limit: 50
+        limit: fetchLimit
       });
       onAddDiscoveredLeads(results);
     } catch (err) {
@@ -144,6 +152,26 @@ export const FundedStartupsView: React.FC<FundedStartupsViewProps> = ({
             <Download size={16} /> Export Startups CSV
           </button>
 
+          <select
+            value={fetchLimit}
+            onChange={(e) => setFetchLimit(Number(e.target.value))}
+            style={{
+              padding: '10px 14px',
+              borderRadius: '10px',
+              border: '1px solid rgba(255,255,255,0.3)',
+              background: 'rgba(255,255,255,0.15)',
+              color: '#ffffff',
+              fontWeight: '700',
+              fontSize: '0.85rem',
+              cursor: 'pointer'
+            }}
+          >
+            <option value={50} style={{ color: '#000' }}>📦 50 Startups</option>
+            <option value={100} style={{ color: '#000' }}>⚡ 100 Startups</option>
+            <option value={200} style={{ color: '#000' }}>🚀 200 Startups</option>
+            <option value={500} style={{ color: '#000' }}>👑 500 Startups</option>
+          </select>
+
           <button
             onClick={handleRunDiscovery}
             disabled={isScanning}
@@ -201,11 +229,13 @@ export const FundedStartupsView: React.FC<FundedStartupsViewProps> = ({
             onChange={(e) => setStageFilter(e.target.value as any)}
             style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '0.85rem', background: 'var(--bg-main)' }}
           >
-            <option value="ALL">All Funding Stages</option>
-            <option value="SEED">Seed Stage ($1M - $3M)</option>
-            <option value="PRE_SEED">Pre-Seed ($250k - $750k)</option>
-            <option value="SERIES_A">Series A ($3M - $10M)</option>
-            <option value="PRODUCT_HUNT">Product Hunt Top Launches</option>
+            <option value="ALL">All Funding Stages & Launches</option>
+            <option value="Y_COMBINATOR">🟠 Y Combinator Batch Startups</option>
+            <option value="PRODUCT_HUNT">🔴 Product Hunt Daily Top Launches</option>
+            <option value="BETALIST">🟣 BetaList Pre-Launch Startups</option>
+            <option value="SEED">🌱 Seed Stage ($1M - $3M)</option>
+            <option value="PRE_SEED">💡 Pre-Seed ($250k - $750k)</option>
+            <option value="SERIES_A">🚀 Series A ($3M - $10M)</option>
           </select>
         </div>
 
@@ -303,6 +333,25 @@ export const FundedStartupsView: React.FC<FundedStartupsViewProps> = ({
                 <p style={{ margin: '6px 0 0 0', fontSize: '0.825rem', color: 'var(--text-muted)', lineHeight: '1.4' }}>
                   {lead.description}
                 </p>
+
+                {/* Source & Feature Tags */}
+                {lead.tags && lead.tags.length > 0 && (
+                  <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap', marginTop: '8px' }}>
+                    {lead.tags.map((tag, tIdx) => {
+                      const isYC = tag === 'Y_COMBINATOR' || tag.startsWith('YC');
+                      const isPH = tag === 'PRODUCT_HUNT';
+                      const isBL = tag === 'BETALIST';
+                      const isMx = tag === 'MX_VERIFIED' || tag === 'DNS_VALIDATED';
+                      const bg = isYC ? '#ffedd5' : isPH ? '#ffe4e6' : isBL ? '#fae8ff' : isMx ? '#dcfce7' : '#f1f5f9';
+                      const color = isYC ? '#c2410c' : isPH ? '#e11d48' : isBL ? '#a21caf' : isMx ? '#15803d' : '#475569';
+                      return (
+                        <span key={tIdx} style={{ fontSize: '0.675rem', padding: '2px 7px', background: bg, color, borderRadius: '4px', fontWeight: '800', border: `1px solid ${color}33` }}>
+                          🏷️ {tag.replace(/_/g, ' ')}
+                        </span>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
 
               {/* Funding & Backers */}

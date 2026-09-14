@@ -48,6 +48,8 @@ export const B2BDecisionMakersView: React.FC<B2BDecisionMakersViewProps> = ({
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 20;
 
+  const [fetchLimit, setFetchLimit] = useState<number>(100);
+
   // Filter ONLY leads from B2B_APOLLO source
   const b2bLeads = leads.filter(l => l.source === 'B2B_APOLLO');
 
@@ -67,7 +69,7 @@ export const B2BDecisionMakersView: React.FC<B2BDecisionMakersViewProps> = ({
         industry: industryFilter,
         country: selectedCountry,
         query: searchTerm,
-        limit: 50
+        limit: fetchLimit
       });
       onAddDiscoveredLeads(results);
     } catch (err) {
@@ -161,6 +163,26 @@ export const B2BDecisionMakersView: React.FC<B2BDecisionMakersViewProps> = ({
           >
             <Download size={16} /> Export B2B CSV
           </button>
+
+          <select
+            value={fetchLimit}
+            onChange={(e) => setFetchLimit(Number(e.target.value))}
+            style={{
+              padding: '10px 14px',
+              borderRadius: '10px',
+              border: '1px solid rgba(255,255,255,0.3)',
+              background: 'rgba(255,255,255,0.15)',
+              color: '#ffffff',
+              fontWeight: '700',
+              fontSize: '0.85rem',
+              cursor: 'pointer'
+            }}
+          >
+            <option value={50} style={{ color: '#000' }}>📦 50 Executives</option>
+            <option value={100} style={{ color: '#000' }}>⚡ 100 Executives</option>
+            <option value={200} style={{ color: '#000' }}>🚀 200 Executives</option>
+            <option value={500} style={{ color: '#000' }}>👑 500 Executives</option>
+          </select>
 
           <button
             onClick={handleRunDiscovery}
@@ -352,6 +374,22 @@ export const B2BDecisionMakersView: React.FC<B2BDecisionMakersViewProps> = ({
                 <p style={{ margin: '8px 0 0 0', fontSize: '0.8rem', color: 'var(--text-muted)', lineHeight: '1.4' }}>
                   {lead.description}
                 </p>
+
+                {/* Source & Feature Tags */}
+                {lead.tags && lead.tags.length > 0 && (
+                  <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap', marginTop: '8px' }}>
+                    {lead.tags.map((tag, tIdx) => {
+                      const isMx = tag === 'MX_VERIFIED' || tag === 'DNS_VALIDATED';
+                      const bg = isMx ? '#dcfce7' : '#eff6ff';
+                      const color = isMx ? '#15803d' : '#1d4ed8';
+                      return (
+                        <span key={tIdx} style={{ fontSize: '0.675rem', padding: '2px 7px', background: bg, color, borderRadius: '4px', fontWeight: '800', border: `1px solid ${color}33` }}>
+                          🏷️ {tag.replace(/_/g, ' ')}
+                        </span>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
 
               {/* Company Scale & Metrics */}

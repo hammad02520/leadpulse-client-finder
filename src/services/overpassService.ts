@@ -331,11 +331,16 @@ out body ${Math.min(limit, 300)};`;
       status: 'NEW',
       tags: [
         'OPENSTREETMAP', 
+        'GLOBAL_REGISTRY',
+        ...(tags.wikidata || tags['brand:wikidata'] ? ['WIKIDATA_LINKED'] : []),
         categoryTag, 
         projectNeed, 
         ...(emailValidationStage ? [emailValidationStage] : [])
       ],
-      notes: [`OpenStreetMap Node #${item.id}. Verified Coordinates: (${item.lat}, ${item.lon})`],
+      notes: [
+        `OpenStreetMap Verified Node #${item.id}. Coordinates: (${item.lat}, ${item.lon})`,
+        ...(tags.wikidata ? [`Wikidata Entity ID: ${tags.wikidata}`] : [])
+      ],
       discoveredAt: new Date().toISOString(),
       postedAt: new Date().toISOString(),
       freshnessTier: 'JUST_NOW',

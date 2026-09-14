@@ -352,24 +352,102 @@ export function normalizePhoneNumber(rawPhone?: string, defaultCountryCode: stri
   return `${cleanCode} ${localDigits}`;
 }
 
+// In-memory cache for live DNS MX resolutions
+const mxCache = new Map<string, { hasMx: boolean; mxRecords: string[] }>();
+
 /**
  * Real Live DNS MX Record check via Google DNS-over-HTTPS (DoH)
  * Checks live global DNS servers for real Mail Exchange records in real time
  */
-export async function checkDomainMxRecord(domain: string): Promise<boolean> {
+export async function checkDomainMxRecord(domain: string): Promise<{ hasMx: boolean; mxRecords: string[] }> {
+  const cleanDomain = domain.replace(/^https?:\/\//, '').replace(/\/.*$/, '').replace(/^www\./, '').trim().toLowerCase();
+  if (!cleanDomain || cleanDomain.length < 3 || cleanDomain.includes('localhost') || cleanDomain === 'none') {
+    return { hasMx: false, mxRecords: [] };
+  }
+
+  if (mxCache.has(cleanDomain)) {
+    return mxCache.get(cleanDomain)!;
+  }
+
   try {
-    const cleanDomain = domain.replace(/^https?:\/\//, '').replace(/\/.*$/, '').replace(/^www\./, '').trim();
-    if (!cleanDomain || cleanDomain.length < 3 || cleanDomain.includes('localhost') || cleanDomain === 'none') {
-      return false;
-    }
-    const res = await fetch(`https://dns.google/resolve?name=${encodeURIComponent(cleanDomain)}&type=MX`);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 4000);
+    const res = await fetch(`https://dns.google/resolve?name=${encodeURIComponent(cleanDomain)}&type=MX`, {
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+
     if (res.ok) {
       const data = await res.json();
-      return Boolean(data && data.Answer && data.Answer.length > 0);
+      const mxRecords = (data.Answer || []).map((a: any) => a.data || '').filter(Boolean);
+      const result = { hasMx: mxRecords.length > 0, mxRecords };
+      mxCache.set(cleanDomain, result);
+      return result;
     }
   } catch {
-    // Network or silent fallback
+    // Timeout or network fallback
   }
-  return false;
+
+  const fallback = { hasMx: false, mxRecords: [] };
+  mxCache.set(cleanDomain, fallback);
+  return fallback;
+}
+
+/**
+ * Validates an email with live DNS MX verification in real time
+ */
+export async function validateEmailWithLiveMx(email?: string): Promise<{
+  stage: EmailValidationStage;
+  hasMx: boolean;
+  mxRecords: string[];
+}> {
+  if (!email || !email.includes('@')) {
+    return { stage: 'FORMAT_VALID', hasMx: false, mxRecords: [] };
+  }
+
+  const domain = email.split('@')[1];
+  const { hasMx, mxRecords } = await checkDomainMxRecord(domain);
+
+  let stage: EmailValidationStage = 'DOMAIN_VALID';
+  if (hasMx) {
+    stage = 'MX_VALID';
+  } else if (
+    domain.includes('gmail') || 
+    domain.includes('outlook') || 
+    domain.includes('yahoo') || 
+    domain.includes('proton') || 
+    domain.includes('icloud')
+  ) {
+    stage = 'VERIFIED';
+  }
+
+  return { stage, hasMx, mxRecords };
+}
+
+/**
+ * Generate standard corporate mailbox candidate options
+ */
+export function generateCorporateEmailCandidates(companyName: string, domain: string, personName?: string): string[] {
+  const cleanDomain = domain.replace(/^https?:\/\//, '').replace(/\/.*$/, '').replace(/^www\./, '');
+  const emails: string[] = [`info@${cleanDomain}`, `contact@${cleanDomain}`, `team@${cleanDomain}`];
+
+  if (personName && personName.trim()) {
+    const parts = personName.trim().toLowerCase().split(/\s+/);
+    if (parts.length >= 2) {
+      const first = parts[0].replace(/[^a-z]/g, '');
+      const last = parts[parts.length - 1].replace(/[^a-z]/g, '');
+      if (first && last) {
+        emails.unshift(`${first}.${last}@${cleanDomain}`);
+        emails.unshift(`${first}@${cleanDomain}`);
+      }
+    } else if (parts.length === 1) {
+      const name = parts[0].replace(/[^a-z]/g, '');
+      if (name) {
+        emails.unshift(`${name}@${cleanDomain}`);
+      }
+    }
+  }
+
+  return emails;
 }
 

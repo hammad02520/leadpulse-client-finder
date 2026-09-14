@@ -1,6 +1,6 @@
 import { Lead, EmailValidationStage, ProjectNeedType } from '../types';
 import { calculateLeadScore } from './scoringEngine';
-import { validateEmailStage } from './contactValidationService';
+import { validateEmailStage, checkDomainMxRecord } from './contactValidationService';
 import { runWebsiteAudit } from './websiteAuditor';
 
 export interface B2BSearchParams {
@@ -249,7 +249,8 @@ export class B2BDiscoveryService {
 
       for (const r of rolesToGenerate) {
         const email = `${r.prefix}@${comp.domain}`;
-        const emailValidation: EmailValidationStage = validateEmailStage(email);
+        const mxResult = await checkDomainMxRecord(comp.domain);
+        const emailValidation: EmailValidationStage = mxResult.hasMx ? 'MX_VALID' : validateEmailStage(email);
         const linkedinSearchUrl = `https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(comp.name + ' ' + r.roleTitle)}`;
         const websiteAudit = runWebsiteAudit(comp.domain);
 
@@ -280,12 +281,19 @@ export class B2BDiscoveryService {
           projectNeed: r.projectNeed,
           budgetSignal: revenue,
           status: 'NEW',
-          tags: ['B2B_DECISION_MAKER', r.roleType, companySize, industry],
+          tags: [
+            'B2B_DECISION_MAKER', 
+            r.roleType, 
+            companySize, 
+            industry,
+            ...(mxResult.hasMx ? ['MX_VERIFIED', 'DNS_VALIDATED'] : [])
+          ],
           notes: [
             `Company: ${comp.name} (${comp.domain})`,
             `Role: ${r.roleTitle}`,
             `Verified Corporate Domain: ${comp.domain}`,
-            `LinkedIn Query: ${linkedinSearchUrl}`
+            `LinkedIn Query: ${linkedinSearchUrl}`,
+            ...(mxResult.hasMx ? [`Live DNS MX Validated: ${mxResult.mxRecords.slice(0, 2).join(', ')}`] : [])
           ],
           discoveredAt: new Date().toISOString(),
           postedAt: new Date().toISOString(),

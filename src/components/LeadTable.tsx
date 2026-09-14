@@ -261,6 +261,19 @@ export const LeadTable: React.FC<LeadTableProps> = ({
                             💰 {lead.budgetSignal}
                           </span>
                         )}
+                        {lead.tags && lead.tags.filter(t => ['Y_COMBINATOR', 'PRODUCT_HUNT', 'BETALIST', 'INDIE_HACKERS', 'WIKIDATA_REGISTRY', 'REMOTEOK_CLIENT', 'GITHUB_FOUNDER', 'MX_VERIFIED'].includes(t) || t.startsWith('YC_')).map((tag, tIdx) => {
+                          const isYC = tag === 'Y_COMBINATOR' || tag.startsWith('YC_');
+                          const isPH = tag === 'PRODUCT_HUNT';
+                          const isMx = tag === 'MX_VERIFIED';
+                          const isGh = tag === 'GITHUB_FOUNDER';
+                          const bg = isYC ? '#ffedd5' : isPH ? '#ffe4e6' : isMx ? '#dcfce7' : isGh ? '#e0e7ff' : '#f1f5f9';
+                          const color = isYC ? '#c2410c' : isPH ? '#e11d48' : isMx ? '#15803d' : isGh ? '#3730a3' : '#475569';
+                          return (
+                            <span key={tIdx} style={{ fontSize: '0.675rem', padding: '1px 5px', background: bg, color, borderRadius: '4px', fontWeight: '700' }}>
+                              {tag.replace(/_/g, ' ')}
+                            </span>
+                          );
+                        })}
                       </div>
                     </td>
 

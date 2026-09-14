@@ -45,8 +45,10 @@ export const TechStackView: React.FC<TechStackViewProps> = ({
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 20;
 
-  // Filter ONLY leads from TECH_STACK source
-  const techLeads = leads.filter(l => l.source === 'TECH_STACK');
+  const [fetchLimit, setFetchLimit] = useState<number>(100);
+
+  // Filter leads from all Tech-Stack & Developer sources
+  const techLeads = leads.filter(l => l.source === 'TECH_STACK' || l.source === 'GITHUB_FOUNDER');
 
   useEffect(() => {
     if (techLeads.length === 0 && !isAuditing) {
@@ -62,7 +64,7 @@ export const TechStackView: React.FC<TechStackViewProps> = ({
         maxSpeedScore: maxSpeed,
         country: selectedCountry,
         query: searchTerm,
-        limit: 50
+        limit: fetchLimit
       });
       onAddDiscoveredLeads(results);
     } catch (err) {
@@ -147,6 +149,26 @@ export const TechStackView: React.FC<TechStackViewProps> = ({
           >
             <Download size={16} /> Export Tech Audits CSV
           </button>
+
+          <select
+            value={fetchLimit}
+            onChange={(e) => setFetchLimit(Number(e.target.value))}
+            style={{
+              padding: '10px 14px',
+              borderRadius: '10px',
+              border: '1px solid rgba(255,255,255,0.3)',
+              background: 'rgba(255,255,255,0.15)',
+              color: '#ffffff',
+              fontWeight: '700',
+              fontSize: '0.85rem',
+              cursor: 'pointer'
+            }}
+          >
+            <option value={50} style={{ color: '#000' }}>📦 50 Audits</option>
+            <option value={100} style={{ color: '#000' }}>⚡ 100 Audits</option>
+            <option value={200} style={{ color: '#000' }}>🚀 200 Audits</option>
+            <option value={500} style={{ color: '#000' }}>👑 500 Audits</option>
+          </select>
 
           <button
             onClick={handleRunDiscovery}
@@ -306,7 +328,7 @@ export const TechStackView: React.FC<TechStackViewProps> = ({
                 </div>
 
                 {/* Specific issues detected */}
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '8px' }}>
                   {lead.websiteAudit?.issuesDetected?.slice(0, 3).map((issue, idx) => (
                     <span
                       key={idx}
@@ -323,6 +345,24 @@ export const TechStackView: React.FC<TechStackViewProps> = ({
                     </span>
                   ))}
                 </div>
+
+                {/* Source & Feature Tags */}
+                {lead.tags && lead.tags.length > 0 && (
+                  <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
+                    {lead.tags.map((tag, tIdx) => {
+                      const isGh = tag === 'GITHUB_FOUNDER';
+                      const isRo = tag === 'REMOTEOK_CLIENT';
+                      const isMx = tag === 'MX_VERIFIED' || tag === 'DNS_VALIDATED';
+                      const bg = isGh ? '#e0e7ff' : isRo ? '#f1f5f9' : isMx ? '#dcfce7' : '#ecfdf5';
+                      const color = isGh ? '#3730a3' : isRo ? '#334155' : isMx ? '#15803d' : '#059669';
+                      return (
+                        <span key={tIdx} style={{ fontSize: '0.675rem', padding: '2px 7px', background: bg, color, borderRadius: '4px', fontWeight: '800', border: `1px solid ${color}33` }}>
+                          🏷️ {tag.replace(/_/g, ' ')}
+                        </span>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
 
               {/* Lighthouse Speed & Diagnostic */}

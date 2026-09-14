@@ -563,6 +563,23 @@ export const LocalBizLeadsView: React.FC<LocalBizLeadsViewProps> = ({
                   <p style={{ fontSize: '0.775rem', color: 'var(--text-muted)', marginTop: '6px', lineHeight: '1.4' }}>
                     {lead.description}
                   </p>
+
+                  {/* Source & Feature Tags */}
+                  {lead.tags && lead.tags.length > 0 && (
+                    <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap', marginTop: '6px' }}>
+                      {lead.tags.map((tag, tIdx) => {
+                        const isOsm = tag === 'OPENSTREETMAP' || tag === 'GLOBAL_REGISTRY';
+                        const isWiki = tag === 'WIKIDATA_LINKED';
+                        const bg = isOsm ? '#f0fdf4' : isWiki ? '#eff6ff' : '#f8fafc';
+                        const color = isOsm ? '#15803d' : isWiki ? '#1d4ed8' : '#64748b';
+                        return (
+                          <span key={tIdx} style={{ fontSize: '0.65rem', padding: '1px 6px', background: bg, color, borderRadius: '4px', fontWeight: '800', border: `1px solid ${color}33` }}>
+                            🏷️ {tag.replace(/_/g, ' ')}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
 
                 {/* Technical Website Checklist & Verification */}

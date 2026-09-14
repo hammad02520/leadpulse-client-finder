@@ -19,6 +19,12 @@ export type SourceType =
   | 'B2B_APOLLO'
   | 'TECH_STACK'
   | 'FUNDED_STARTUP'
+  | 'Y_COMBINATOR'
+  | 'PRODUCT_HUNT'
+  | 'INDIE_HACKERS'
+  | 'BETALIST'
+  | 'WIKIDATA'
+  | 'GITHUB_FOUNDER'
   | 'TWITTER' 
   | 'MANUAL_IMPORT';
 
@@ -153,7 +159,7 @@ export interface Lead {
     rebuildUrgency: 'HIGH' | 'MEDIUM' | 'LOW';
   };
   fundingInfo?: {
-    stage: 'PRE_SEED' | 'SEED' | 'SERIES_A' | 'SERIES_B' | 'BOOTSTRAPPED' | 'PRODUCT_HUNT';
+    stage: 'PRE_SEED' | 'SEED' | 'SERIES_A' | 'SERIES_B' | 'BOOTSTRAPPED' | 'PRODUCT_HUNT' | 'Y_COMBINATOR' | 'INDIE_HACKERS' | 'BETALIST';
     amountRaised?: string;
     leadInvestor?: string;
     launchDate?: string;

@@ -28,10 +28,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const uniqueLeads = useMemo(() => strictDeduplicate(leads), [leads]);
   const hotCount = uniqueLeads.filter(l => l.scoreBreakdown.temperature === 'HOT' && !l.isExpired).length;
-  const localCount = uniqueLeads.filter(l => l.source === 'LOCAL_BIZ').length;
+  const localCount = uniqueLeads.filter(l => l.source === 'LOCAL_BIZ' || l.source === 'WIKIDATA').length;
   const b2bCount = uniqueLeads.filter(l => l.source === 'B2B_APOLLO').length;
-  const techCount = uniqueLeads.filter(l => l.source === 'TECH_STACK').length;
-  const startupCount = uniqueLeads.filter(l => l.source === 'FUNDED_STARTUP').length;
+  const techCount = uniqueLeads.filter(l => l.source === 'TECH_STACK' || l.source === 'GITHUB_FOUNDER').length;
+  const startupCount = uniqueLeads.filter(l => 
+    l.source === 'FUNDED_STARTUP' || 
+    l.source === 'Y_COMBINATOR' || 
+    l.source === 'PRODUCT_HUNT' || 
+    l.source === 'BETALIST' || 
+    l.source === 'INDIE_HACKERS'
+  ).length;
   const remoteCount = uniqueLeads.filter(l => l.source === 'JOB_FEED' || l.source === 'REDDIT').length;
 
   return (

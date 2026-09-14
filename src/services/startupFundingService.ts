@@ -81,33 +81,84 @@ export class StartupFundingService {
     const leads: Lead[] = [];
     const limit = params.limit || 60;
 
-    // 1. Fetch live Product Launches & Show HN Stories (50 hits)
+    // Multi-page high-volume harvesting based on requested limit
     let hits: any[] = [];
+    const pagesNeeded = Math.min(5, Math.max(1, Math.ceil(limit / 50)));
 
     try {
       const queryParam = params.query ? encodeURIComponent(params.query + ' launch OR funding') : '';
-      const endpoint1 = queryParam
-        ? `https://hn.algolia.com/api/v1/search_by_date?query=${queryParam}&tags=story&hitsPerPage=50`
-        : `https://hn.algolia.com/api/v1/search_by_date?tags=show_hn&hitsPerPage=50`;
+      const fetchPromises: Promise<any>[] = [];
 
-      const endpoint2 = `https://hn.algolia.com/api/v1/search_by_date?query=Launch+HN+OR+seed+round+OR+raises+OR+funding&tags=story&hitsPerPage=50`;
+      for (let p = 0; p < pagesNeeded; p++) {
+        // 1. Y Combinator Launches
+        fetchPromises.push(
+          fetch(`https://hn.algolia.com/api/v1/search_by_date?query=Launch+HN+OR+YC+W24+OR+YC+S24+OR+YC+W23+OR+YC+S23&tags=story&hitsPerPage=100&page=${p}`)
+            .then(r => r.json())
+            .then(data => (data.hits || []).map((h: any) => ({ ...h, _sourceType: 'Y_COMBINATOR' })))
+            .catch(() => [])
+        );
 
-      const [res1, res2] = await Promise.all([
-        fetch(endpoint1).catch(() => null),
-        fetch(endpoint2).catch(() => null)
-      ]);
+        // 2. Show HN Stories & Product Releases
+        const showHnUrl = queryParam
+          ? `https://hn.algolia.com/api/v1/search_by_date?query=${queryParam}&tags=story&hitsPerPage=100&page=${p}`
+          : `https://hn.algolia.com/api/v1/search_by_date?tags=show_hn&hitsPerPage=100&page=${p}`;
+        fetchPromises.push(
+          fetch(showHnUrl)
+            .then(r => r.json())
+            .then(data => (data.hits || []).map((h: any) => ({ ...h, _sourceType: 'FUNDED_STARTUP' })))
+            .catch(() => [])
+        );
 
-      if (res1 && res1.ok) {
-        const data1 = await res1.json();
-        if (data1 && data1.hits) hits = [...hits, ...data1.hits];
+        // 3. Venture Capital, Seed Rounds & Product Hunt Launches
+        fetchPromises.push(
+          fetch(`https://hn.algolia.com/api/v1/search_by_date?query=seed+round+OR+Series+A+OR+raises+funding+OR+Product+Hunt&tags=story&hitsPerPage=100&page=${p}`)
+            .then(r => r.json())
+            .then(data => (data.hits || []).map((h: any) => ({
+              ...h,
+              _sourceType: (h.title && h.title.toLowerCase().includes('product hunt')) ? 'PRODUCT_HUNT' : 'FUNDED_STARTUP'
+            })))
+            .catch(() => [])
+        );
       }
 
-      if (res2 && res2.ok) {
-        const data2 = await res2.json();
-        if (data2 && data2.hits) hits = [...hits, ...data2.hits];
+      // 4. Product Hunt Live RSS Feed (CORS safe with fallback)
+      fetchPromises.push(
+        fetch('https://api.rss2json.com/v1/api.json?rss_url=https://www.producthunt.com/feed')
+          .then(r => r.json())
+          .then(data => {
+            if (data && Array.isArray(data.items)) {
+              return data.items.map((item: any) => ({
+                objectID: `ph-${item.guid || item.link || Math.random()}`,
+                title: item.title,
+                url: item.link,
+                story_text: item.description || item.content || 'Top Daily Product Launch on Product Hunt',
+                author: item.author || 'Product Maker',
+                created_at: item.pubDate,
+                _sourceType: 'PRODUCT_HUNT'
+              }));
+            }
+            return [];
+          })
+          .catch(() => [])
+      );
+
+      const batchResults = await Promise.all(fetchPromises);
+      const uniqueHits = new Map<string, any>();
+
+      for (const batch of batchResults) {
+        if (Array.isArray(batch)) {
+          for (const item of batch) {
+            const key = item.objectID || item.url || item.title;
+            if (key && !uniqueHits.has(key)) {
+              uniqueHits.set(key, item);
+            }
+          }
+        }
       }
+
+      hits = Array.from(uniqueHits.values());
     } catch (e) {
-      console.warn('Algolia live startup fetch failed:', e);
+      console.warn('Startup and Launch feeds fetch failed:', e);
     }
 
     // Transform hits into dynamic Lead objects
@@ -118,6 +169,11 @@ export class StartupFundingService {
       const rawText = this.cleanHtml(hit.story_text || '');
       const fullText = `${rawTitle} ${rawText}`;
       const author = hit.author || 'Founder';
+      const itemSource = hit._sourceType || 'FUNDED_STARTUP';
+
+      // Detect YC Batch if present (e.g. YC W24, YC S23)
+      const ycBatchMatch = fullText.match(/YC\s*[WS]\d{2}/i);
+      const ycBatch = ycBatchMatch ? ycBatchMatch[0].toUpperCase() : undefined;
 
       // Extract Company Name and Domain
       let companyName = rawTitle.split('–')[0].split('-')[0].split(':')[0].trim();
@@ -126,7 +182,7 @@ export class StartupFundingService {
       }
 
       const domain = this.extractDomain(hit.url, companyName);
-      const stage = this.detectStage(fullText);
+      const stage = ycBatch ? 'Y_COMBINATOR' : (itemSource === 'PRODUCT_HUNT' ? 'PRODUCT_HUNT' : (itemSource === 'BETALIST' ? 'BETALIST' : this.detectStage(fullText)));
       const projectNeed = this.detectProjectNeed(fullText);
       const techNeeded = this.detectTechStack(fullText);
 
@@ -135,30 +191,40 @@ export class StartupFundingService {
       if (params.projectNeed !== 'ALL' && projectNeed !== params.projectNeed) continue;
 
       // Estimate funding amount based on stage
-      let amountRaised = 'Bootstrapped / Viral Launch';
+      let amountRaised = 'Bootstrapped / High Growth';
       let leadInvestor = 'Early Traction & Users';
-      if (stage === 'SERIES_A') {
+      if (ycBatch || stage === 'Y_COMBINATOR') {
+        amountRaised = '$500,000 (YC Standard Deal)';
+        leadInvestor = `Y Combinator (${ycBatch || 'Current Batch'})`;
+      } else if (stage === 'SERIES_A') {
         amountRaised = '$3.5M - $6M';
         leadInvestor = 'Venture Capital Lead';
       } else if (stage === 'SEED') {
         amountRaised = '$1.5M - $2.5M';
-        leadInvestor = 'Y Combinator & Angels';
+        leadInvestor = 'Seed Fund & Angels';
       } else if (stage === 'PRE_SEED') {
         amountRaised = '$400k - $800k';
         leadInvestor = 'Accelerator & Pre-Seed Fund';
+      } else if (stage === 'PRODUCT_HUNT') {
+        amountRaised = 'Product Hunt Daily Featured';
+        leadInvestor = 'Product Hunt Community & Angels';
+      } else if (stage === 'BETALIST') {
+        amountRaised = 'Pre-Launch MVP Stage';
+        leadInvestor = 'Early Adopters & Beta Testers';
       }
 
       const founderEmail = `${author.toLowerCase().replace(/[^a-z0-9]/g, '')}@${domain}`;
-      const emailValidation: EmailValidationStage = validateEmailStage(founderEmail);
+      const mxResult = await checkDomainMxRecord(domain);
+      const emailValidation: EmailValidationStage = mxResult.hasMx ? 'MX_VALID' : validateEmailStage(founderEmail);
 
       const websiteAudit = runWebsiteAudit(domain);
       websiteAudit.hasMobileApp = projectNeed === 'MOBILE_APP' ? false : true;
       websiteAudit.issuesDetected = [
         `Stage: ${stage} (${amountRaised})`,
         `Tech Stack Signals: ${techNeeded}`,
-        `Founder/Author: ${author} on HackerNews Launch`
+        `Founder/Maker: ${author} (${itemSource})`
       ];
-      websiteAudit.aiOpportunityReason = `Recent launch/funding by ${author}. High demand for engineering firepower to build ${projectNeed}.`;
+      websiteAudit.aiOpportunityReason = `Recent launch by ${author}. High demand for engineering firepower to build ${projectNeed}.`;
 
       const leadScore = calculateLeadScore({
         hasExplicitHiringSignal: true,
@@ -171,22 +237,31 @@ export class StartupFundingService {
         isExpired: false
       });
 
+      const sourceTags = [
+        itemSource,
+        stage,
+        projectNeed,
+        ...(ycBatch ? [ycBatch] : []),
+        ...(mxResult.hasMx ? ['MX_VERIFIED', 'DNS_VALIDATED'] : [])
+      ];
+
       const lead: Lead = {
         id: `live-startup-${hit.objectID || hit.id || Math.random().toString(36).slice(2)}`,
-        title: `${rawTitle} (${amountRaised} • ${stage})`,
+        title: `${rawTitle} (${amountRaised})`,
         description: rawText.length > 50 
           ? rawText.slice(0, 320) + '...' 
-          : `Live launched project by ${author}. Needs senior development assistance for ${projectNeed}. Tech: ${techNeeded}`,
-        source: 'FUNDED_STARTUP',
+          : `Live launched project by ${author}. Needs senior assistance for ${projectNeed}. Tech: ${techNeeded}`,
+        source: itemSource as any,
         sourceUrl: hit.url || `https://news.ycombinator.com/item?id=${hit.objectID}`,
         projectNeed,
-        budgetSignal: `${amountRaised} (${stage})`,
+        budgetSignal: `${amountRaised}`,
         status: 'NEW',
-        tags: ['FUNDED_STARTUP', stage, 'LIVE_FETCHED', projectNeed],
+        tags: sourceTags,
         notes: [
-          `Live Discovered via HackerNews Launch API (#${hit.objectID}).`,
+          `Live Discovered via ${itemSource} Feed.`,
           `Founder/Maker: ${author}.`,
-          `URL: ${hit.url || 'HackerNews Thread'}`
+          `URL: ${hit.url || 'Launch Thread'}`,
+          ...(mxResult.hasMx ? [`Live DNS MX Validated: ${mxResult.mxRecords.slice(0, 2).join(', ')}`] : [])
         ],
         discoveredAt: new Date().toISOString(),
         postedAt: hit.created_at || new Date().toISOString(),
@@ -220,7 +295,7 @@ export class StartupFundingService {
         websiteAudit,
 
         fundingInfo: {
-          stage,
+          stage: stage as any,
           amountRaised,
           leadInvestor,
           launchDate: hit.created_at ? new Date(hit.created_at).toLocaleDateString() : 'Just Now'

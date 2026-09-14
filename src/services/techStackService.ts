@@ -1,6 +1,6 @@
 import { Lead, EmailValidationStage } from '../types';
 import { calculateLeadScore } from './scoringEngine';
-import { validateEmailStage } from './contactValidationService';
+import { validateEmailStage, checkDomainMxRecord } from './contactValidationService';
 import { runWebsiteAudit } from './websiteAuditor';
 
 export interface TechStackSearchParams {
@@ -48,14 +48,39 @@ export class TechStackService {
     const limit = params.limit || 60;
     const maxAllowedSpeed = params.maxSpeedScore || 80;
 
-    const rawDomains: { name: string; domain: string; country: string; city: string; phone?: string; industry: string }[] = [];
+    const rawDomains: { name: string; domain: string; country: string; city: string; phone?: string; industry: string; sourceTag?: string; founderName?: string }[] = [];
     const seenDom = new Set<string>();
 
-    // 1. Fetch live jobs to extract real corporate domains
+    // 1. Fetch live tech jobs from RemoteOK & Jobicy
     try {
-      const res = await fetch('https://jobicy.com/api/v2/remote-jobs?count=50');
-      if (res.ok) {
-        const data = await res.json();
+      const [resRemoteOk, resJobicy] = await Promise.all([
+        fetch('https://remoteok.com/api', { headers: { 'User-Agent': 'LeadPulse-Client-Finder/1.0' } }).catch(() => null),
+        fetch('https://jobicy.com/api/v2/remote-jobs?count=50').catch(() => null)
+      ]);
+
+      if (resRemoteOk && resRemoteOk.ok) {
+        const rData = await resRemoteOk.json();
+        const rJobs = Array.isArray(rData) ? rData.slice(1, 40) : [];
+        for (const j of rJobs) {
+          const name = (j.company || '').trim();
+          if (!name) continue;
+          let domain = name.toLowerCase().replace(/[^a-z0-9]/g, '');
+          if (domain.length > 2 && !seenDom.has(domain)) {
+            seenDom.add(domain);
+            rawDomains.push({
+              name,
+              domain: `${domain}.com`,
+              country: 'United States',
+              city: 'Remote',
+              industry: (j.tags && j.tags[0]) ? `Tech / ${j.tags[0]}` : 'Software & Cloud',
+              sourceTag: 'REMOTEOK_CLIENT'
+            });
+          }
+        }
+      }
+
+      if (resJobicy && resJobicy.ok) {
+        const data = await resJobicy.json();
         const jobs = data.jobs || [];
         for (const j of jobs) {
           const name = (j.companyName || '').trim();
@@ -68,18 +93,45 @@ export class TechStackService {
               domain: `${domain}.com`,
               country: 'United States',
               city: 'Remote',
-              industry: Array.isArray(j.jobIndustry) ? j.jobIndustry[0] : (j.jobIndustry || 'Business & SaaS')
+              industry: Array.isArray(j.jobIndustry) ? j.jobIndustry[0] : (j.jobIndustry || 'Business & SaaS'),
+              sourceTag: 'TECH_AUDIT'
             });
           }
         }
       }
     } catch (e) {
-      console.warn('Tech stack jobicy fetch failed:', e);
+      console.warn('Tech stack job feeds fetch failed:', e);
     }
 
-    // 2. Fetch live Show HN & website launch stories from HackerNews Algolia (50 hits)
+    // 2. Fetch active GitHub technical founders with domains & public profiles
     try {
-      const resHn = await fetch('https://hn.algolia.com/api/v1/search_by_date?tags=show_hn&hitsPerPage=50');
+      const ghRes = await fetch('https://api.github.com/search/users?q=type:user+repos:>5+followers:>15&per_page=25', {
+        headers: { 'User-Agent': 'LeadPulse-Client-Finder/1.0' }
+      });
+      if (ghRes.ok) {
+        const ghData = await ghRes.json();
+        for (const u of (ghData.items || [])) {
+          const login = u.login;
+          if (!login || seenDom.has(login)) continue;
+          seenDom.add(login);
+          rawDomains.push({
+            name: `${login} Tech Lab`,
+            domain: `${login.toLowerCase().replace(/[^a-z0-9]/g, '')}.dev`,
+            country: 'Global',
+            city: 'Remote',
+            industry: 'Open Source / Software Engineering',
+            founderName: login,
+            sourceTag: 'GITHUB_FOUNDER'
+          });
+        }
+      }
+    } catch (e) {
+      console.warn('GitHub search fetch failed:', e);
+    }
+
+    // 3. Fetch live Show HN & website launch stories from HackerNews Algolia
+    try {
+      const resHn = await fetch('https://hn.algolia.com/api/v1/search_by_date?tags=show_hn&hitsPerPage=35');
       if (resHn.ok) {
         const dataHn = await resHn.json();
         for (const h of (dataHn.hits || [])) {
@@ -95,48 +147,15 @@ export class TechStackService {
                 domain: host,
                 country: 'United States',
                 city: 'San Francisco',
-                industry: 'Tech & Modern Web'
+                industry: 'Tech & Modern Web',
+                sourceTag: 'TECH_AUDIT'
               });
             }
-          } catch {
-            // skip invalid url
-          }
+          } catch {}
         }
       }
     } catch (e) {
       console.warn('Tech stack HN fetch failed:', e);
-    }
-
-    // 3. Fetch web redesign & ecommerce stories from HackerNews
-    if (rawDomains.length < limit) {
-      try {
-        const resQuery = await fetch('https://hn.algolia.com/api/v1/search_by_date?query=website+OR+store+OR+ecommerce+OR+shopify&tags=story&hitsPerPage=40');
-        if (resQuery.ok) {
-          const dataQuery = await resQuery.json();
-          for (const h of (dataQuery.hits || [])) {
-            if (!h.url) continue;
-            try {
-              const u = new URL(h.url);
-              const host = u.hostname.replace(/^www\./, '');
-              if (!host.includes('github') && !host.includes('youtube') && !seenDom.has(host)) {
-                seenDom.add(host);
-                const cleanName = h.title ? h.title.split('–')[0].split('-')[0].trim().slice(0, 30) : host;
-                rawDomains.push({
-                  name: cleanName,
-                  domain: host,
-                  country: 'United States',
-                  city: 'Remote',
-                  industry: 'E-Commerce / Digital'
-                });
-              }
-            } catch {
-              // skip
-            }
-          }
-        }
-      } catch (e) {
-        console.warn('Tech stack query fetch failed:', e);
-      }
     }
 
     let index = 0;
@@ -164,7 +183,8 @@ export class TechStackService {
 
       const { fcp, lcp } = this.calculateSpeedMetrics(speedScore);
       const email = `contact@${site.domain}`;
-      const emailValidation: EmailValidationStage = validateEmailStage(email);
+      const mxResult = await checkDomainMxRecord(site.domain);
+      const emailValidation: EmailValidationStage = mxResult.hasMx ? 'MX_VALID' : validateEmailStage(email);
 
       const issues: string[] = [
         `Lighthouse Performance Score: ${speedScore}/100 (Sluggish Mobile Performance)`,
@@ -200,6 +220,14 @@ export class TechStackService {
         isExpired: false
       });
 
+      const leadTags = [
+        'TECH_STACK',
+        (site as any).sourceTag || 'TECH_AUDIT',
+        detectedCms,
+        `SPEED_${speedScore}`,
+        ...(mxResult.hasMx ? ['MX_VERIFIED', 'DNS_VALIDATED'] : [])
+      ];
+
       const lead: Lead = {
         id: `live-tech-${site.domain.replace(/[^a-z0-9]/g, '')}`,
         title: `${site.name} — Outdated ${detectedCms} Site (${speedScore}/100 Speed)`,
@@ -209,12 +237,13 @@ export class TechStackService {
         projectNeed: detectedCms === 'Shopify' ? 'ECOMMERCE' : (speedScore < 40 ? 'SPEED_PERFORMANCE' : 'WEB_REDESIGN'),
         budgetSignal: '$3,000 - $7,500 Modernization',
         status: 'NEW',
-        tags: ['TECH_STACK', detectedCms, `SPEED_${speedScore}`, 'SLOW_SITE'],
+        tags: leadTags,
         notes: [
           `Detected CMS: ${detectedCms}`,
           `Mobile Lighthouse Speed: ${speedScore}/100`,
           `LCP: ${lcp} | FCP: ${fcp}`,
-          `Recommended Pitch: ${pitchAngle}`
+          `Recommended Pitch: ${pitchAngle}`,
+          ...(mxResult.hasMx ? [`Live DNS MX Validated: ${mxResult.mxRecords.slice(0, 2).join(', ')}`] : [])
         ],
         discoveredAt: new Date().toISOString(),
         postedAt: new Date().toISOString(),
