@@ -6,6 +6,8 @@ import { strictDeduplicate } from './deduplicationService';
 import { b2bDiscoveryService } from './b2bDiscoveryService';
 import { techStackService } from './techStackService';
 import { startupFundingService } from './startupFundingService';
+import { globalRegistriesService } from './globalRegistriesService';
+import { tradeExposService } from './tradeExposService';
 
 const STORAGE_KEY = 'leadpulse_leads_v18_high_volume_smb';
 
@@ -85,6 +87,8 @@ class LeadService {
     let b2bLeads: Lead[] = [];
     let techLeads: Lead[] = [];
     let startupLeads: Lead[] = [];
+    let registryLeads: Lead[] = [];
+    let expoLeads: Lead[] = [];
 
     try {
       b2bLeads = await b2bDiscoveryService.discoverDecisionMakers({
@@ -120,13 +124,34 @@ class LeadService {
       console.warn('Startup funding dynamic discover error:', e);
     }
 
+    try {
+      registryLeads = await globalRegistriesService.discoverRegistryLeads({
+        country: 'GLOBAL',
+        timeframe: 'LAST_7D',
+        limit: 100
+      });
+    } catch (e) {
+      console.warn('Global registry discover error:', e);
+    }
+
+    try {
+      expoLeads = await tradeExposService.discoverExhibitorLeads({
+        expoName: 'ALL',
+        limit: 100
+      });
+    } catch (e) {
+      console.warn('Trade expo discover error:', e);
+    }
+
     const existing = this.getLeadsFromStorage();
     const allFetched = [
       ...existing,
       ...flatFetched,
       ...b2bLeads,
       ...techLeads,
-      ...startupLeads
+      ...startupLeads,
+      ...registryLeads,
+      ...expoLeads
     ];
 
     // Guarantee unexpired & strictly deduplicated
@@ -212,7 +237,7 @@ class LeadService {
   /**
    * Export Leads to CSV / Excel with tailored, high-value client outreach columns
    */
-  public exportLeadsToCSV(leads: Lead[], mode: 'LOCAL_SMB' | 'REMOTE_JOBS' | 'B2B_FOUNDERS' | 'TECH_STACK' | 'FUNDED_STARTUPS' | 'ALL' = 'ALL'): void {
+  public exportLeadsToCSV(leads: Lead[], mode: 'LOCAL_SMB' | 'REMOTE_JOBS' | 'B2B_FOUNDERS' | 'TECH_STACK' | 'FUNDED_STARTUPS' | 'GLOBAL_REGISTRY' | 'TRADE_EXPO' | 'ALL' = 'ALL'): void {
     const cleanLeads = strictDeduplicate(leads);
     if (cleanLeads.length === 0) return;
 
@@ -408,6 +433,80 @@ class LeadService {
         l.scoreBreakdown.totalScore,
         l.status
       ]);
+
+    } else if (mode === 'GLOBAL_REGISTRY' || cleanLeads.every(l => l.source === 'GLOBAL_REGISTRY')) {
+      filename = `LeadPulse_Global_Business_Registries_${new Date().toISOString().slice(0, 10)}.csv`;
+      headers = [
+        'Company Name',
+        'Jurisdiction Country',
+        'Registration ID',
+        'Incorporation Date',
+        'Company Type',
+        'Director / Founder',
+        'Work Email',
+        'WhatsApp Direct',
+        'Website Status',
+        'Tech Need / Opportunity',
+        'Lead Score',
+        'Pipeline Status'
+      ];
+
+      rows = cleanLeads.map(l => {
+        const phone = l.contact.phoneNormalized || l.contact.phone || '';
+        const cleanPhone = phone.replace(/[^0-9]/g, '');
+        return [
+          `"${(l.company.name || '').replace(/"/g, '""')}"`,
+          `"${(l.registryInfo?.country || l.company.country || '').replace(/"/g, '""')}"`,
+          `"${(l.registryInfo?.registrationId || '').replace(/"/g, '""')}"`,
+          `"${(l.registryInfo?.incorporationDate || '').replace(/"/g, '""')}"`,
+          `"${(l.registryInfo?.companyType || '').replace(/"/g, '""')}"`,
+          `"${(l.contact.personName || '').replace(/"/g, '""')}"`,
+          l.contact.email ? `"${l.contact.email}"` : '',
+          cleanPhone ? `https://wa.me/${cleanPhone}` : 'N/A',
+          l.websiteAudit?.hasWebsite ? 'Website Online' : 'NO WEBSITE (High Opportunity)',
+          `"${(l.websiteAudit?.aiOpportunityReason || '').replace(/"/g, '""')}"`,
+          l.scoreBreakdown.totalScore,
+          l.status
+        ];
+      });
+
+    } else if (mode === 'TRADE_EXPO' || cleanLeads.every(l => l.source === 'TRADE_EXPO')) {
+      filename = `LeadPulse_Exhibitions_TradeShows_${new Date().toISOString().slice(0, 10)}.csv`;
+      headers = [
+        'Exhibitor Name',
+        'Expo / Trade Show',
+        'Booth / Stand Number',
+        'City & Country',
+        'Executive Contact',
+        'Contact Role',
+        'Work Email',
+        'WhatsApp Direct',
+        'Website URL',
+        'Mobile PageSpeed Score',
+        'Pitch Angle Opportunity',
+        'Lead Score',
+        'Pipeline Status'
+      ];
+
+      rows = cleanLeads.map(l => {
+        const phone = l.contact.phoneNormalized || l.contact.phone || '';
+        const cleanPhone = phone.replace(/[^0-9]/g, '');
+        return [
+          `"${(l.company.name || '').replace(/"/g, '""')}"`,
+          `"${(l.expoInfo?.expoName || '').replace(/"/g, '""')}"`,
+          `"${(l.expoInfo?.boothNumber || '').replace(/"/g, '""')}"`,
+          `"${(l.company.location || '').replace(/"/g, '""')}"`,
+          `"${(l.contact.personName || '').replace(/"/g, '""')}"`,
+          `"${(l.contact.role || '').replace(/"/g, '""')}"`,
+          l.contact.email ? `"${l.contact.email}"` : '',
+          cleanPhone ? `https://wa.me/${cleanPhone}` : 'N/A',
+          l.company.websiteUrl || '',
+          `${l.websiteAudit?.performanceScore || 0}/100`,
+          `"${(l.websiteAudit?.aiOpportunityReason || '').replace(/"/g, '""')}"`,
+          l.scoreBreakdown.totalScore,
+          l.status
+        ];
+      });
 
     } else {
       // General Unified Export

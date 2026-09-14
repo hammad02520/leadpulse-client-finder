@@ -10,7 +10,9 @@ import {
   Clock,
   Users,
   Code2,
-  Rocket
+  Rocket,
+  Building2,
+  Calendar
 } from 'lucide-react';
 import { Lead, AppViewMode } from '../types';
 import { strictDeduplicate } from '../services/deduplicationService';
@@ -39,6 +41,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
     l.source === 'INDIE_HACKERS'
   ).length;
   const remoteCount = uniqueLeads.filter(l => l.source === 'JOB_FEED' || l.source === 'REDDIT').length;
+  const registryCount = uniqueLeads.filter(l => l.source === 'GLOBAL_REGISTRY').length;
+  const expoCount = uniqueLeads.filter(l => l.source === 'TRADE_EXPO').length;
 
   return (
     <aside className="sidebar">
@@ -222,6 +226,58 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
           <span style={{ fontSize: '0.725rem', background: '#e0f2fe', color: '#0284c7', padding: '2px 6px', borderRadius: '999px', fontWeight: '700' }}>
             {remoteCount}
+          </span>
+        </button>
+
+        {/* Global Business Registries */}
+        <button 
+          onClick={() => setCurrentView('global_registries')}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '10px 12px',
+            borderRadius: '8px',
+            border: 'none',
+            fontSize: '0.875rem',
+            fontWeight: '600',
+            cursor: 'pointer',
+            background: currentView === 'global_registries' ? 'var(--primary-light)' : 'transparent',
+            color: currentView === 'global_registries' ? 'var(--primary)' : 'var(--text-main)',
+            textAlign: 'left'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <Building2 size={18} /> Global Registries
+          </div>
+          <span style={{ fontSize: '0.725rem', background: '#ede9fe', color: '#6d28d9', padding: '2px 6px', borderRadius: '999px', fontWeight: '700' }}>
+            {registryCount}
+          </span>
+        </button>
+
+        {/* Trade Shows & Exhibitions */}
+        <button 
+          onClick={() => setCurrentView('trade_expos')}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '10px 12px',
+            borderRadius: '8px',
+            border: 'none',
+            fontSize: '0.875rem',
+            fontWeight: '600',
+            cursor: 'pointer',
+            background: currentView === 'trade_expos' ? 'var(--primary-light)' : 'transparent',
+            color: currentView === 'trade_expos' ? 'var(--primary)' : 'var(--text-main)',
+            textAlign: 'left'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <Calendar size={18} /> Trade Shows & Expos
+          </div>
+          <span style={{ fontSize: '0.725rem', background: '#dcfce7', color: '#15803d', padding: '2px 6px', borderRadius: '999px', fontWeight: '700' }}>
+            {expoCount}
           </span>
         </button>
 

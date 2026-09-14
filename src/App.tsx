@@ -9,6 +9,8 @@ import { B2BDecisionMakersView } from './components/B2BDecisionMakersView';
 import { TechStackView } from './components/TechStackView';
 import { FundedStartupsView } from './components/FundedStartupsView';
 import { RemoteJobsView } from './components/RemoteJobsView';
+import { GlobalRegistriesView } from './components/GlobalRegistriesView';
+import { TradeExposView } from './components/TradeExposView';
 import { LeadDetailDrawer } from './components/LeadDetailDrawer';
 import { OutreachModal } from './components/OutreachModal';
 import { ManualLeadModal } from './components/ManualLeadModal';
@@ -137,6 +139,12 @@ export const App: React.FC = () => {
     } else if (currentView === 'remote_jobs') {
       const remoteLeads = leadsToExport.filter(l => l.source === 'JOB_FEED' || l.source === 'REDDIT');
       leadService.exportLeadsToCSV(remoteLeads, 'REMOTE_JOBS');
+    } else if (currentView === 'global_registries') {
+      const regLeads = leads.filter(l => l.source === 'GLOBAL_REGISTRY');
+      leadService.exportLeadsToCSV(regLeads, 'GLOBAL_REGISTRY');
+    } else if (currentView === 'trade_expos') {
+      const expoLeads = leads.filter(l => l.source === 'TRADE_EXPO');
+      leadService.exportLeadsToCSV(expoLeads, 'TRADE_EXPO');
     } else {
       leadService.exportLeadsToCSV(leadsToExport, 'ALL');
     }
@@ -225,6 +233,28 @@ export const App: React.FC = () => {
               leads={visibleLeads}
               onSelectLead={(l) => setSelectedLead(l)}
               onOpenPitchModal={(l) => setPitchLead(l)}
+              onAddDiscoveredLeads={handleAddDiscoveredLeads}
+            />
+          )}
+
+          {currentView === 'global_registries' && (
+            <GlobalRegistriesView 
+              leads={visibleLeads}
+              onSelectLead={(l) => setSelectedLead(l)}
+              onOpenPitchModal={(l) => setPitchLead(l)}
+              onStatusChange={handleStatusChange}
+              onExportCSV={handleExportCSV}
+              onAddDiscoveredLeads={handleAddDiscoveredLeads}
+            />
+          )}
+
+          {currentView === 'trade_expos' && (
+            <TradeExposView 
+              leads={visibleLeads}
+              onSelectLead={(l) => setSelectedLead(l)}
+              onOpenPitchModal={(l) => setPitchLead(l)}
+              onStatusChange={handleStatusChange}
+              onExportCSV={handleExportCSV}
               onAddDiscoveredLeads={handleAddDiscoveredLeads}
             />
           )}

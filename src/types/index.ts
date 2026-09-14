@@ -26,6 +26,8 @@ export type SourceType =
   | 'WIKIDATA'
   | 'GITHUB_FOUNDER'
   | 'TWITTER' 
+  | 'GLOBAL_REGISTRY'
+  | 'TRADE_EXPO'
   | 'MANUAL_IMPORT';
 
 export type JobFeedSource = 'ALL' | 'REMOTIVE' | 'ARBEITNOW' | 'JOBICY' | 'HACKERNEWS';
@@ -164,6 +166,21 @@ export interface Lead {
     leadInvestor?: string;
     launchDate?: string;
   };
+  registryInfo?: {
+    country: string;
+    registrationId: string;
+    incorporationDate: string;
+    companyType: string;
+    status: string;
+  };
+  expoInfo?: {
+    expoName: string;
+    boothNumber: string;
+    expoCity: string;
+    expoCountry: string;
+    eventDates: string;
+    category: string;
+  };
 }
 
 export interface SourceFilter {
@@ -191,5 +208,7 @@ export type AppViewMode =
   | 'tech_stack' 
   | 'funded_startups' 
   | 'remote_jobs' 
+  | 'global_registries'
+  | 'trade_expos'
   | 'kanban' 
   | 'table';
