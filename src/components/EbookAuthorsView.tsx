@@ -23,13 +23,15 @@ interface EbookAuthorsViewProps {
   onSelectLead: (lead: Lead) => void;
   onOpenPitchModal: (lead: Lead) => void;
   onAddDiscoveredLeads: (newLeads: Lead[]) => void;
+  onClearCategoryLeads?: () => void;
 }
 
 export const EbookAuthorsView: React.FC<EbookAuthorsViewProps> = ({
   leads,
   onSelectLead,
   onOpenPitchModal,
-  onAddDiscoveredLeads
+  onAddDiscoveredLeads,
+  onClearCategoryLeads
 }) => {
   const [selectedGenre, setSelectedGenre] = useState<EbookSearchParams['genre']>('business');
   const [filterType, setFilterType] = useState<'ALL' | 'NO_WEBSITE' | 'NEEDS_APP'>('ALL');
@@ -115,18 +117,29 @@ export const EbookAuthorsView: React.FC<EbookAuthorsViewProps> = ({
                 📚 eBook Authors & Active Digital Creators Discovery Engine
               </span>
               <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                Google Books API + OpenLibrary Modern Verified Feed (Total Authors: {allEbookLeads.length})
+                Google Books API + OpenLibrary Modern Verified Feed (Total Saved Authors: {allEbookLeads.length})
               </span>
             </div>
             <h2 style={{ fontSize: '1.4rem', fontWeight: '800', color: 'var(--text-main)', letterSpacing: '-0.02em' }}>
               Active Modern eBook Creators Lead Engine
             </h2>
             <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-              Target active digital product creators, self-published authors, and ebook writers who need direct-to-reader sales websites & mobile reading apps.
+              Select Date/Year below & click Discover to fetch live 1,000+ eBook creators & authors.
             </p>
           </div>
 
           <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+            {allEbookLeads.length > 0 && onClearCategoryLeads && (
+              <button 
+                className="btn btn-secondary"
+                style={{ padding: '10px 16px', fontSize: '0.85rem', fontWeight: '700', borderColor: '#ef4444', color: '#dc2626' }}
+                onClick={onClearCategoryLeads}
+                title="Clear cached authors to start from 0 leads"
+              >
+                🧹 Clear Saved ({allEbookLeads.length})
+              </button>
+            )}
+
             <button 
               className="btn btn-primary"
               style={{ padding: '10px 20px', fontSize: '0.875rem', fontWeight: '700', background: '#059669', borderColor: '#059669' }}

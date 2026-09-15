@@ -18,7 +18,7 @@ import { OutreachModal } from './components/OutreachModal';
 import { ManualLeadModal } from './components/ManualLeadModal';
 import { leadService } from './services/leadService';
 import { strictDeduplicate } from './services/deduplicationService';
-import { Lead, LeadStatus, AppViewMode } from './types';
+import { Lead, LeadStatus, AppViewMode, SourceType } from './types';
 
 export const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<AppViewMode>('dashboard');
@@ -159,6 +159,12 @@ export const App: React.FC = () => {
     }
   };
 
+  const handleClearCategoryLeads = (sourceType: SourceType) => {
+    const remaining = leads.filter(l => l.source !== sourceType && !l.tags.includes(sourceType));
+    leadService.saveLeadsToStorage(remaining);
+    setLeads(remaining);
+  };
+
   return (
     <div className="app-container">
       
@@ -284,6 +290,7 @@ export const App: React.FC = () => {
               onSelectLead={(l) => setSelectedLead(l)}
               onOpenPitchModal={(l) => setPitchLead(l)}
               onAddDiscoveredLeads={handleAddDiscoveredLeads}
+              onClearCategoryLeads={() => handleClearCategoryLeads('EBOOK_AUTHOR')}
             />
           )}
 
