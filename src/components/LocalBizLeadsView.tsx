@@ -65,6 +65,7 @@ export const LocalBizLeadsView: React.FC<LocalBizLeadsViewProps> = ({
   const [category, setCategory] = useState<string>('all');
   const [customCategory, setCustomCategory] = useState<string>('');
   const [filterType, setFilterType] = useState<'ALL' | 'NO_WEBSITE' | 'HAS_WEBSITE_NO_APP'>('ALL');
+  const [onlyQualified, setOnlyQualified] = useState<boolean>(false);
   const [fetchLimit, setFetchLimit] = useState<number>(500);
   const [isSearchingOsm, setIsSearchingOsm] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -143,13 +144,17 @@ export const LocalBizLeadsView: React.FC<LocalBizLeadsViewProps> = ({
       l.tags.includes(category.toUpperCase()) ||
       l.company.industry.toLowerCase().includes(category.toLowerCase());
 
-    return matchesSearch && matchesFilterType && matchesCategory;
+    const matchesQualified = 
+      !onlyQualified || 
+      (l.scoreBreakdown.totalScore >= 80 && Boolean(l.contact.phone || l.contact.email));
+
+    return matchesSearch && matchesFilterType && matchesCategory && matchesQualified;
   });
 
   // Reset to page 1 whenever filters or search changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, filterType, category, customCategory, localLeads.length]);
+  }, [searchTerm, filterType, category, customCategory, onlyQualified, localLeads.length]);
 
   const handleRunOsmSearch = async (overrideNationwide?: boolean) => {
     const finalCountry = activeCountry.trim();
@@ -400,6 +405,7 @@ export const LocalBizLeadsView: React.FC<LocalBizLeadsViewProps> = ({
               <option value={300}>🎯 300 Leads (Recommended)</option>
               <option value={500}>🚀 500 Leads (High Volume)</option>
               <option value={1000}>🔥 1,000+ Leads (Deep Scan)</option>
+              <option value={2500}>⚡ 2,500+ Leads (Max Nationwide)</option>
             </select>
           </div>
 
@@ -407,8 +413,19 @@ export const LocalBizLeadsView: React.FC<LocalBizLeadsViewProps> = ({
 
         {/* Dynamic Action Trigger Bar inside Filter Panel */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', background: '#f8fafc', padding: '12px 14px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-          <div style={{ fontSize: '0.85rem', color: 'var(--text-main)', fontWeight: '600' }}>
-            Selected: <span style={{ color: 'var(--primary)', fontWeight: '700' }}>{isNationwide ? `All Cities in ${activeCountry}` : `${activeCity}, ${activeCountry}`}</span> • Category: <span style={{ color: '#0284c7', fontWeight: '700' }}>{category.toUpperCase()}</span> • Volume: <span style={{ color: '#d97706', fontWeight: '700' }}>{isNationwide ? 'Nationwide Multi-City' : `${fetchLimit} Leads`}</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+            <div style={{ fontSize: '0.85rem', color: 'var(--text-main)', fontWeight: '600' }}>
+              Selected: <span style={{ color: 'var(--primary)', fontWeight: '700' }}>{isNationwide ? `All Cities in ${activeCountry}` : `${activeCity}, ${activeCountry}`}</span> • Category: <span style={{ color: '#0284c7', fontWeight: '700' }}>{category.toUpperCase()}</span> • Volume: <span style={{ color: '#d97706', fontWeight: '700' }}>{isNationwide ? 'Nationwide Multi-City' : `${fetchLimit} Leads`}</span>
+            </div>
+
+            <button 
+              className={`btn ${onlyQualified ? 'btn-primary' : 'btn-secondary'}`}
+              style={{ padding: '6px 12px', fontSize: '0.75rem', fontWeight: '700', border: '1px solid var(--primary)' }}
+              onClick={() => setOnlyQualified(!onlyQualified)}
+              title="Show only leads with Score >= 80 and valid Phone or Email contact info"
+            >
+              {onlyQualified ? '🔥 Showing Qualified Leads Only (Score 80+)' : '⚡ Filter Qualified Leads Only'}
+            </button>
           </div>
 
           <button 

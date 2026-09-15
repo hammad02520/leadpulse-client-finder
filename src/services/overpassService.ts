@@ -203,12 +203,12 @@ export class OverpassService {
       }
     }
 
-    // Return lean QL query with strict fast timeout (10s)
-    return `[out:json][timeout:10];
+    // Return lean QL query with strict fast timeout (15s)
+    return `[out:json][timeout:15];
 (
 ${tagFilters}
 );
-out body ${Math.min(limit, 300)};`;
+out body ${Math.min(limit, 1000)};`;
   }
 
   /**
