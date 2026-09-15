@@ -24,6 +24,7 @@ interface EbookAuthorsViewProps {
   onOpenPitchModal: (lead: Lead) => void;
   onAddDiscoveredLeads: (newLeads: Lead[]) => void;
   onClearCategoryLeads?: () => void;
+  onUpdateSingleLead?: (lead: Lead) => void;
 }
 
 export const EbookAuthorsView: React.FC<EbookAuthorsViewProps> = ({
@@ -31,7 +32,8 @@ export const EbookAuthorsView: React.FC<EbookAuthorsViewProps> = ({
   onSelectLead,
   onOpenPitchModal,
   onAddDiscoveredLeads,
-  onClearCategoryLeads
+  onClearCategoryLeads,
+  onUpdateSingleLead
 }) => {
   const [selectedGenre, setSelectedGenre] = useState<EbookSearchParams['genre']>('business');
   const [filterType, setFilterType] = useState<'ALL' | 'NO_WEBSITE' | 'NEEDS_APP'>('ALL');
@@ -45,7 +47,11 @@ export const EbookAuthorsView: React.FC<EbookAuthorsViewProps> = ({
     setEnrichingId(lead.id);
     try {
       const enriched = await ebookDiscoveryService.enrichLeadWithAuthorBio(lead);
-      onAddDiscoveredLeads([enriched]);
+      if (onUpdateSingleLead) {
+        onUpdateSingleLead(enriched);
+      } else {
+        onAddDiscoveredLeads([enriched]);
+      }
     } catch (e) {
       console.error('Bio enrich failed:', e);
     } finally {

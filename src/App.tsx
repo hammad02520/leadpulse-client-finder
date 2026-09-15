@@ -87,6 +87,17 @@ export const App: React.FC = () => {
     setLeads(finalLeads);
   };
 
+  const handleUpdateSingleLead = (updatedLead: Lead) => {
+    setLeads(prevLeads => {
+      const updatedList = prevLeads.map(l => l.id === updatedLead.id ? updatedLead : l);
+      leadService.saveLeadsToStorage(updatedList);
+      return updatedList;
+    });
+    if (selectedLead && selectedLead.id === updatedLead.id) {
+      setSelectedLead(updatedLead);
+    }
+  };
+
   const handleStatusChange = (leadId: string, newStatus: LeadStatus) => {
     const updated = leadService.updateLeadStatus(leadId, newStatus);
     setLeads(updated);
@@ -291,6 +302,7 @@ export const App: React.FC = () => {
               onOpenPitchModal={(l) => setPitchLead(l)}
               onAddDiscoveredLeads={handleAddDiscoveredLeads}
               onClearCategoryLeads={() => handleClearCategoryLeads('EBOOK_AUTHOR')}
+              onUpdateSingleLead={handleUpdateSingleLead}
             />
           )}
 
