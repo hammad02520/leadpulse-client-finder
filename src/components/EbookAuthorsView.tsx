@@ -350,6 +350,36 @@ export const EbookAuthorsView: React.FC<EbookAuthorsViewProps> = ({
                   </div>
                 </div>
 
+                {/* Retailer Store Link & Amazon Marketplace Block */}
+                <div style={{ background: '#faf5ff', padding: '10px 12px', borderRadius: '8px', border: '1px solid #e9d5ff', fontSize: '0.75rem', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <div style={{ fontWeight: '800', color: '#7e22ce', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span>🛒 Retail Store & Marketplace URLs</span>
+                    <span style={{ color: '#9333ea', background: '#f3e8ff', padding: '1px 6px', borderRadius: '4px', fontSize: '0.675rem', fontWeight: '800' }}>
+                      STORE FRONT
+                    </span>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', flexWrap: 'wrap' }}>
+                    <a 
+                      href={ebook?.storeUrl || lead.company.websiteUrl || lead.sourceUrl}
+                      target="_blank" 
+                      rel="noreferrer"
+                      style={{ fontSize: '0.725rem', padding: '4px 8px', borderRadius: '4px', background: '#ffffff', color: '#7e22ce', border: '1px solid #d8b4fe', fontWeight: '800', textDecoration: 'none' }}
+                    >
+                      📖 {ebook?.platform === 'GOOGLE_BOOKS' ? 'books.google.com ↗' : 'openlibrary.org ↗'}
+                    </a>
+
+                    <a 
+                      href={`https://www.amazon.com/s?k=${encodeURIComponent(lead.contact.personName + ' ' + (ebook?.bookTitle || ''))}`}
+                      target="_blank" 
+                      rel="noreferrer"
+                      style={{ fontSize: '0.725rem', padding: '4px 8px', borderRadius: '4px', background: '#ffffff', color: '#c2410c', border: '1px solid #ffedd5', fontWeight: '800', textDecoration: 'none' }}
+                    >
+                      📦 amazon.com Search ↗
+                    </a>
+                  </div>
+                </div>
+
                 {/* Multi-Channel Outreach & Direct Contact Lookup */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', paddingTop: '6px' }}>
                   <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
