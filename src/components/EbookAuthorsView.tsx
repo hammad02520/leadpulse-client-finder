@@ -44,12 +44,7 @@ export const EbookAuthorsView: React.FC<EbookAuthorsViewProps> = ({
   // Filter leads for eBook Authors
   const allEbookLeads = leads.filter(l => l.source === 'EBOOK_AUTHOR' || l.tags.includes('EBOOK_AUTHOR'));
 
-  // Initial Auto-fetch if no ebook leads exist yet
-  useEffect(() => {
-    if (allEbookLeads.length === 0 && !isSearching) {
-      handleRunSearch();
-    }
-  }, []);
+  // No auto-fetch on mount: User must select date/year and click Discover button manually
 
   const handleRunSearch = async () => {
     setIsSearching(true);

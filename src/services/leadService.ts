@@ -168,17 +168,6 @@ class LeadService {
       console.warn('Google PPC discover error:', e);
     }
 
-    let ebookLeads: Lead[] = [];
-    try {
-      ebookLeads = await ebookDiscoveryService.discoverEbookAuthors({
-        genre: 'business',
-        filterType: 'ALL',
-        limit: 50
-      });
-    } catch (e) {
-      console.warn('eBook authors discover error:', e);
-    }
-
     const existing = this.getLeadsFromStorage();
     const allFetched = [
       ...existing,
@@ -189,8 +178,7 @@ class LeadService {
       ...registryLeads,
       ...expoLeads,
       ...metaLeads,
-      ...ppcLeads,
-      ...ebookLeads
+      ...ppcLeads
     ];
 
     // Guarantee unexpired & strictly deduplicated, with Zero-Website leads prioritized at top
