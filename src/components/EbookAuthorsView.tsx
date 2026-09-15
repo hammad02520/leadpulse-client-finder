@@ -406,6 +406,69 @@ export const EbookAuthorsView: React.FC<EbookAuthorsViewProps> = ({
         )}
       </div>
 
+      {/* Pagination Bar */}
+      {totalItems > 0 && (
+        <div 
+          className="glass-panel" 
+          style={{ 
+            padding: '14px 20px', 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'space-between', 
+            flexWrap: 'wrap', 
+            gap: '12px' 
+          }}
+        >
+          <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+            Showing <strong style={{ color: 'var(--text-main)' }}>{startIndex + 1}</strong> – <strong style={{ color: 'var(--text-main)' }}>{endIndex}</strong> of <strong style={{ color: '#059669' }}>{totalItems}</strong> eBook Authors
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+              <span>Per page:</span>
+              <select 
+                className="input-field" 
+                value={pageSize}
+                onChange={(e) => {
+                  setPageSize(Number(e.target.value));
+                  setCurrentPage(1);
+                }}
+                style={{ padding: '4px 8px', fontSize: '0.8rem', width: 'auto' }}
+              >
+                <option value={12}>12</option>
+                <option value={25}>25</option>
+                <option value={50}>50</option>
+                <option value={100}>100</option>
+              </select>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <button 
+                className="btn btn-secondary"
+                style={{ padding: '6px 12px', fontSize: '0.8rem', fontWeight: '700' }}
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+              >
+                ◀ Previous
+              </button>
+
+              <span style={{ fontSize: '0.825rem', fontWeight: '700', padding: '0 8px', color: 'var(--text-main)' }}>
+                Page {currentPage} of {totalPages}
+              </span>
+
+              <button 
+                className="btn btn-secondary"
+                style={{ padding: '6px 12px', fontSize: '0.8rem', fontWeight: '700' }}
+                disabled={currentPage >= totalPages}
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+              >
+                Next ▶
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };
