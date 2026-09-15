@@ -11,6 +11,7 @@ import { FundedStartupsView } from './components/FundedStartupsView';
 import { RemoteJobsView } from './components/RemoteJobsView';
 import { GlobalRegistriesView } from './components/GlobalRegistriesView';
 import { TradeExposView } from './components/TradeExposView';
+import { AdHunterView } from './components/AdHunterView';
 import { LeadDetailDrawer } from './components/LeadDetailDrawer';
 import { OutreachModal } from './components/OutreachModal';
 import { ManualLeadModal } from './components/ManualLeadModal';
@@ -53,6 +54,13 @@ export const App: React.FC = () => {
   const handleAddDiscoveredLeads = (newLeads: Lead[], replaceCity?: string) => {
     const currentLeads = leadService.getLeadsFromStorage();
     let baseLeads = currentLeads;
+    // Cleanly replace META_ADS and GOOGLE_PPC leads on a fresh scan so the user sees exact leads for selected country/city
+    if (newLeads.length > 0) {
+      const src = newLeads[0].source;
+      if (src === 'META_ADS' || src === 'GOOGLE_PPC') {
+        baseLeads = currentLeads.filter(l => l.source !== src);
+      }
+    }
 
     // When fetching a new volume batch for a local city or entire country, cleanly replace that scope's leads
     // so the user sees EXACTLY the volume they selected (100, 300, 500, 1,000)
@@ -256,6 +264,16 @@ export const App: React.FC = () => {
               onStatusChange={handleStatusChange}
               onExportCSV={handleExportCSV}
               onAddDiscoveredLeads={handleAddDiscoveredLeads}
+            />
+          )}
+
+          {currentView === 'ad_hunter' && (
+            <AdHunterView 
+              leads={visibleLeads}
+              onSelectLead={(l) => setSelectedLead(l)}
+              onOpenPitchModal={(l) => setPitchLead(l)}
+              onAddDiscoveredLeads={handleAddDiscoveredLeads}
+              onNavigateToView={(v) => setCurrentView(v)}
             />
           )}
 

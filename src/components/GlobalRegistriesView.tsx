@@ -38,6 +38,7 @@ export const GlobalRegistriesView: React.FC<GlobalRegistriesViewProps> = ({
 }) => {
   const [selectedCountry, setSelectedCountry] = useState<string>('GLOBAL');
   const [timeframe, setTimeframe] = useState<'LAST_24H' | 'LAST_7D' | 'LAST_30D'>('LAST_7D');
+  const [webFilter, setWebFilter] = useState<'ALL' | 'NO_WEBSITE' | 'HAS_WEBSITE'>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   const [isScanning, setIsScanning] = useState(false);
 
@@ -56,17 +57,21 @@ export const GlobalRegistriesView: React.FC<GlobalRegistriesViewProps> = ({
         || (lead.company.country && lead.company.country.toLowerCase().includes(targetLabel))
         || (lead.company.location && lead.company.location.toLowerCase().includes(targetLabel));
 
+      const matchesWeb = webFilter === 'ALL' 
+        || (webFilter === 'NO_WEBSITE' && !lead.websiteAudit.hasWebsite)
+        || (webFilter === 'HAS_WEBSITE' && lead.websiteAudit.hasWebsite);
+
       const matchesSearch = !searchQuery 
         || lead.company.name.toLowerCase().includes(searchQuery.toLowerCase())
         || lead.title.toLowerCase().includes(searchQuery.toLowerCase())
         || (lead.contact.personName && lead.contact.personName.toLowerCase().includes(searchQuery.toLowerCase()));
 
-      return matchesCountry && matchesSearch;
+      return matchesCountry && matchesWeb && matchesSearch;
     });
-  }, [registryLeads, selectedCountry, searchQuery]);
+  }, [registryLeads, selectedCountry, webFilter, searchQuery]);
 
-  const hotCount = filteredLeads.filter(l => l.scoreBreakdown.temperature === 'HOT').length;
-  const noWebCount = filteredLeads.filter(l => !l.websiteAudit.hasWebsite).length;
+  const hotCount = registryLeads.filter(l => l.scoreBreakdown.temperature === 'HOT').length;
+  const noWebCount = registryLeads.filter(l => !l.websiteAudit.hasWebsite).length;
 
   const handleRunScan = async () => {
     setIsScanning(true);
@@ -142,7 +147,16 @@ export const GlobalRegistriesView: React.FC<GlobalRegistriesViewProps> = ({
 
       {/* Metrics Row */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
-        <div className="card" style={{ padding: '16px 20px' }}>
+        <div 
+          className="card" 
+          onClick={() => setWebFilter('ALL')}
+          style={{ 
+            padding: '16px 20px', 
+            cursor: 'pointer',
+            border: webFilter === 'ALL' ? '2px solid var(--primary)' : '1px solid var(--border-color)',
+            background: webFilter === 'ALL' ? 'var(--bg-accent, #f4f4ff)' : '#ffffff'
+          }}
+        >
           <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '6px' }}>
             <Building2 size={16} color="var(--primary)" /> Registered Companies
           </div>
@@ -160,12 +174,22 @@ export const GlobalRegistriesView: React.FC<GlobalRegistriesViewProps> = ({
           </div>
         </div>
 
-        <div className="card" style={{ padding: '16px 20px' }}>
-          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <Zap size={16} color="#059669" /> Zero Website (Needs MVP)
+        <div 
+          className="card" 
+          onClick={() => setWebFilter('NO_WEBSITE')}
+          style={{ 
+            padding: '16px 20px', 
+            cursor: 'pointer',
+            border: webFilter === 'NO_WEBSITE' ? '2px solid #059669' : '1px solid var(--border-color)',
+            background: webFilter === 'NO_WEBSITE' ? '#ecfdf5' : '#ffffff',
+            transition: 'all 0.2s ease'
+          }}
+        >
+          <div style={{ fontSize: '0.8rem', color: '#047857', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <Zap size={16} color="#059669" /> Zero Website (Needs Landing Page / MVP)
           </div>
           <div style={{ fontSize: '1.8rem', fontWeight: '800', color: '#059669', marginTop: '4px' }}>
-            {noWebCount}
+            {noWebCount} {webFilter === 'NO_WEBSITE' && <span style={{ fontSize: '0.8rem', fontWeight: '700' }}>(ACTIVE FILTER)</span>}
           </div>
         </div>
 
@@ -240,6 +264,30 @@ export const GlobalRegistriesView: React.FC<GlobalRegistriesViewProps> = ({
             <option value="LAST_24H">⚡ Last 24 Hours</option>
             <option value="LAST_7D">📅 Last 7 Days</option>
             <option value="LAST_30D">🗓️ Last 30 Days</option>
+          </select>
+        </div>
+
+        {/* Website Status Filter */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          <label style={{ fontSize: '0.725rem', fontWeight: '700', color: 'var(--text-muted)' }}>
+            Website Status / Target Need
+          </label>
+          <select 
+            value={webFilter} 
+            onChange={(e) => setWebFilter(e.target.value as any)}
+            style={{
+              padding: '8px 12px',
+              borderRadius: '8px',
+              border: webFilter === 'NO_WEBSITE' ? '2px solid #059669' : '1px solid var(--border-color)',
+              fontWeight: '700',
+              fontSize: '0.875rem',
+              background: webFilter === 'NO_WEBSITE' ? '#ecfdf5' : '#ffffff',
+              color: webFilter === 'NO_WEBSITE' ? '#047857' : 'inherit'
+            }}
+          >
+            <option value="ALL">🌐 All Businesses (Zero Web & Redesigns)</option>
+            <option value="NO_WEBSITE">⚡ Zero Website Only (Needs Landing Page / MVP)</option>
+            <option value="HAS_WEBSITE">💻 Has Website (Needs Redesign / App)</option>
           </select>
         </div>
 

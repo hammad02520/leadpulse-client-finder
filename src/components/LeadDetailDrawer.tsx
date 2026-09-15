@@ -101,6 +101,55 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
   const googleSearchEmailUrl = `https://www.google.com/search?q=${encodeURIComponent('contact email ' + lead.company.name + ' ' + (audit.domain || ''))}`;
   const linkedinSearchUrl = `https://www.linkedin.com/search/results/all/?keywords=${encodeURIComponent(lead.company.name + ' founder OR owner OR CTO')}`;
 
+  const getSourceMeta = () => {
+    switch (lead.source) {
+      case 'GLOBAL_REGISTRY':
+        return {
+          title: 'Official Corporate Registry Source',
+          subtitle: 'View official corporate registration & entity listing',
+          buttonText: 'View Registry Entry ↗',
+          directLinkText: 'Open Official Registry Listing ↗'
+        };
+      case 'TRADE_EXPO':
+        return {
+          title: 'Official Trade Show Directory',
+          subtitle: 'View official trade event exhibitor entry & booth info',
+          buttonText: 'View Exhibitor Entry ↗',
+          directLinkText: 'Open Official Exhibitor Entry ↗'
+        };
+      case 'LOCAL_BIZ':
+        return {
+          title: 'OpenStreetMap Verified Node',
+          subtitle: 'View physical business coordinates & map tags',
+          buttonText: 'View on OSM ↗',
+          directLinkText: 'View Business on OpenStreetMap ↗'
+        };
+      case 'FUNDED_STARTUP':
+        return {
+          title: 'Venture Funding Registry Source',
+          subtitle: 'View official startup funding announcement & round details',
+          buttonText: 'View Funding Source ↗',
+          directLinkText: 'Open Startup Funding Announcement ↗'
+        };
+      case 'TECH_STACK':
+        return {
+          title: 'Technology Stack Signal Source',
+          subtitle: 'View detected tech stack & website signals',
+          buttonText: 'View Source Link ↗',
+          directLinkText: 'Open Technology Signal Source ↗'
+        };
+      default:
+        return {
+          title: 'Point-to-Point Direct Source URL',
+          subtitle: 'Opens the exact original source posting page',
+          buttonText: 'Open Source Link ↗',
+          directLinkText: `Open Direct Source Listing (${lead.source}) ↗`
+        };
+    }
+  };
+
+  const sourceMeta = getSourceMeta();
+
   return (
     <div 
       style={{
@@ -148,14 +197,14 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
       {/* Drawer Scrollable Content */}
       <div style={{ padding: '20px', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '16px' }}>
         
-        {/* Point to Point Direct Post Link Banner */}
-        <div style={{ background: '#eef2ff', border: '1px solid #c7d2fe', borderRadius: '10px', padding: '12px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        {/* Point to Point Direct Link Banner */}
+        <div style={{ background: '#eef2ff', border: '1px solid #c7d2fe', borderRadius: '10px', padding: '12px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
           <div>
             <div style={{ fontSize: '0.8rem', fontWeight: '700', color: '#3730a3' }}>
-              {lead.source === 'LOCAL_BIZ' ? 'OpenStreetMap Verified Node' : 'Point-to-Point Direct Post URL'}
+              {sourceMeta.title}
             </div>
             <div style={{ fontSize: '0.725rem', color: '#4338ca' }}>
-              {lead.source === 'LOCAL_BIZ' ? 'View physical business coordinates & map tags' : 'Opens the exact original post page'}
+              {sourceMeta.subtitle}
             </div>
           </div>
           <a 
@@ -163,9 +212,9 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
             target="_blank" 
             rel="noreferrer"
             className="btn btn-primary"
-            style={{ padding: '6px 12px', fontSize: '0.775rem', textDecoration: 'none' }}
+            style={{ padding: '6px 12px', fontSize: '0.775rem', textDecoration: 'none', whiteSpace: 'nowrap', flexShrink: 0 }}
           >
-            {lead.source === 'LOCAL_BIZ' ? 'View on OSM ↗' : 'Open Job Post ↗'}
+            {sourceMeta.buttonText}
           </a>
         </div>
 
@@ -183,7 +232,7 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
                 onClick={handleRunLivePageSpeed}
                 disabled={isAuditingPageSpeed}
               >
-                <Zap size={13} /> {isAuditingPageSpeed ? '⏳ Auditing PageSpeed...' : '⚡ Run Live Lighthouse Audit'}
+                <Zap size={13} /> {isAuditingPageSpeed ? '⏳ Auditing PageSpeed...' : 'Run Live Lighthouse Audit'}
               </button>
             )}
           </div>
@@ -197,16 +246,20 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
 
           {/* EXACT AUDITED WEBSITE LINK BANNER */}
           {auditedSiteUrl ? (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#f0f9ff', border: '1px solid #bae6fd', padding: '10px 12px', borderRadius: '8px', marginBottom: '12px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#0369a1', fontWeight: '700', fontSize: '0.825rem' }}>
-                <Globe size={16} /> Audited Target Site: <span style={{ color: '#0284c7' }}>{audit.domain}</span>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap', background: '#f0f9ff', border: '1px solid #bae6fd', padding: '10px 14px', borderRadius: '8px', marginBottom: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0, flex: 1 }}>
+                <Globe size={16} color="#0284c7" style={{ flexShrink: 0 }} />
+                <span style={{ fontSize: '0.825rem', fontWeight: '700', color: '#0369a1', whiteSpace: 'nowrap' }}>Audited Target Site:</span>
+                <span style={{ fontSize: '0.825rem', fontWeight: '700', color: '#0284c7', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {audit.domain}
+                </span>
               </div>
               <a 
                 href={auditedSiteUrl} 
                 target="_blank" 
                 rel="noreferrer"
                 className="btn btn-primary"
-                style={{ padding: '5px 12px', fontSize: '0.75rem', textDecoration: 'none' }}
+                style={{ padding: '6px 12px', fontSize: '0.75rem', textDecoration: 'none', whiteSpace: 'nowrap', flexShrink: 0 }}
               >
                 Open Audited Site ↗
               </a>
@@ -339,7 +392,7 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <ExternalLink size={15} color="var(--primary)" />
               <a href={lead.sourceUrl} target="_blank" rel="noreferrer" style={{ color: 'var(--primary)', fontWeight: '700', textDecoration: 'none' }}>
-                {lead.source === 'LOCAL_BIZ' ? 'View Business on OpenStreetMap ↗' : `Open Direct Job Post on ${lead.source} ↗`}
+                {sourceMeta.directLinkText}
               </a>
             </div>
 

@@ -28,6 +28,8 @@ export type SourceType =
   | 'TWITTER' 
   | 'GLOBAL_REGISTRY'
   | 'TRADE_EXPO'
+  | 'META_ADS'
+  | 'GOOGLE_PPC'
   | 'MANUAL_IMPORT';
 
 export type JobFeedSource = 'ALL' | 'REMOTIVE' | 'ARBEITNOW' | 'JOBICY' | 'HACKERNEWS';
@@ -210,5 +212,6 @@ export type AppViewMode =
   | 'remote_jobs' 
   | 'global_registries'
   | 'trade_expos'
+  | 'ad_hunter'
   | 'kanban' 
   | 'table';

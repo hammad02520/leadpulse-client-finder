@@ -8,6 +8,7 @@ import { techStackService } from './techStackService';
 import { startupFundingService } from './startupFundingService';
 import { globalRegistriesService } from './globalRegistriesService';
 import { tradeExposService } from './tradeExposService';
+import { adHunterService } from './adHunterService';
 
 const STORAGE_KEY = 'leadpulse_leads_v18_high_volume_smb';
 
@@ -124,6 +125,9 @@ class LeadService {
       console.warn('Startup funding dynamic discover error:', e);
     }
 
+    let metaLeads: Lead[] = [];
+    let ppcLeads: Lead[] = [];
+
     try {
       registryLeads = await globalRegistriesService.discoverRegistryLeads({
         country: 'GLOBAL',
@@ -143,6 +147,26 @@ class LeadService {
       console.warn('Trade expo discover error:', e);
     }
 
+    try {
+      metaLeads = await adHunterService.discoverMetaAdLeads({
+        niche: 'real_estate',
+        country: 'AE',
+        limit: 50
+      });
+    } catch (e) {
+      console.warn('Meta Ads discover error:', e);
+    }
+
+    try {
+      ppcLeads = await adHunterService.discoverGooglePpcLeads({
+        query: 'Emergency Plumber & Repair',
+        city: 'Dubai, UAE',
+        limit: 50
+      });
+    } catch (e) {
+      console.warn('Google PPC discover error:', e);
+    }
+
     const existing = this.getLeadsFromStorage();
     const allFetched = [
       ...existing,
@@ -151,13 +175,22 @@ class LeadService {
       ...techLeads,
       ...startupLeads,
       ...registryLeads,
-      ...expoLeads
+      ...expoLeads,
+      ...metaLeads,
+      ...ppcLeads
     ];
 
-    // Guarantee unexpired & strictly deduplicated
-    const finalLeads = strictDeduplicate(
-      allFetched.filter(l => !l.isExpired && l.freshnessTier !== 'STALE_EXPIRED')
-    );
+    // Guarantee unexpired & strictly deduplicated, with Zero-Website leads prioritized at top
+    const filtered = allFetched.filter(l => !l.isExpired && l.freshnessTier !== 'STALE_EXPIRED');
+    const unique = strictDeduplicate(filtered);
+
+    // Auto-sort: Zero-Website (!hasWebsite) leads first, then by total score
+    const finalLeads = unique.sort((a, b) => {
+      const aNoWeb = !a.websiteAudit.hasWebsite ? 1 : 0;
+      const bNoWeb = !b.websiteAudit.hasWebsite ? 1 : 0;
+      if (aNoWeb !== bNoWeb) return bNoWeb - aNoWeb;
+      return b.scoreBreakdown.totalScore - a.scoreBreakdown.totalScore;
+    });
 
     this.saveLeadsToStorage(finalLeads);
     return finalLeads;

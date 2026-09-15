@@ -12,7 +12,8 @@ import {
   Code2,
   Rocket,
   Building2,
-  Calendar
+  Calendar,
+  Megaphone
 } from 'lucide-react';
 import { Lead, AppViewMode } from '../types';
 import { strictDeduplicate } from '../services/deduplicationService';
@@ -278,6 +279,32 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
           <span style={{ fontSize: '0.725rem', background: '#dcfce7', color: '#15803d', padding: '2px 6px', borderRadius: '999px', fontWeight: '700' }}>
             {expoCount}
+          </span>
+        </button>
+
+        {/* Ad & PPC Hunter Tool */}
+        <button 
+          onClick={() => setCurrentView('ad_hunter')}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '10px 12px',
+            borderRadius: '8px',
+            border: 'none',
+            fontSize: '0.875rem',
+            fontWeight: '600',
+            cursor: 'pointer',
+            background: currentView === 'ad_hunter' ? 'var(--primary-light)' : 'transparent',
+            color: currentView === 'ad_hunter' ? 'var(--primary)' : 'var(--text-main)',
+            textAlign: 'left'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <Megaphone size={18} color="#6366f1" /> Ad & PPC Hunter
+          </div>
+          <span style={{ fontSize: '0.725rem', background: '#e0e7ff', color: '#4338ca', padding: '2px 6px', borderRadius: '999px', fontWeight: '800' }}>
+            PRO
           </span>
         </button>
 

@@ -29,7 +29,7 @@ export class LocalBizAdapter implements BaseAdapter {
         country: savedCountry,
         city: savedCity,
         category: 'all',
-        filterType: 'ALL',
+        filterType: 'NO_WEBSITE',
         limit: 300
       });
       return osmLeads;
