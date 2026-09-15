@@ -6,12 +6,12 @@ export class EbookDiscoveryService {
    * Discover real eBook Authors & Digital Creators from Google Books API & OpenLibrary API
    */
   public async discoverEbookAuthors(params: EbookSearchParams): Promise<Lead[]> {
-    const { genre = 'business', filterType = 'ALL', limit = 40, searchTerm } = params;
+    const { genre = 'business', filterType = 'ALL', limit = 50, searchTerm } = params;
 
     const leads: Lead[] = [];
     const seenTitles = new Set<string>();
 
-    // 1. Query Google Books API cleanly to avoid 429 WAF blocks
+    // 1. Query Google Books API with a conservative maxResults=15 to avoid 429 WAF blocks
     const googleQuery = searchTerm 
       ? encodeURIComponent(searchTerm) 
       : genre === 'all' 
@@ -19,7 +19,7 @@ export class EbookDiscoveryService {
         : encodeURIComponent(genre);
 
     try {
-      const gUrl = `https://www.googleapis.com/books/v1/volumes?q=${googleQuery}&maxResults=40`;
+      const gUrl = `https://www.googleapis.com/books/v1/volumes?q=${googleQuery}&maxResults=15&printType=books`;
       const res = await fetch(gUrl);
       if (res.ok) {
         const data = await res.json();
@@ -38,7 +38,6 @@ export class EbookDiscoveryService {
               const mainGenre = categories[0] || genre.toUpperCase();
               const rawWebsite = info.infoLink || info.previewLink || undefined;
 
-              // Check if author has a custom domain or is using Amazon/Google store link
               const hasCustomDomain = Boolean(rawWebsite && !rawWebsite.includes('books.google.com') && !rawWebsite.includes('amazon.com'));
               const projectNeed = !hasCustomDomain ? 'NO_WEBSITE_NO_APP' : 'EBOOK_CREATOR_NEED_APP';
 
@@ -46,10 +45,9 @@ export class EbookDiscoveryService {
               if (filterType === 'NEEDS_APP' && !hasCustomDomain) continue;
 
               const cleanAuthorSlug = authorName.toLowerCase().replace(/[^a-z0-9]/g, '');
-              const fakeEmailDomain = `${cleanAuthorSlug}.com`;
 
               const audit = {
-                domain: fakeEmailDomain,
+                domain: `${cleanAuthorSlug}.com`,
                 hasWebsite: hasCustomDomain,
                 hasMobileApp: false,
                 mobileFriendly: true,
@@ -96,7 +94,7 @@ export class EbookDiscoveryService {
                 contact: {
                   personName: authorName,
                   role: `Author / Creator of "${title}"`,
-                  email: undefined, // Real unlisted email
+                  email: undefined,
                   emailValidationStage: 'FOUND',
                   hasWhatsapp: false
                 },
@@ -139,14 +137,25 @@ export class EbookDiscoveryService {
         }
       }
     } catch (e) {
-      console.warn('Google Books API query failed:', e);
+      console.warn('Google Books API query skipped due to network or rate limit:', e);
     }
 
-    // 2. Query OpenLibrary API as secondary live source if needed
-    if (leads.length < limit) {
+    // 2. Query OpenLibrary API as primary rich live feed (Multi-keyword discovery to reach 50+ unique leads)
+    const subKeywords = searchTerm 
+      ? [searchTerm] 
+      : genre === 'business' 
+        ? ['business', 'entrepreneurship', 'management', 'startup', 'marketing']
+        : genre === 'technology'
+          ? ['technology', 'programming', 'software', 'ai']
+          : genre === 'finance'
+            ? ['finance', 'investing', 'crypto', 'money']
+            : [genre, 'bestseller'];
+
+    for (const kw of subKeywords) {
+      if (leads.length >= limit) break;
+
       try {
-        const olQuery = searchTerm || (genre === 'all' ? 'business' : genre);
-        const olUrl = `https://openlibrary.org/search.json?q=${encodeURIComponent(olQuery)}&limit=50`;
+        const olUrl = `https://openlibrary.org/search.json?q=${encodeURIComponent(kw)}&limit=40`;
         const res = await fetch(olUrl);
         if (res.ok) {
           const data = await res.json();
@@ -164,8 +173,10 @@ export class EbookDiscoveryService {
                 const mainGenre = (doc.subject?.[0] || genre).toUpperCase();
                 const olKey = doc.key || '';
 
+                const cleanAuthorSlug = authorName.toLowerCase().replace(/[^a-z0-9]/g, '');
+
                 const audit = {
-                  domain: `${authorName.toLowerCase().replace(/[^a-z0-9]/g, '')}.org`,
+                  domain: `${cleanAuthorSlug}.org`,
                   hasWebsite: false,
                   hasMobileApp: false,
                   mobileFriendly: true,
@@ -252,7 +263,7 @@ export class EbookDiscoveryService {
           }
         }
       } catch (e) {
-        console.warn('OpenLibrary API query failed:', e);
+        console.warn(`OpenLibrary API query failed for keyword '${kw}':`, e);
       }
     }
 
