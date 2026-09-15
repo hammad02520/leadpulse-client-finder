@@ -87,19 +87,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '10px',
-            padding: '10px 12px',
+            gap: '8px',
+            padding: '8px 10px',
             borderRadius: '8px',
             border: 'none',
-            fontSize: '0.875rem',
+            fontSize: '0.825rem',
             fontWeight: '600',
             cursor: 'pointer',
             background: currentView === 'dashboard' ? 'var(--primary-light)' : 'transparent',
             color: currentView === 'dashboard' ? 'var(--primary)' : 'var(--text-main)',
-            textAlign: 'left'
+            textAlign: 'left',
+            whiteSpace: 'nowrap'
           }}
         >
-          <LayoutDashboard size={18} /> Overview Dashboard
+          <LayoutDashboard size={17} /> Overview Dashboard
         </button>
 
         {/* Local Business Finder (OpenStreetMap) */}
@@ -109,10 +110,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            padding: '10px 12px',
+            padding: '8px 10px',
             borderRadius: '8px',
             border: 'none',
-            fontSize: '0.875rem',
+            fontSize: '0.825rem',
             fontWeight: '600',
             cursor: 'pointer',
             background: currentView === 'local_biz' ? 'var(--primary-light)' : 'transparent',
@@ -120,10 +121,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
             textAlign: 'left'
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <MapPin size={18} /> Local SMBs & Maps
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+            <MapPin size={17} /> Local SMBs & Maps
           </div>
-          <span style={{ fontSize: '0.725rem', background: '#d1fae5', color: '#059669', padding: '2px 6px', borderRadius: '999px', fontWeight: '700' }}>
+          <span style={{ fontSize: '0.7rem', background: '#d1fae5', color: '#059669', padding: '1px 6px', borderRadius: '999px', fontWeight: '700', marginLeft: '4px' }}>
             {localCount}
           </span>
         </button>
@@ -135,10 +136,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            padding: '10px 12px',
+            padding: '8px 10px',
             borderRadius: '8px',
             border: 'none',
-            fontSize: '0.875rem',
+            fontSize: '0.825rem',
             fontWeight: '600',
             cursor: 'pointer',
             background: currentView === 'b2b_founders' ? 'var(--primary-light)' : 'transparent',
@@ -146,10 +147,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
             textAlign: 'left'
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <Users size={18} /> B2B Decision Makers
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+            <Users size={17} /> B2B Decision Makers
           </div>
-          <span style={{ fontSize: '0.725rem', background: '#ede9fe', color: '#7c3aed', padding: '2px 6px', borderRadius: '999px', fontWeight: '700' }}>
+          <span style={{ fontSize: '0.7rem', background: '#ede9fe', color: '#7c3aed', padding: '1px 6px', borderRadius: '999px', fontWeight: '700', marginLeft: '4px' }}>
             {b2bCount}
           </span>
         </button>
@@ -161,10 +162,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            padding: '10px 12px',
+            padding: '8px 10px',
             borderRadius: '8px',
             border: 'none',
-            fontSize: '0.875rem',
+            fontSize: '0.825rem',
             fontWeight: '600',
             cursor: 'pointer',
             background: currentView === 'ebook_authors' ? 'var(--primary-light)' : 'transparent',
@@ -172,10 +173,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
             textAlign: 'left'
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <BookOpen size={18} /> eBook Authors & Creators
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+            <BookOpen size={17} /> eBook Authors & Creators
           </div>
-          <span style={{ fontSize: '0.725rem', background: '#d1fae5', color: '#059669', padding: '2px 6px', borderRadius: '999px', fontWeight: '700' }}>
+          <span style={{ fontSize: '0.7rem', background: '#d1fae5', color: '#059669', padding: '1px 6px', borderRadius: '999px', fontWeight: '700', marginLeft: '4px' }}>
             {ebookCount}
           </span>
         </button>
@@ -187,10 +188,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            padding: '10px 12px',
+            padding: '8px 10px',
             borderRadius: '8px',
             border: 'none',
-            fontSize: '0.875rem',
+            fontSize: '0.825rem',
             fontWeight: '600',
             cursor: 'pointer',
             background: currentView === 'tech_stack' ? 'var(--primary-light)' : 'transparent',
@@ -198,10 +199,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
             textAlign: 'left'
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <Code2 size={18} /> Tech-Stack Audits
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+            <Code2 size={17} /> Tech-Stack Audits
           </div>
-          <span style={{ fontSize: '0.725rem', background: '#ecfdf5', color: '#059669', padding: '2px 6px', borderRadius: '999px', fontWeight: '700' }}>
+          <span style={{ fontSize: '0.7rem', background: '#ecfdf5', color: '#059669', padding: '1px 6px', borderRadius: '999px', fontWeight: '700', marginLeft: '4px' }}>
             {techCount}
           </span>
         </button>
@@ -213,10 +214,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            padding: '10px 12px',
+            padding: '8px 10px',
             borderRadius: '8px',
             border: 'none',
-            fontSize: '0.875rem',
+            fontSize: '0.825rem',
             fontWeight: '600',
             cursor: 'pointer',
             background: currentView === 'funded_startups' ? 'var(--primary-light)' : 'transparent',
@@ -224,10 +225,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
             textAlign: 'left'
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <Rocket size={18} /> Funded Startups
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+            <Rocket size={17} /> Funded Startups
           </div>
-          <span style={{ fontSize: '0.725rem', background: '#fae8ff', color: '#c026d3', padding: '2px 6px', borderRadius: '999px', fontWeight: '700' }}>
+          <span style={{ fontSize: '0.7rem', background: '#fae8ff', color: '#c026d3', padding: '1px 6px', borderRadius: '999px', fontWeight: '700', marginLeft: '4px' }}>
             {startupCount}
           </span>
         </button>
@@ -239,10 +240,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            padding: '10px 12px',
+            padding: '8px 10px',
             borderRadius: '8px',
             border: 'none',
-            fontSize: '0.875rem',
+            fontSize: '0.825rem',
             fontWeight: '600',
             cursor: 'pointer',
             background: currentView === 'remote_jobs' ? 'var(--primary-light)' : 'transparent',
@@ -250,10 +251,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
             textAlign: 'left'
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <Briefcase size={18} /> Remote Dev Jobs
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+            <Briefcase size={17} /> Remote Dev Jobs
           </div>
-          <span style={{ fontSize: '0.725rem', background: '#e0f2fe', color: '#0284c7', padding: '2px 6px', borderRadius: '999px', fontWeight: '700' }}>
+          <span style={{ fontSize: '0.7rem', background: '#e0f2fe', color: '#0284c7', padding: '1px 6px', borderRadius: '999px', fontWeight: '700', marginLeft: '4px' }}>
             {remoteCount}
           </span>
         </button>
@@ -265,10 +266,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            padding: '10px 12px',
+            padding: '8px 10px',
             borderRadius: '8px',
             border: 'none',
-            fontSize: '0.875rem',
+            fontSize: '0.825rem',
             fontWeight: '600',
             cursor: 'pointer',
             background: currentView === 'global_registries' ? 'var(--primary-light)' : 'transparent',
@@ -276,10 +277,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
             textAlign: 'left'
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <Building2 size={18} /> Global Registries
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+            <Building2 size={17} /> Global Registries
           </div>
-          <span style={{ fontSize: '0.725rem', background: '#ede9fe', color: '#6d28d9', padding: '2px 6px', borderRadius: '999px', fontWeight: '700' }}>
+          <span style={{ fontSize: '0.7rem', background: '#ede9fe', color: '#6d28d9', padding: '1px 6px', borderRadius: '999px', fontWeight: '700', marginLeft: '4px' }}>
             {registryCount}
           </span>
         </button>
@@ -291,10 +292,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            padding: '10px 12px',
+            padding: '8px 10px',
             borderRadius: '8px',
             border: 'none',
-            fontSize: '0.875rem',
+            fontSize: '0.825rem',
             fontWeight: '600',
             cursor: 'pointer',
             background: currentView === 'trade_expos' ? 'var(--primary-light)' : 'transparent',
@@ -302,10 +303,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
             textAlign: 'left'
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <Calendar size={18} /> Trade Shows & Expos
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+            <Calendar size={17} /> Trade Shows & Expos
           </div>
-          <span style={{ fontSize: '0.725rem', background: '#dcfce7', color: '#15803d', padding: '2px 6px', borderRadius: '999px', fontWeight: '700' }}>
+          <span style={{ fontSize: '0.7rem', background: '#dcfce7', color: '#15803d', padding: '1px 6px', borderRadius: '999px', fontWeight: '700', marginLeft: '4px' }}>
             {expoCount}
           </span>
         </button>
@@ -317,10 +318,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            padding: '10px 12px',
+            padding: '8px 10px',
             borderRadius: '8px',
             border: 'none',
-            fontSize: '0.875rem',
+            fontSize: '0.825rem',
             fontWeight: '600',
             cursor: 'pointer',
             background: currentView === 'ad_hunter' ? 'var(--primary-light)' : 'transparent',
@@ -328,10 +329,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
             textAlign: 'left'
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <Megaphone size={18} color="#6366f1" /> Ad & PPC Hunter
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+            <Megaphone size={17} color="#6366f1" /> Ad & PPC Hunter
           </div>
-          <span style={{ fontSize: '0.725rem', background: '#e0e7ff', color: '#4338ca', padding: '2px 6px', borderRadius: '999px', fontWeight: '800' }}>
+          <span style={{ fontSize: '0.7rem', background: '#e0e7ff', color: '#4338ca', padding: '1px 6px', borderRadius: '999px', fontWeight: '800', marginLeft: '4px' }}>
             PRO
           </span>
         </button>
@@ -343,10 +344,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            padding: '10px 12px',
+            padding: '8px 10px',
             borderRadius: '8px',
             border: 'none',
-            fontSize: '0.875rem',
+            fontSize: '0.825rem',
             fontWeight: '600',
             cursor: 'pointer',
             background: currentView === 'kanban' ? 'var(--primary-light)' : 'transparent',
@@ -354,8 +355,31 @@ export const Sidebar: React.FC<SidebarProps> = ({
             textAlign: 'left'
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <Kanban size={18} /> Pipeline Kanban
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+            <Kanban size={17} /> Pipeline Kanban
+          </div>
+        </button>
+
+        {/* Master Table Grid */}
+        <button 
+          onClick={() => setCurrentView('table')}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '8px 10px',
+            borderRadius: '8px',
+            border: 'none',
+            fontSize: '0.825rem',
+            fontWeight: '600',
+            cursor: 'pointer',
+            background: currentView === 'table' ? 'var(--primary-light)' : 'transparent',
+            color: currentView === 'table' ? 'var(--primary)' : 'var(--text-main)',
+            textAlign: 'left'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+            <Table size={17} /> Master Leads Grid
           </div>
         </button>
 
