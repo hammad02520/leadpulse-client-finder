@@ -14,7 +14,8 @@ import {
   Building2,
   Calendar,
   Megaphone,
-  BookOpen
+  BookOpen,
+  Database
 } from 'lucide-react';
 import { Lead, AppViewMode } from '../types';
 import { strictDeduplicate } from '../services/deduplicationService';
@@ -127,6 +128,28 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <span style={{ fontSize: '0.7rem', background: '#d1fae5', color: '#059669', padding: '1px 6px', borderRadius: '999px', fontWeight: '700', marginLeft: '4px' }}>
             {localCount}
           </span>
+        </button>
+
+        {/* Google Maps Auto-Crawler */}
+        <button 
+          onClick={() => setCurrentView('crawler_dashboard')}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '8px 10px',
+            borderRadius: '8px',
+            border: 'none',
+            fontSize: '0.825rem',
+            fontWeight: '600',
+            cursor: 'pointer',
+            background: currentView === 'crawler_dashboard' ? 'var(--primary-light)' : 'transparent',
+            color: currentView === 'crawler_dashboard' ? 'var(--primary)' : 'var(--text-main)',
+            textAlign: 'left',
+            whiteSpace: 'nowrap'
+          }}
+        >
+          <Database size={17} /> Auto-Crawler Engine
         </button>
 
         {/* B2B Decision Makers (Apollo) */}

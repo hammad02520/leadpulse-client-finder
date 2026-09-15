@@ -16,6 +16,7 @@ export type SourceType =
   | 'JOB_FEED' 
   | 'LOCAL_BIZ' 
   | 'GOOGLE_PLACES'
+  | 'GOOGLE_MAPS_SCRAPER'
   | 'B2B_APOLLO'
   | 'TECH_STACK'
   | 'FUNDED_STARTUP'
@@ -234,5 +235,6 @@ export type AppViewMode =
   | 'trade_expos'
   | 'ad_hunter'
   | 'ebook_authors'
+  | 'crawler_dashboard'
   | 'kanban' 
   | 'table';

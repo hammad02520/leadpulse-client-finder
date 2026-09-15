@@ -13,6 +13,7 @@ import { GlobalRegistriesView } from './components/GlobalRegistriesView';
 import { TradeExposView } from './components/TradeExposView';
 import { AdHunterView } from './components/AdHunterView';
 import { EbookAuthorsView } from './components/EbookAuthorsView';
+import { CrawlerDashboard } from './components/CrawlerDashboard';
 import { LeadDetailDrawer } from './components/LeadDetailDrawer';
 import { OutreachModal } from './components/OutreachModal';
 import { ManualLeadModal } from './components/ManualLeadModal';
@@ -306,6 +307,9 @@ export const App: React.FC = () => {
             />
           )}
 
+          {currentView === 'crawler_dashboard' && (
+            <CrawlerDashboard />
+          )}
           {currentView === 'table' && (
             <LeadTable 
               leads={visibleLeads}
