@@ -12,6 +12,7 @@ import { RemoteJobsView } from './components/RemoteJobsView';
 import { GlobalRegistriesView } from './components/GlobalRegistriesView';
 import { TradeExposView } from './components/TradeExposView';
 import { AdHunterView } from './components/AdHunterView';
+import { EbookAuthorsView } from './components/EbookAuthorsView';
 import { LeadDetailDrawer } from './components/LeadDetailDrawer';
 import { OutreachModal } from './components/OutreachModal';
 import { ManualLeadModal } from './components/ManualLeadModal';
@@ -274,6 +275,15 @@ export const App: React.FC = () => {
               onOpenPitchModal={(l) => setPitchLead(l)}
               onAddDiscoveredLeads={handleAddDiscoveredLeads}
               onNavigateToView={(v) => setCurrentView(v)}
+            />
+          )}
+
+          {currentView === 'ebook_authors' && (
+            <EbookAuthorsView 
+              leads={visibleLeads}
+              onSelectLead={(l) => setSelectedLead(l)}
+              onOpenPitchModal={(l) => setPitchLead(l)}
+              onAddDiscoveredLeads={handleAddDiscoveredLeads}
             />
           )}
 

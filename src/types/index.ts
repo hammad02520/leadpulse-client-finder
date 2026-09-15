@@ -30,6 +30,7 @@ export type SourceType =
   | 'TRADE_EXPO'
   | 'META_ADS'
   | 'GOOGLE_PPC'
+  | 'EBOOK_AUTHOR'
   | 'MANUAL_IMPORT';
 
 export type JobFeedSource = 'ALL' | 'REMOTIVE' | 'ARBEITNOW' | 'JOBICY' | 'HACKERNEWS';
@@ -183,6 +184,15 @@ export interface Lead {
     eventDates: string;
     category: string;
   };
+  ebookInfo?: {
+    bookTitle: string;
+    genre: string;
+    publicationDate?: string;
+    isbn?: string;
+    storeUrl?: string;
+    platform: 'GOOGLE_BOOKS' | 'OPEN_LIBRARY' | 'GUMROAD' | 'AMAZON';
+    coverUrl?: string;
+  };
 }
 
 export interface SourceFilter {
@@ -204,6 +214,13 @@ export interface OsmSearchParams {
   isNationwide?: boolean;
 }
 
+export interface EbookSearchParams {
+  genre: 'business' | 'self_help' | 'technology' | 'finance' | 'fitness' | 'fiction' | 'all';
+  filterType?: 'ALL' | 'NO_WEBSITE' | 'NEEDS_APP';
+  limit?: number;
+  searchTerm?: string;
+}
+
 export type AppViewMode = 
   | 'dashboard' 
   | 'local_biz' 
@@ -214,5 +231,6 @@ export type AppViewMode =
   | 'global_registries'
   | 'trade_expos'
   | 'ad_hunter'
+  | 'ebook_authors'
   | 'kanban' 
   | 'table';

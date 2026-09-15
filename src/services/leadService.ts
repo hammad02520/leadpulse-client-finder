@@ -9,8 +9,9 @@ import { startupFundingService } from './startupFundingService';
 import { globalRegistriesService } from './globalRegistriesService';
 import { tradeExposService } from './tradeExposService';
 import { adHunterService } from './adHunterService';
+import { ebookDiscoveryService } from './ebookDiscoveryService';
 
-const STORAGE_KEY = 'leadpulse_leads_v19_pure_osm_no_fake_emails';
+const STORAGE_KEY = 'leadpulse_leads_v20_ebook_creators';
 
 class LeadService {
   private adapters = [
@@ -167,6 +168,17 @@ class LeadService {
       console.warn('Google PPC discover error:', e);
     }
 
+    let ebookLeads: Lead[] = [];
+    try {
+      ebookLeads = await ebookDiscoveryService.discoverEbookAuthors({
+        genre: 'business',
+        filterType: 'ALL',
+        limit: 50
+      });
+    } catch (e) {
+      console.warn('eBook authors discover error:', e);
+    }
+
     const existing = this.getLeadsFromStorage();
     const allFetched = [
       ...existing,
@@ -177,7 +189,8 @@ class LeadService {
       ...registryLeads,
       ...expoLeads,
       ...metaLeads,
-      ...ppcLeads
+      ...ppcLeads,
+      ...ebookLeads
     ];
 
     // Guarantee unexpired & strictly deduplicated, with Zero-Website leads prioritized at top
@@ -270,7 +283,7 @@ class LeadService {
   /**
    * Export Leads to CSV / Excel with tailored, high-value client outreach columns
    */
-  public exportLeadsToCSV(leads: Lead[], mode: 'LOCAL_SMB' | 'REMOTE_JOBS' | 'B2B_FOUNDERS' | 'TECH_STACK' | 'FUNDED_STARTUPS' | 'GLOBAL_REGISTRY' | 'TRADE_EXPO' | 'ALL' = 'ALL'): void {
+  public exportLeadsToCSV(leads: Lead[], mode: 'LOCAL_SMB' | 'REMOTE_JOBS' | 'B2B_FOUNDERS' | 'TECH_STACK' | 'FUNDED_STARTUPS' | 'GLOBAL_REGISTRY' | 'TRADE_EXPO' | 'EBOOK_AUTHOR' | 'ALL' = 'ALL'): void {
     const cleanLeads = strictDeduplicate(leads);
     if (cleanLeads.length === 0) return;
 

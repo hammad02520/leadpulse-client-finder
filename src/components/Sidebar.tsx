@@ -13,7 +13,8 @@ import {
   Rocket,
   Building2,
   Calendar,
-  Megaphone
+  Megaphone,
+  BookOpen
 } from 'lucide-react';
 import { Lead, AppViewMode } from '../types';
 import { strictDeduplicate } from '../services/deduplicationService';
@@ -33,6 +34,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const hotCount = uniqueLeads.filter(l => l.scoreBreakdown.temperature === 'HOT' && !l.isExpired).length;
   const localCount = uniqueLeads.filter(l => l.source === 'LOCAL_BIZ' || l.source === 'WIKIDATA').length;
   const b2bCount = uniqueLeads.filter(l => l.source === 'B2B_APOLLO').length;
+  const ebookCount = uniqueLeads.filter(l => l.source === 'EBOOK_AUTHOR' || l.tags.includes('EBOOK_AUTHOR')).length;
   const techCount = uniqueLeads.filter(l => l.source === 'TECH_STACK' || l.source === 'GITHUB_FOUNDER').length;
   const startupCount = uniqueLeads.filter(l => 
     l.source === 'FUNDED_STARTUP' || 
@@ -149,6 +151,32 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
           <span style={{ fontSize: '0.725rem', background: '#ede9fe', color: '#7c3aed', padding: '2px 6px', borderRadius: '999px', fontWeight: '700' }}>
             {b2bCount}
+          </span>
+        </button>
+
+        {/* eBook Authors & Creators */}
+        <button 
+          onClick={() => setCurrentView('ebook_authors')}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '10px 12px',
+            borderRadius: '8px',
+            border: 'none',
+            fontSize: '0.875rem',
+            fontWeight: '600',
+            cursor: 'pointer',
+            background: currentView === 'ebook_authors' ? 'var(--primary-light)' : 'transparent',
+            color: currentView === 'ebook_authors' ? 'var(--primary)' : 'var(--text-main)',
+            textAlign: 'left'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <BookOpen size={18} /> eBook Authors & Creators
+          </div>
+          <span style={{ fontSize: '0.725rem', background: '#d1fae5', color: '#059669', padding: '2px 6px', borderRadius: '999px', fontWeight: '700' }}>
+            {ebookCount}
           </span>
         </button>
 
