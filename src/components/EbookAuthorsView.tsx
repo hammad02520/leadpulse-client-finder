@@ -39,6 +39,7 @@ export const EbookAuthorsView: React.FC<EbookAuthorsViewProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [enrichingId, setEnrichingId] = useState<string | null>(null);
+  const [isMassEnriching, setIsMassEnriching] = useState(false);
 
   const handleEnrichBio = async (lead: Lead) => {
     if (!lead.ebookInfo?.authorKey) return;
@@ -50,6 +51,32 @@ export const EbookAuthorsView: React.FC<EbookAuthorsViewProps> = ({
       console.error('Bio enrich failed:', e);
     } finally {
       setEnrichingId(null);
+    }
+  };
+
+  const handleEnrichIdentity = async (lead: Lead) => {
+    setEnrichingId(lead.id);
+    try {
+      const enriched = await ebookDiscoveryService.enrichAuthorWithIdentitySearch(lead);
+      onAddDiscoveredLeads([enriched]);
+    } catch (e) {
+      console.error('Identity enrich failed:', e);
+    } finally {
+      setEnrichingId(null);
+    }
+  };
+
+  const handleMassEnrichPage = async () => {
+    setIsMassEnriching(true);
+    try {
+      const enrichedLeads = await Promise.all(
+        paginatedLeads.map(l => ebookDiscoveryService.enrichAuthorWithIdentitySearch(l))
+      );
+      onAddDiscoveredLeads(enrichedLeads);
+    } catch (e) {
+      console.error('Mass enrich failed:', e);
+    } finally {
+      setIsMassEnriching(false);
     }
   };
 
@@ -248,13 +275,24 @@ export const EbookAuthorsView: React.FC<EbookAuthorsViewProps> = ({
             Filtered Authors: <span style={{ color: '#059669', fontWeight: '700' }}>{filteredLeads.length}</span> • Genre: <span style={{ color: '#0284c7', fontWeight: '700' }}>{selectedGenre.toUpperCase()}</span> • Year &gt;= <span style={{ color: '#059669', fontWeight: '700' }}>{minPublishYear}</span>
           </div>
 
-          <button 
-            className="btn btn-secondary"
-            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', padding: '6px 12px', fontWeight: '700', border: '1px solid #059669', color: '#059669' }}
-            onClick={() => leadService.exportLeadsToCSV(filteredLeads, 'EBOOK_AUTHOR')}
-          >
-            <Download size={14} /> Export {filteredLeads.length} Authors (Excel/CSV)
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            <button 
+              className="btn"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', padding: '6px 12px', fontWeight: '800', background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)', color: '#ffffff', border: 'none', cursor: 'pointer' }}
+              onClick={handleMassEnrichPage}
+              disabled={isMassEnriching || paginatedLeads.length === 0}
+            >
+              <Sparkles size={14} /> {isMassEnriching ? '⚡ Mass Enriching Page...' : `⚡ Mass Enrich Page (${paginatedLeads.length} Authors)`}
+            </button>
+
+            <button 
+              className="btn btn-secondary"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', padding: '6px 12px', fontWeight: '700', border: '1px solid #059669', color: '#059669' }}
+              onClick={() => leadService.exportLeadsToCSV(filteredLeads, 'EBOOK_AUTHOR')}
+            >
+              <Download size={14} /> Export {filteredLeads.length} Authors (Excel/CSV)
+            </button>
+          </div>
         </div>
       </div>
 
@@ -375,35 +413,54 @@ export const EbookAuthorsView: React.FC<EbookAuthorsViewProps> = ({
                       )}
                     </div>
 
-                    {lead.ebookInfo?.authorKey && (
-                      <div style={{ paddingTop: '4px', borderTop: '1px dashed #bae6fd', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '2px' }}>
+                    <div style={{ paddingTop: '6px', borderTop: '1px dashed #bae6fd', display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '4px' }}>
+                      <button
+                        onClick={() => handleEnrichIdentity(lead)}
+                        disabled={enrichingId === lead.id}
+                        style={{
+                          width: '100%',
+                          fontSize: '0.725rem',
+                          padding: '5px 8px',
+                          borderRadius: '4px',
+                          background: lead.contact.email ? '#d1fae5' : 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
+                          color: lead.contact.email ? '#047857' : '#ffffff',
+                          border: lead.contact.email ? '1px solid #a7f3d0' : 'none',
+                          fontWeight: '800',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '4px'
+                        }}
+                      >
+                        {enrichingId === lead.id 
+                          ? '⚡ Identity Searching Web & Contacts...' 
+                          : lead.contact.email 
+                            ? '✅ Verified Author Contact Found' 
+                            : '⚡ 2-Step Identity Contact Enricher'}
+                      </button>
+
+                      {lead.ebookInfo?.authorKey && !lead.contact.email && (
                         <button
                           onClick={() => handleEnrichBio(lead)}
                           disabled={enrichingId === lead.id}
                           style={{
                             width: '100%',
-                            fontSize: '0.7rem',
-                            padding: '4px 8px',
+                            fontSize: '0.675rem',
+                            padding: '3px 6px',
                             borderRadius: '4px',
-                            background: lead.contact.email ? '#d1fae5' : '#e0f2fe',
-                            color: lead.contact.email ? '#047857' : '#0284c7',
-                            border: lead.contact.email ? '1px solid #a7f3d0' : '1px solid #bae6fd',
-                            fontWeight: '800',
+                            background: '#f0f9ff',
+                            color: '#0369a1',
+                            border: '1px solid #bae6fd',
+                            fontWeight: '700',
                             cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: '4px'
+                            textAlign: 'center'
                           }}
                         >
-                          {enrichingId === lead.id 
-                            ? '⏳ Scanning OpenLibrary Bio...' 
-                            : lead.contact.email 
-                              ? '✅ Verified Bio Email Found' 
-                              : '🔍 Deep-Scan OpenLibrary Author Profile'}
+                          🔍 Deep-Scan OpenLibrary Author Bio JSON
                         </button>
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </div>
                 </div>
 
