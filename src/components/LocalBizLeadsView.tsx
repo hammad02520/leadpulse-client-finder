@@ -62,7 +62,8 @@ export const LocalBizLeadsView: React.FC<LocalBizLeadsViewProps> = ({
   const [selectedCity, setSelectedCity] = useState<string>(initialPref.city);
   const [customCity, setCustomCity] = useState('');
 
-  const [category, setCategory] = useState<OsmSearchParams['category']>('all');
+  const [category, setCategory] = useState<string>('all');
+  const [customCategory, setCustomCategory] = useState<string>('');
   const [filterType, setFilterType] = useState<'ALL' | 'NO_WEBSITE' | 'HAS_WEBSITE_NO_APP'>('ALL');
   const [fetchLimit, setFetchLimit] = useState<number>(500);
   const [isSearchingOsm, setIsSearchingOsm] = useState(false);
@@ -138,8 +139,14 @@ export const LocalBizLeadsView: React.FC<LocalBizLeadsViewProps> = ({
 
     const matchesCategory = 
       category === 'all' ||
-      l.tags.includes(category.toUpperCase()) ||
-      l.company.industry.toLowerCase().includes(category.toLowerCase());
+      (category === 'CUSTOM' && customCategory.trim() ? (
+        l.tags.some(t => t.toLowerCase().includes(customCategory.toLowerCase().trim())) ||
+        l.company.industry.toLowerCase().includes(customCategory.toLowerCase().trim()) ||
+        l.company.name.toLowerCase().includes(customCategory.toLowerCase().trim())
+      ) : (
+        l.tags.includes(category.toUpperCase()) ||
+        l.company.industry.toLowerCase().includes(category.toLowerCase())
+      ));
 
     return matchesSearch && matchesFilterType && matchesCategory;
   });
@@ -147,7 +154,7 @@ export const LocalBizLeadsView: React.FC<LocalBizLeadsViewProps> = ({
   // Reset to page 1 whenever filters or search changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, filterType, category, localLeads.length]);
+  }, [searchTerm, filterType, category, customCategory, localLeads.length]);
 
   const handleRunOsmSearch = async (overrideNationwide?: boolean) => {
     const finalCountry = activeCountry.trim();
@@ -155,13 +162,15 @@ export const LocalBizLeadsView: React.FC<LocalBizLeadsViewProps> = ({
     if (!finalCountry) return;
 
     const runNationwide = overrideNationwide ?? isNationwide;
+    const effectiveCategory = category === 'CUSTOM' ? (customCategory.trim() || 'all') : category;
 
     setIsSearchingOsm(true);
     try {
       const results = await overpassService.discoverOsmBusinesses({
         country: finalCountry,
         city: runNationwide ? ALL_CITIES_KEY : finalCity,
-        category,
+        category: effectiveCategory,
+        customCategory: category === 'CUSTOM' ? customCategory.trim() : undefined,
         filterType,
         limit: runNationwide ? Math.max(fetchLimit, 500) : fetchLimit,
         isNationwide: runNationwide
@@ -343,7 +352,7 @@ export const LocalBizLeadsView: React.FC<LocalBizLeadsViewProps> = ({
             <label style={{ fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
               Industry Category
             </label>
-            <select className="input-field" value={category} onChange={(e) => setCategory(e.target.value as any)}>
+            <select className="input-field" value={category} onChange={(e) => setCategory(e.target.value)}>
               <option value="all">🌟 All Commercial Businesses</option>
               <option value="restaurant">🍽️ Restaurants & Food</option>
               <option value="cafe">☕ Cafes & Coffee Shops</option>
@@ -354,7 +363,18 @@ export const LocalBizLeadsView: React.FC<LocalBizLeadsViewProps> = ({
               <option value="hotel">🏨 Hotels & Hospitality</option>
               <option value="car_repair">🚗 Auto Repair & Garages</option>
               <option value="boutique">🛍️ Boutiques & Retail</option>
+              <option value="CUSTOM">✍️ Others / Custom Keyword Search...</option>
             </select>
+            {category === 'CUSTOM' && (
+              <input 
+                type="text"
+                className="input-field"
+                style={{ marginTop: '6px' }}
+                placeholder="Type custom niche (e.g. plumber, real estate, dentist, roofing)..."
+                value={customCategory}
+                onChange={(e) => setCustomCategory(e.target.value)}
+              />
+            )}
           </div>
 
           {/* Target Filter Type */}

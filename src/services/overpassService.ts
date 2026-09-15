@@ -128,7 +128,9 @@ export class OverpassService {
 
     let tagFilters = '';
 
-    switch (category) {
+    const cleanCat = category.toLowerCase().trim();
+
+    switch (cleanCat) {
       case 'restaurant':
         tagFilters = `
           node["amenity"~"restaurant|cafe|fast_food|bar|pub|bistro|food_court"](${bbox});
@@ -179,13 +181,26 @@ export class OverpassService {
         `;
         break;
       case 'all':
-      default:
         tagFilters = `
           node["amenity"~"restaurant|cafe|fast_food|bar|clinic|dentist|pharmacy|gym"](${bbox});
           node["shop"~"bakery|hairdresser|beauty|car_repair|clothes"](${bbox});
           node["tourism"~"hotel|guest_house"](${bbox});
         `;
         break;
+      default: {
+        const kw = cleanCat.replace(/[^a-z0-9_]/g, '');
+        tagFilters = `
+          node["amenity"~"${kw}",i](${bbox});
+          node["shop"~"${kw}",i](${bbox});
+          node["craft"~"${kw}",i](${bbox});
+          node["office"~"${kw}",i](${bbox});
+          node["healthcare"~"${kw}",i](${bbox});
+          node["tourism"~"${kw}",i](${bbox});
+          node["leisure"~"${kw}",i](${bbox});
+          node["name"~"${kw}",i](${bbox});
+        `;
+        break;
+      }
     }
 
     // Return lean QL query with strict fast timeout (10s)

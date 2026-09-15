@@ -197,7 +197,8 @@ export interface SourceFilter {
 export interface OsmSearchParams {
   country: string;
   city: string;
-  category: 'restaurant' | 'bakery' | 'gym' | 'clinic' | 'salon' | 'hotel' | 'car_repair' | 'boutique' | 'cafe' | 'all';
+  category: string;
+  customCategory?: string;
   filterType?: 'ALL' | 'NO_WEBSITE' | 'HAS_WEBSITE_NO_APP';
   limit?: number;
   isNationwide?: boolean;
