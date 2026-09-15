@@ -59,7 +59,7 @@ export const EbookAuthorsView: React.FC<EbookAuthorsViewProps> = ({
         filterType,
         minPublishYear,
         searchTerm: searchTerm.trim() || undefined,
-        limit: 50
+        limit: 1000
       });
       onAddDiscoveredLeads(results);
     } catch (e) {
@@ -361,6 +361,15 @@ export const EbookAuthorsView: React.FC<EbookAuthorsViewProps> = ({
                       style={{ flex: 1, fontSize: '0.7rem', padding: '5px 8px', borderRadius: '4px', background: '#e0f2fe', color: '#0369a1', border: '1px solid #bae6fd', fontWeight: '700', textDecoration: 'none', textAlign: 'center' }}
                     >
                       👔 LinkedIn ↗
+                    </a>
+
+                    <a 
+                      href={`https://x.com/search?q=${encodeURIComponent(lead.contact.personName + ' author')}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      style={{ flex: 1, fontSize: '0.7rem', padding: '5px 8px', borderRadius: '4px', background: '#f4f4f5', color: '#18181b', border: '1px solid #e4e4e7', fontWeight: '700', textDecoration: 'none', textAlign: 'center' }}
+                    >
+                      🐦 Twitter/X ↗
                     </a>
                   </div>
 
