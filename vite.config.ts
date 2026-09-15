@@ -5,6 +5,13 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 3000,
-    open: false
+    open: false,
+    proxy: {
+      '/serpapi-proxy': {
+        target: 'https://serpapi.com',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/serpapi-proxy/, '')
+      }
+    }
   }
 });

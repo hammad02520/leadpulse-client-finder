@@ -92,6 +92,7 @@ export const AdHunterView: React.FC<AdHunterViewProps> = ({
   const [ppcCity, setPpcCity] = useState(TARGET_CITIES[0]);
   const [ppcCopied, setPpcCopied] = useState(false);
   const [isScanningPpc, setIsScanningPpc] = useState(false);
+  const [serpApiKey, setSerpApiKey] = useState('');
 
   // Active Tab: 'meta' | 'google' | 'domain'
   const [activeSubTab, setActiveSubTab] = useState<'meta' | 'google' | 'domain'>('meta');
@@ -131,12 +132,17 @@ export const AdHunterView: React.FC<AdHunterViewProps> = ({
   };
 
   const handleScanPpcLeads = async () => {
+    if (!serpApiKey || serpApiKey.trim().length <= 5) {
+      alert('🔑 Please enter your SerpAPI Key in the field below to scan live Google Search Ads!');
+      return;
+    }
     setIsScanningPpc(true);
     try {
       const discovered = await adHunterService.discoverGooglePpcLeads({
         query: ppcNiche,
         city: ppcCity,
-        limit: 50
+        limit: 50,
+        serpApiKey: serpApiKey
       });
       onAddDiscoveredLeads(discovered);
     } catch (err) {
@@ -520,7 +526,7 @@ export const AdHunterView: React.FC<AdHunterViewProps> = ({
             </div>
 
             {/* Filter Bar */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px', marginBottom: '20px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', marginBottom: '20px' }}>
               <div>
                 <label style={{ fontSize: '0.775rem', fontWeight: '700', color: 'var(--text-muted)', marginBottom: '6px', display: 'block' }}>
                   High-Intent PPC Keyword
@@ -563,6 +569,25 @@ export const AdHunterView: React.FC<AdHunterViewProps> = ({
                     <option key={idx} value={c}>{c}</option>
                   ))}
                 </select>
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.775rem', fontWeight: '700', color: 'var(--text-muted)', marginBottom: '6px', display: 'block' }}>
+                  🔑 Google SERP Ads API Key (Optional)
+                </label>
+                <input
+                  type="password"
+                  placeholder="Paste SerpAPI Key for Live Google Ads..."
+                  value={serpApiKey}
+                  onChange={(e) => setSerpApiKey(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    borderRadius: '8px',
+                    border: '1px solid var(--border-color)',
+                    fontSize: '0.85rem'
+                  }}
+                />
               </div>
             </div>
 
