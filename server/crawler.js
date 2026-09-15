@@ -37,11 +37,10 @@ if (!fs.existsSync(CSV_FILE)) {
   fs.writeFileSync(CSV_FILE, 'Name,Phone,Email,Category,Rating,Reviews,Website,Address\n', 'utf-8');
 }
 
-// Background Crawler Function
 async function startCrawling(queries) {
   status.isRunning = true;
   status.shouldStop = false;
-  status.totalScraped = 0; // Reset session count, file keeps growing
+  status.totalScraped = 0;
   status.logs = [];
   
   addLog('Initializing Stealth Crawler Engine...');
@@ -53,9 +52,15 @@ async function startCrawling(queries) {
       args: ['--no-sandbox', '--disable-setuid-sandbox']
     });
 
-    const page = await browser.newPage();
-    await page.setViewport({ width: 1280, height: 800 });
-    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
+    const listPage = await browser.newPage();
+    const detailPage = await browser.newPage();
+    await listPage.setViewport({ width: 1280, height: 800 });
+    await detailPage.setViewport({ width: 1280, height: 800 });
+    
+    // Set standard user agent
+    const ua = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+    await listPage.setUserAgent(ua);
+    await detailPage.setUserAgent(ua);
 
     for (const query of queries) {
       if (status.shouldStop) break;
@@ -64,137 +69,129 @@ async function startCrawling(queries) {
       addLog(`Starting query: "${query}"`);
       
       const searchUrl = `https://www.google.com/maps/search/${encodeURIComponent(query)}`;
-      await page.goto(searchUrl, { waitUntil: 'networkidle2', timeout: 60000 });
+      await listPage.goto(searchUrl, { waitUntil: 'networkidle2', timeout: 60000 });
       
       addLog('Waiting for Google Maps results feed...');
-      await page.waitForSelector('[role="feed"]', { timeout: 15000 }).catch(() => addLog('Feed selector timeout, attempting to continue...'));
+      await listPage.waitForSelector('[role="feed"]', { timeout: 15000 }).catch(() => addLog('Feed selector timeout, attempting to continue...'));
 
-      let previousItemCount = 0;
       let noNewItemsCount = 0;
-      const seenNames = new Set(); // Prevent duplicates in this specific query session
+      const seenUrls = new Set(); 
 
-      // Infinite scroll loop for the current query
+      // Infinite scroll loop to just collect URLs
       while (!status.shouldStop) {
-        // Extract items
-        const results = await page.evaluate(() => {
+        
+        // 1. Extract URLs from the current view
+        const newUrls = await listPage.evaluate(() => {
           const items = Array.from(document.querySelectorAll('a[href^="https://www.google.com/maps/place"]'));
-          const extracted = [];
-          
-          items.forEach(item => {
-            try {
-              const container = item.closest('div[role="article"]') || item.parentElement.parentElement;
-              if (!container) return;
-
-              const titleEl = container.querySelector('.fontHeadlineSmall');
-              if (!titleEl) return;
-              const name = titleEl.textContent.trim();
-
-              const textContent = container.innerText;
-              const lines = textContent.split('\n').map(l => l.trim()).filter(l => l);
-
-              let rating = '';
-              let reviews = '';
-              let category = '';
-              let phone = '';
-              let website = '';
-              let address = '';
-
-              const ratingLine = lines.find(l => l.includes('(') && l.match(/^[0-9]\.[0-9]/));
-              if (ratingLine) {
-                const rMatch = ratingLine.match(/([0-9]\.[0-9])/);
-                if (rMatch) rating = rMatch[1];
-                const revMatch = ratingLine.match(/\(([\d,]+)\)/);
-                if (revMatch) reviews = revMatch[1].replace(',', '');
-                const parts = ratingLine.split('·');
-                if (parts.length > 1) category = parts[parts.length - 1].trim();
-              }
-
-              // Robust Phone Extraction
-              const phoneBtn = container.querySelector('button[data-tooltip*="phone"], button[aria-label*="Phone"]');
-              if (phoneBtn) {
-                 const aria = phoneBtn.getAttribute('aria-label') || '';
-                 phone = aria.replace('Phone number:', '').replace('Phone:', '').trim();
-              }
-              if (!phone) {
-                 // Aggressive text regex for US and International phones
-                 const allText = container.innerText || '';
-                 const usPhoneRegex = /(?:\+1\s?)?\(?[2-9]\d{2}\)?[\s.-]?[2-9]\d{2}[\s.-]?\d{4}/; 
-                 // Matches +XX, (XXX), XXX-XXX, and generic international spacing
-                 const genericPhoneRegex = /(?:\+?\d{1,3}[\s.-]?)?\(?\d{2,5}\)?[\s.-]?\d{2,4}[\s.-]?\d{3,4}[\s.-]?\d{0,4}/;
-                 
-                 const usMatch = allText.match(usPhoneRegex);
-                 if (usMatch) {
-                   phone = usMatch[0];
-                 } else {
-                   const genMatch = allText.match(genericPhoneRegex);
-                   if (genMatch) {
-                     // Filter out matches that are too short to be real numbers (e.g. just a year "2023")
-                     const cleanNum = genMatch[0].replace(/[^\d]/g, '');
-                     if (cleanNum.length >= 8) {
-                        phone = genMatch[0].trim();
-                     }
-                   }
-                 }
-              }
-
-              // Robust Website Extraction
-              const websiteBtn = container.querySelector('a[data-tooltip*="website"], a[aria-label*="Website"], a[data-value="Website"]');
-              if (websiteBtn) {
-                 website = websiteBtn.href;
-              }
-              if (!website) {
-                 const links = Array.from(container.querySelectorAll('a'));
-                 const validLink = links.find(a => 
-                   a.href && 
-                   a.href.startsWith('http') && 
-                   !a.href.includes('google.com') && 
-                   !a.href.includes('gstatic.com')
-                 );
-                 if (validLink) website = validLink.href;
-              }
-              
-              address = lines.length > 2 ? lines[2].replace(/,/g, '') : ''; // Simple comma strip for CSV
-
-              extracted.push({ name: name.replace(/,/g, ''), rating, reviews, category: category.replace(/,/g, ''), phone, website, address });
-            } catch (e) { }
-          });
-          return extracted;
+          return items.map(i => i.href);
         });
 
-        // Save new unique items to CSV
-        let newlyAdded = 0;
-        let csvData = '';
-        for (const item of results) {
-          if (!seenNames.has(item.name)) {
-            seenNames.add(item.name);
-            // Notice the empty space for the Email column (we leave it blank for them to fill later)
-            csvData += `${item.name},${item.phone},,${item.category},${item.rating},${item.reviews},${item.website},${item.address}\n`;
-            newlyAdded++;
-            status.totalScraped++;
+        const urlsToVisit = [];
+        for (const url of newUrls) {
+          // Normalize URL to prevent duplicates (remove query params if needed, or just strict match)
+          const cleanUrl = url.split('?')[0]; 
+          if (!seenUrls.has(cleanUrl)) {
+            seenUrls.add(cleanUrl);
+            urlsToVisit.push(url);
           }
         }
 
-        if (newlyAdded > 0) {
-          fs.appendFileSync(CSV_FILE, csvData, 'utf-8');
-          addLog(`Scraped & saved ${newlyAdded} new leads. (Total this session: ${status.totalScraped})`);
+        if (urlsToVisit.length > 0) {
+          addLog(`Found ${urlsToVisit.length} new profiles in list. Deep scraping now...`);
           noNewItemsCount = 0;
+          
+          await detailPage.bringToFront(); // Focus detail page to prevent throttling
+          
+          // 2. Visit each new URL one by one to guarantee accurate data extraction
+          for (const profileUrl of urlsToVisit) {
+             if (status.shouldStop) break;
+             
+             try {
+                await detailPage.goto(profileUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
+                // Short wait to ensure panel text loads
+                await delay(2000); // Slightly longer wait to ensure Google renders the side panel
+                
+                const profileData = await detailPage.evaluate(() => {
+                   let name = '';
+                   let rating = '';
+                   let reviews = '';
+                   let category = '';
+                   let phone = '';
+                   let website = '';
+                   let address = '';
+
+                   // Title usually in an h1
+                   const h1 = document.querySelector('h1');
+                   if (h1) name = h1.textContent.trim();
+
+                   // Rating and Reviews
+                   const ratingBtn = document.querySelector('div[aria-label*="stars"], span[aria-label*="stars"]');
+                   if (ratingBtn) {
+                      const aria = ratingBtn.getAttribute('aria-label');
+                      const rMatch = aria.match(/([0-9]\.[0-9])/);
+                      if (rMatch) rating = rMatch[1];
+                      const revMatch = aria.match(/([0-9,]+)\s+reviews/i);
+                      if (revMatch) reviews = revMatch[1].replace(/,/g, '');
+                   }
+
+                   // Category
+                   const catBtn = document.querySelector('button[jsaction="pane.rating.category"]');
+                   if (catBtn) category = catBtn.textContent.trim();
+
+                   // Phone
+                   const phoneBtn = document.querySelector('button[data-item-id^="phone:tel:"]');
+                   if (phoneBtn) {
+                      const aria = phoneBtn.getAttribute('aria-label') || '';
+                      phone = aria.replace('Phone number:', '').replace('Phone:', '').trim();
+                      if (!phone) phone = phoneBtn.textContent.trim();
+                   }
+
+                   // Website
+                   const websiteBtn = document.querySelector('a[data-item-id="authority"]');
+                   if (websiteBtn) website = websiteBtn.href;
+
+                   // Address
+                   const addressBtn = document.querySelector('button[data-item-id="address"]');
+                   if (addressBtn) {
+                      const aria = addressBtn.getAttribute('aria-label') || '';
+                      address = aria.replace('Address:', '').trim();
+                      if (!address) address = addressBtn.textContent.trim();
+                   }
+
+                   return { name: name.replace(/,/g, ''), rating, reviews, category: category.replace(/,/g, ''), phone, website: website || '', address: address.replace(/,/g, ' ') };
+                });
+
+                if (profileData.name) {
+                  const csvLine = `${profileData.name},${profileData.phone},,${profileData.category},${profileData.rating},${profileData.reviews},${profileData.website},${profileData.address}\n`;
+                  fs.appendFileSync(CSV_FILE, csvLine, 'utf-8');
+                  status.totalScraped++;
+                }
+
+             } catch (err) {
+                // Ignore single page timeout errors
+             }
+          }
+          
+          addLog(`Finished deep scraping batch. (Total this session: ${status.totalScraped})`);
+          
         } else {
           noNewItemsCount++;
         }
 
-        if (noNewItemsCount >= 3) {
+        if (noNewItemsCount >= 5) {
           addLog(`Reached end of results for "${query}". Moving to next...`);
           break; // Exit scroll loop, go to next query
         }
 
+        await listPage.bringToFront(); // Focus list page so IntersectionObserver works during scroll
         // Scroll down
-        await page.evaluate(() => {
+        await listPage.evaluate(() => {
           const feed = document.querySelector('[role="feed"]');
           if (feed) feed.scrollBy(0, 5000);
         });
 
-        addLog('Scrolling and waiting 3 seconds for bot evasion...');
-        await delay(3000); // Human-like wait
+        addLog('Scrolling list and waiting 3 seconds...');
+        await delay(3000); // Wait longer for list items to render on DOM
       }
     }
 
