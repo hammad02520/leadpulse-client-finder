@@ -10,7 +10,7 @@ import { globalRegistriesService } from './globalRegistriesService';
 import { tradeExposService } from './tradeExposService';
 import { adHunterService } from './adHunterService';
 
-const STORAGE_KEY = 'leadpulse_leads_v18_high_volume_smb';
+const STORAGE_KEY = 'leadpulse_leads_v19_pure_osm_no_fake_emails';
 
 class LeadService {
   private adapters = [

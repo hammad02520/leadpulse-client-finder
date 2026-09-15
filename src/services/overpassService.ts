@@ -255,11 +255,11 @@ out body ${Math.min(limit, 300)};`;
     let realEmail: string | undefined = tags.email || tags['contact:email'] || tags['contact:mail'] || tags.mail || tags['operator:email'] || undefined;
     let emailValidationStage: EmailValidationStage = 'FOUND';
 
-    if (realEmail) {
+    if (realEmail && realEmail.trim().length > 3) {
       emailValidationStage = validateEmailStage(realEmail);
     } else {
-      realEmail = `info@${effectiveDomain}`;
-      emailValidationStage = 'DOMAIN_VALID';
+      realEmail = undefined;
+      emailValidationStage = 'FOUND';
     }
 
     const projectNeed = !hasWebsite ? 'NO_WEBSITE_NO_APP' : 'HAS_WEBSITE_NO_APP';
