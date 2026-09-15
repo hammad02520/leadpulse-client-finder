@@ -1,30 +1,53 @@
-# ⚡ LeadPulse — Enterprise Developer Client Discovery & Multi-Stream CRM
+# ⚡ LeadPulse — Enterprise Developer Client & Business Lead Discovery Platform
 
-> High-Intent Client Lead Aggregator, Technical Website Auditor, and Multi-Module Outreach Platform for Fullstack Web & App Developers.
-
-![LeadPulse Banner](https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/zap.svg)
+> High-Intent Client Lead Aggregator, Technical Website Auditor, and Multi-Module Outreach Platform for Fullstack Web & App Developers, Agencies, and Freelancers.
 
 ---
 
-## 🌟 Modular Lead Streams (Zero Data Mixing)
+## 📋 Project Summary & Core Mission
 
-LeadPulse isolates client discovery into **5 dedicated streams** so leads from different sources are never cross-contaminated:
+**LeadPulse** is an enterprise-grade, full-stack B2B Lead Finding & Sales CRM web application designed to eliminate manual client prospecting for software agencies, freelance developers, and sales outreach teams.
 
-1. 📍 **Local SMBs & Maps (`local_biz`)**: OpenStreetMap & Google Maps directory scanner for local businesses (Dentists, Roofers, Clinics, Salons). Includes high-value **"No Website"** and mobile-responsiveness filters.
-2. 🎯 **B2B Decision Makers (`b2b_founders`)**: Apollo & Hunter-style verified directory of direct **Founders, CEOs, CTOs & CMOs** with direct verified work emails, ARR metrics, and LinkedIn profiles.
-3. 🛠️ **Tech-Stack & Outdated CMS Audits (`tech_stack`)**: BuiltWith & PageSpeed diagnostic engine locating businesses running on slow **WordPress, Wix, Joomla, or Shopify** stores needing Next.js rebuilds.
-4. 🚀 **Funded Startups & Launches (`funded_startups`)**: Venture-backed startups (**Pre-Seed, Seed, Series A — $250k to $4M+**) and trending Product Hunt launches urgently hiring MVP and mobile app builders.
-5. 💼 **Remote Dev Jobs (`remote_jobs`)**: Live developer contract jobs aggregated from Remotive, Jobicy, Arbeitnow, and Reddit (`r/forhire`).
+The platform automatically discovers active business leads worldwide across 10 specialized lead streams, audits their digital presence (detecting missing websites, legacy CMS platforms, missing mobile apps, and uncaptured direct reader margins), validates contact information, and generates tailored AI proposal pitches.
 
 ---
 
-## 🚀 Key Features
+## 🌟 10 Modular Lead Discovery Engines
 
-- 📬 **Multi-Stage Email Validation**: Real-time validation badges (`FOUND` ➔ `FORMAT_VALID` ➔ `DOMAIN_VALID` ➔ `📬 MX_VALID` ➔ `✅ VERIFIED`).
-- 📱 **Phone Normalization & WhatsApp Direct**: Automatic country code resolution (`+1`, `+44`, `+971`, `+92`) and instant 1-click pre-filled WhatsApp chat links.
-- ⚡ **Tailored AI Pitch Engine**: Factual, non-generic cold emails and LinkedIn pitches customized specifically to each module's value proposition.
-- 📊 **8-Stage Sales Pipeline & Kanban**: Drag & drop deal management (`NEW ➔ CONTACTED ➔ REPLIED ➔ WON`).
-- 📥 **Custom CSV Exporters**: Individual CSV export buttons per module with columns customized specifically to that niche.
+LeadPulse isolates client discovery into **10 dedicated, non-contaminated lead streams**:
+
+1. 📍 **Local SMBs & Maps Engine (`local_biz`)**: Powered by OpenStreetMap (Overpass QL API) + Komoot Photon Geocoding Engine. Discovers physical local businesses (restaurants, clinics, law firms, real estate, automotive, HVAC) worldwide by city & country with address, phone numbers, WhatsApp direct links, and website status.
+2. 👔 **B2B Decision Makers Engine (`b2b_founders`)**: Discovers verified C-Suite executives, Founders, CEOs, CMOs, and VP-level decision makers from Apollo.io, LinkedIn, and Wikidata.
+3. 📚 **eBook Authors & Digital Creators Engine (`ebook_authors`)**: Queries Google Books API & OpenLibrary API. Features **OpenLibrary Author Bio Deep-Parsing** (`/authors/{id}.json`) to extract verified author emails and domain URLs. Includes numeric publication year date filtering, year-wise newest-first sorting, and a full 12/25/50/100 item pagination bar.
+4. 🏬 **Meta & PPC Ad Hunter (`ad_hunter`)**: Targets active businesses spending paid advertising dollars on Facebook, Instagram, and Google Search that need high-converting landing pages and mobile apps.
+5. 💻 **Tech-Stack & CMS Auditor (`tech_stack`)**: Audits domain technology stacks (WordPress, Joomla, Drupal, Wix, Squarespace) for performance bottlenecks, slow load speeds, and legacy CMS migration opportunities.
+6. 🚀 **Venture-Backed & Funded Startups (`funded_startups`)**: Scans funded tech startups (Y-Combinator, Betalist, Seed/Series A rounds) seeking freelance fullstack engineering bandwidth (React, Next.js, React Native, Flutter).
+7. 💼 **Remote Jobs & Hiring Feed (`remote_jobs`)**: Aggregates real-time hiring posts from companies actively looking for web developers, mobile app engineers, and UI/UX designers from HackerNews "Who is Hiring", Remotive, Jobicy, and Reddit (`r/forhire`).
+8. 🏛️ **Global Business Registries (`global_registries`)**: Scans official government legal incorporation registries (OpenCorporates, UK Companies House) for brand-new LLCs registered in the last 30–60 days that need their first digital presence.
+9. 🎪 **Trade Expos & Booth Exhibitors (`trade_expos`)**: Tracks corporate trade show exhibitors and booth sponsors participating in major global trade Expos.
+10. 📊 **Executive Overview & Sales Pipeline (`dashboard` & `kanban`)**: Features a high-level metrics dashboard, lead score distribution charts, temperature heatmaps, and a full drag-and-drop Kanban pipeline board (`NEW`, `QUALIFIED`, `CONTACTED`, `PROPOSAL`, `WON`).
+
+---
+
+## ⚡ Key Architecture & Features
+
+- **Zero Fake Data Policy**: Strictly refrains from synthetic email generation, displaying verified contact badges or official corporate pending statuses.
+- **AI Proposal & Pitch Studio**: Generates tailored email subjects, custom pitch proposals, and 1-click WhatsApp scripts for each specific lead category.
+- **1-Click Outreach Launchers**: Direct Google Email Search, LinkedIn Profile Search, and Twitter/X DM shortcuts on every lead card.
+- **Multi-Stage Email Validation**: Real-time validation badges (`FOUND` ➔ `FORMAT_VALID` ➔ `DOMAIN_VALID` ➔ `📬 MX_VALID` ➔ `✅ VERIFIED`).
+- **Phone Normalization & WhatsApp Direct**: Automatic country code resolution (`+1`, `+44`, `+971`, `+92`) and instant 1-click pre-filled WhatsApp chat links.
+- **Universal Export Engine**: Export filtered lead lists to CSV / Excel with custom module-specific column structures.
+- **Full Client-Side Speed & Zero Latency**: Instant search filtering, category switching, and real-time pagination with zero server latency.
+
+---
+
+## 🛠️ Tech Stack
+
+- **Core**: React 18, TypeScript, Vite
+- **Styling**: Vanilla CSS with custom glassmorphism design tokens & micro-animations
+- **Icons**: Lucide React
+- **Geocoding & Maps**: OpenStreetMap Overpass QL & Komoot Photon Engine
+- **Persistence**: LocalStorage reactive schema state
 
 ---
 
