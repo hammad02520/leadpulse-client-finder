@@ -39,7 +39,21 @@ export function strictDeduplicate(leads: Lead[]): Lead[] {
     const domain = lead.company.websiteUrl || lead.websiteAudit?.domain;
     if (domain && domain !== 'none' && domain !== 'No Domain' && domain.length > 3) {
       const cleanDom = domain.toLowerCase().replace(/^https?:\/\//, '').replace(/\/.*$/, '').trim();
-      if (cleanDom.length > 3 && !cleanDom.includes('openstreetmap.org')) {
+      const isPlatformDomain = [
+        'openlibrary.org',
+        'books.google.com',
+        'amazon.com',
+        'google.com',
+        'github.com',
+        'twitter.com',
+        'linkedin.com',
+        'facebook.com',
+        'instagram.com',
+        'wikipedia.org',
+        'openstreetmap.org'
+      ].some(pd => cleanDom.includes(pd));
+
+      if (!isPlatformDomain && cleanDom.length > 3) {
         const domKey = `${sourceScope}_${cleanDom}`;
         if (seenDomainsBySource.has(domKey)) continue;
         seenDomainsBySource.add(domKey);

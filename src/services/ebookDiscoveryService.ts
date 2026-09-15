@@ -11,12 +11,12 @@ export class EbookDiscoveryService {
     const leads: Lead[] = [];
     const seenTitles = new Set<string>();
 
-    // 1. Query Google Books API cleanly to avoid 429 rate limits
+    // 1. Query Google Books API cleanly to avoid 429 WAF blocks
     const googleQuery = searchTerm 
       ? encodeURIComponent(searchTerm) 
       : genre === 'all' 
-        ? 'subject:business' 
-        : `subject:${genre}`;
+        ? 'business' 
+        : encodeURIComponent(genre);
 
     try {
       const gUrl = `https://www.googleapis.com/books/v1/volumes?q=${googleQuery}&maxResults=40`;
