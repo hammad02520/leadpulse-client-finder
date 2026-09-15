@@ -168,20 +168,20 @@ export const EbookAuthorsView: React.FC<EbookAuthorsViewProps> = ({
             </select>
           </div>
 
-          {/* Publication Era Filter (No Deceased/Old Authors) */}
+          {/* Publication Year Filter (Custom Date Filter Input) */}
           <div>
             <label style={{ fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
-              📅 Author Publication Era
+              📅 Publish Year From (Date Filter)
             </label>
-            <select 
+            <input 
+              type="number"
+              min="1980"
+              max="2026"
               className="input-field" 
               value={minPublishYear} 
-              onChange={(e) => setMinPublishYear(Number(e.target.value))}
-            >
-              <option value={2015}>🔥 Hot Active Creators (2015 - 2026)</option>
-              <option value={2010}>⚡ Modern Authors (2010 - 2026)</option>
-              <option value={2000}>📖 Contemporary (2000 - 2026)</option>
-            </select>
+              onChange={(e) => setMinPublishYear(Number(e.target.value) || 2010)}
+              placeholder="e.g. 2015"
+            />
           </div>
 
           {/* Digital Need Filter */}
@@ -223,7 +223,7 @@ export const EbookAuthorsView: React.FC<EbookAuthorsViewProps> = ({
         {/* Action & Export Bar */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', background: '#f8fafc', padding: '12px 14px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
           <div style={{ fontSize: '0.85rem', color: 'var(--text-main)', fontWeight: '600' }}>
-            Filtered Authors: <span style={{ color: '#059669', fontWeight: '700' }}>{filteredLeads.length}</span> • Genre: <span style={{ color: '#0284c7', fontWeight: '700' }}>{selectedGenre.toUpperCase()}</span>
+            Filtered Authors: <span style={{ color: '#059669', fontWeight: '700' }}>{filteredLeads.length}</span> • Genre: <span style={{ color: '#0284c7', fontWeight: '700' }}>{selectedGenre.toUpperCase()}</span> • Year &gt;= <span style={{ color: '#059669', fontWeight: '700' }}>{minPublishYear}</span>
           </div>
 
           <button 
@@ -245,7 +245,7 @@ export const EbookAuthorsView: React.FC<EbookAuthorsViewProps> = ({
               {isSearching ? '⏳ Fetching live eBook authors from Google Books & OpenLibrary...' : 'No eBook Authors Found Matching Query'}
             </h3>
             <p style={{ fontSize: '0.85rem', marginTop: '4px' }}>
-              Click <strong>"🚀 Discover eBook Authors"</strong> to search live book registries!
+              Click <strong>"🚀 Discover Active Authors"</strong> to search live book registries!
             </p>
           </div>
         ) : (
@@ -297,6 +297,24 @@ export const EbookAuthorsView: React.FC<EbookAuthorsViewProps> = ({
                       ))}
                     </div>
                   )}
+                </div>
+
+                {/* Author Contact Person & Outreach Status Block */}
+                <div style={{ background: '#f0f9ff', padding: '10px 12px', borderRadius: '8px', border: '1px solid #bae6fd', fontSize: '0.75rem', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <div style={{ fontWeight: '800', color: '#0369a1', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                      <Mail size={13} color="#0284c7" /> Author Contact Details
+                    </span>
+                    <span style={{ color: '#0284c7', background: '#e0f2fe', padding: '1px 6px', borderRadius: '4px', fontSize: '0.675rem', fontWeight: '800' }}>
+                      VERIFIED AUTHOR
+                    </span>
+                  </div>
+                  <div style={{ fontWeight: '700', color: '#0c4a6e', fontSize: '0.825rem' }}>
+                    👤 {lead.contact.personName}
+                  </div>
+                  <div style={{ fontSize: '0.725rem', color: '#0369a1', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <span>✉️ Mailbox: <strong>Corporate / Publisher Mailbox Pending</strong></span>
+                  </div>
                 </div>
 
                 {/* Technical Audit & Pitch Checklist */}

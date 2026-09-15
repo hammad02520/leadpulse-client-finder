@@ -554,6 +554,44 @@ class LeadService {
         ];
       });
 
+    } else if (mode === 'EBOOK_AUTHOR' || cleanLeads.every(l => l.source === 'EBOOK_AUTHOR')) {
+      filename = `LeadPulse_eBook_Authors_Creators_${new Date().toISOString().slice(0, 10)}.csv`;
+      headers = [
+        'Author Name',
+        'Book Title',
+        'Publication Date',
+        'Genre',
+        'Estimated Budget',
+        'Email Search Link',
+        'LinkedIn Profile Search Link',
+        'Store / OpenLibrary URL',
+        'Digital Need',
+        'Lead Score',
+        'Pipeline Status'
+      ];
+
+      rows = cleanLeads.map(l => {
+        const ebook = l.ebookInfo;
+        const authorName = l.contact.personName || l.company.name;
+        const bookTitle = ebook?.bookTitle || l.title;
+        const emailSearch = `https://www.google.com/search?q=${encodeURIComponent('contact email author ' + authorName + ' ' + bookTitle)}`;
+        const linkedinSearch = `https://www.google.com/search?q=${encodeURIComponent(authorName + ' author LinkedIn site:linkedin.com/in')}`;
+
+        return [
+          `"${(authorName || '').replace(/"/g, '""')}"`,
+          `"${(bookTitle || '').replace(/"/g, '""')}"`,
+          `"${(ebook?.publicationDate || '').replace(/"/g, '""')}"`,
+          `"${(ebook?.genre || '').replace(/"/g, '""')}"`,
+          `"${(l.budgetSignal || '').replace(/"/g, '""')}"`,
+          emailSearch,
+          linkedinSearch,
+          l.company.websiteUrl || ebook?.storeUrl || '',
+          l.projectNeed,
+          l.scoreBreakdown.totalScore,
+          l.status
+        ];
+      });
+
     } else {
       // General Unified Export
       filename = `LeadPulse_Master_Leads_${new Date().toISOString().slice(0, 10)}.csv`;
