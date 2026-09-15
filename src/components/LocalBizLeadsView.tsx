@@ -139,14 +139,9 @@ export const LocalBizLeadsView: React.FC<LocalBizLeadsViewProps> = ({
 
     const matchesCategory = 
       category === 'all' ||
-      (category === 'CUSTOM' && customCategory.trim() ? (
-        l.tags.some(t => t.toLowerCase().includes(customCategory.toLowerCase().trim())) ||
-        l.company.industry.toLowerCase().includes(customCategory.toLowerCase().trim()) ||
-        l.company.name.toLowerCase().includes(customCategory.toLowerCase().trim())
-      ) : (
-        l.tags.includes(category.toUpperCase()) ||
-        l.company.industry.toLowerCase().includes(category.toLowerCase())
-      ));
+      category === 'CUSTOM' ||
+      l.tags.includes(category.toUpperCase()) ||
+      l.company.industry.toLowerCase().includes(category.toLowerCase());
 
     return matchesSearch && matchesFilterType && matchesCategory;
   });

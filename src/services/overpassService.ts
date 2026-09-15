@@ -225,6 +225,11 @@ out body ${Math.min(limit, 300)};`;
     const bizName = tags.name;
     if (!bizName || bizName.trim().length <= 1) return null;
 
+    const placeType = tags.place || item.osm_value || '';
+    if (placeType === 'city' || placeType === 'town' || placeType === 'country' || placeType === 'state' || placeType === 'quarter') {
+      return null;
+    }
+
     const rawWebsite = tags.website || tags['contact:website'] || tags['url'] || undefined;
     const rawPhone = tags.phone || 
       tags['contact:phone'] || 
@@ -349,6 +354,7 @@ out body ${Math.min(limit, 300)};`;
         'GLOBAL_REGISTRY',
         ...(tags.wikidata || tags['brand:wikidata'] ? ['WIKIDATA_LINKED'] : []),
         categoryTag, 
+        category.toUpperCase(),
         projectNeed, 
         ...(emailValidationStage ? [emailValidationStage] : [])
       ],
