@@ -35,15 +35,18 @@ export function generateAIPitch(lead: Lead): AIPitchResult {
     problemObserved = `I noticed ${companyName}'s website is running on ${lead.techStackInfo.detectedCms}. A quick Lighthouse diagnostic revealed a mobile performance score of ${audit.performanceScore}/100 with ${audit.fcp || 'high'} First Contentful Paint latency, which directly damages search ranking and paid ad conversion.`;
     solutionProposed = `I specialize in migrating legacy ${lead.techStackInfo.detectedCms.split(' ')[0]} sites to modern, ultra-fast Next.js architecture — achieving 95+ Google Lighthouse scores, instant sub-second page loads, and seamless mobile conversion.`;
     cta = `Can I send you a free 3-minute video breakdown of the specific bottlenecks hurting your site's load speed?`;
-  } else if (projectNeed === 'WEB_REDESIGN' || !audit.mobileFriendly || !audit.hasModernUi) {
-    emailSubject = `Quick thought on ${companyName}'s digital experience & mobile conversion`;
+  } else if (projectNeed === 'WEB_REDESIGN' || !audit.mobileFriendly || !audit.hasModernUi || !audit.hasWebsite || lead.source === 'LOCAL_BIZ') {
+    emailSubject = !audit.hasWebsite 
+      ? `Quick thought on ${companyName}'s local web presence & competitor edge`
+      : `Quick thought on ${companyName}'s digital experience & mobile conversion`;
     
-    if (audit.hasWebsite && !audit.mobileFriendly) {
+    if (!audit.hasWebsite) {
+      problemObserved = `I came across ${companyName} on Google Maps and saw you have a strong local reputation. However, I noticed you don't have an official website linked yet. Your local competitors already have websites, which means customers searching online are finding and contacting them first.`;
+      solutionProposed = `I specialize in building sleek, high-converting 1-page websites & mobile booking portals for local businesses — equipped with direct WhatsApp chat & tap-to-call buttons to turn local searchers into immediate paying clients.`;
+      cta = `Can I share a quick 2-minute visual preview of a custom site layout designed for ${companyName}?`;
+    } else if (!audit.mobileFriendly) {
       problemObserved = `While checking out ${companyName} (${audit.domain}), I noticed that the mobile layout currently has viewport overflow issues and lacks an easy tap-to-action CTA for phone users.`;
       solutionProposed = `As a Fullstack Developer, I help businesses transform their existing site into a lightning-fast, mobile-first web app that turns visitors into paying clients.`;
-    } else if (!audit.hasWebsite) {
-      problemObserved = `I noticed ${companyName} currently doesn't have an active website or online booking portal, which means potential customers searching for your services online might be going to competitors.`;
-      solutionProposed = `I specialize in building sleek, high-converting websites and mobile web apps that establish immediate credibility and drive direct client inquiries.`;
     } else {
       problemObserved = `I came across ${companyName} and saw a strong opportunity to modernize the web UI and streamline your customer booking flow.`;
       solutionProposed = `I build modern, high-performance web applications using React/Next.js and clean responsive UI design.`;
@@ -80,8 +83,11 @@ Best regards,
 Fullstack Web & App Developer
 Portfolio / GitHub`;
 
-  // WhatsApp Short Draft (Encoded)
-  const shortWhatsapp = `Hi ${personName}, I saw ${companyName}'s business and noticed a quick opportunity to boost your mobile web conversion (${audit.domain || 'website'}). Would love to share a short 2-min demo if you're open to it!`;
+  // WhatsApp Short Draft (High-converting competitor pitch for local SMBs)
+  const isNoWebsite = !audit.hasWebsite || projectNeed === 'NO_WEBSITE_NO_APP';
+  const shortWhatsapp = isNoWebsite
+    ? `Hi ${personName}! Maine dekha aapka business ${companyName} Maps pe active hai par official website nahi hai. Aapke competitors ke paas website hai jisse customers unhe pehle dhoondh lete hain. Main ${companyName} ke liye fast, professional site bana sakta hoon jisse direct WhatsApp leads aayen. 2-min preview share karoon?`
+    : `Hi ${personName}, I saw ${companyName}'s business and noticed a quick opportunity to boost your mobile web conversion (${audit.domain || 'website'}). Would love to share a short 2-min demo if you're open to it!`;
 
   const phoneClean = lead.contact.phone ? lead.contact.phone.replace(/[^0-9]/g, '') : '';
   const whatsappUrl = phoneClean 

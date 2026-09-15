@@ -66,6 +66,7 @@ export const LocalBizLeadsView: React.FC<LocalBizLeadsViewProps> = ({
   const [customCategory, setCustomCategory] = useState<string>('');
   const [filterType, setFilterType] = useState<'ALL' | 'NO_WEBSITE' | 'HAS_WEBSITE_NO_APP'>('ALL');
   const [onlyQualified, setOnlyQualified] = useState<boolean>(false);
+  const [sweetSpotOnly, setSweetSpotOnly] = useState<boolean>(false);
   const [fetchLimit, setFetchLimit] = useState<number>(500);
   const [isSearchingOsm, setIsSearchingOsm] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -73,6 +74,14 @@ export const LocalBizLeadsView: React.FC<LocalBizLeadsViewProps> = ({
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
+
+  // Sweet Spot High Conversion Criteria: No Website + Direct Contact Phone + Established (Score 70+)
+  const isSweetSpotLead = (l: Lead) => {
+    const noWebsite = !l.websiteAudit.hasWebsite || l.projectNeed === 'NO_WEBSITE_NO_APP';
+    const hasPhone = Boolean(l.contact.phone);
+    const isEstablished = l.scoreBreakdown.totalScore >= 70;
+    return noWebsite && hasPhone && isEstablished;
+  };
 
   // Active Country & City resolving
   const activeCountry = selectedCountry === 'CUSTOM' ? customCountry : selectedCountry;
@@ -148,13 +157,15 @@ export const LocalBizLeadsView: React.FC<LocalBizLeadsViewProps> = ({
       !onlyQualified || 
       (l.scoreBreakdown.totalScore >= 80 && Boolean(l.contact.phone || l.contact.email));
 
-    return matchesSearch && matchesFilterType && matchesCategory && matchesQualified;
+    const matchesSweetSpot = !sweetSpotOnly || isSweetSpotLead(l);
+
+    return matchesSearch && matchesFilterType && matchesCategory && matchesQualified && matchesSweetSpot;
   });
 
   // Reset to page 1 whenever filters or search changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, filterType, category, customCategory, onlyQualified, localLeads.length]);
+  }, [searchTerm, filterType, category, customCategory, onlyQualified, sweetSpotOnly, localLeads.length]);
 
   const handleRunOsmSearch = async (overrideNationwide?: boolean) => {
     const finalCountry = activeCountry.trim();
@@ -426,6 +437,22 @@ export const LocalBizLeadsView: React.FC<LocalBizLeadsViewProps> = ({
             >
               {onlyQualified ? '🔥 Showing Qualified Leads Only (Score 80+)' : '⚡ Filter Qualified Leads Only'}
             </button>
+
+            <button 
+              className="btn"
+              style={{ 
+                padding: '6px 12px', 
+                fontSize: '0.75rem', 
+                fontWeight: '800', 
+                border: '1px solid #d97706',
+                background: sweetSpotOnly ? 'linear-gradient(135deg, #d97706, #b45309)' : '#fffbe6',
+                color: sweetSpotOnly ? '#ffffff' : '#b45309'
+              }}
+              onClick={() => setSweetSpotOnly(!sweetSpotOnly)}
+              title="Filter high-converting leads: Established local business + Direct Phone + No website"
+            >
+              🎯 {sweetSpotOnly ? 'Showing Sweet Spot Leads (No Website + Phone + High Score)' : '🎯 Filter Sweet Spot Leads Only'}
+            </button>
           </div>
 
           <button 
@@ -585,6 +612,13 @@ export const LocalBizLeadsView: React.FC<LocalBizLeadsViewProps> = ({
                       📍 OSM Node
                     </span>
                   </div>
+
+                  {isSweetSpotLead(lead) && (
+                    <div style={{ background: 'linear-gradient(135deg, #fffbe6 0%, #fef3c7 100%)', border: '1px solid #f59e0b', borderRadius: '6px', padding: '4px 8px', fontSize: '0.725rem', fontWeight: '800', color: '#b45309', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                      <span>🎯 SWEET SPOT LEAD</span>
+                      <span style={{ fontSize: '0.675rem', fontWeight: '600', color: '#92400e' }}>No Website + Phone Contact</span>
+                    </div>
+                  )}
 
                   <h3 style={{ fontSize: '1.05rem', fontWeight: '800', color: 'var(--text-main)', lineHeight: '1.3' }}>
                     {lead.company.name}
