@@ -6,7 +6,7 @@ export class EbookDiscoveryService {
    * Discover real eBook Authors & Digital Creators from Google Books API & OpenLibrary API
    */
   public async discoverEbookAuthors(params: EbookSearchParams): Promise<Lead[]> {
-    const { genre = 'business', filterType = 'ALL', limit = 50, searchTerm } = params;
+    const { genre = 'business', filterType = 'ALL', limit = 50, searchTerm, minPublishYear = 2010 } = params;
 
     const leads: Lead[] = [];
     const seenTitles = new Set<string>();
@@ -31,9 +31,13 @@ export class EbookDiscoveryService {
             const authorName = authors.length > 0 ? authors[0] : undefined;
 
             if (title && authorName && !seenTitles.has(title.toLowerCase())) {
+              const pubDate = info.publishedDate || '2026';
+              const pubYearNum = parseInt(pubDate.slice(0, 4), 10);
+              // Filter out old or deceased authors published before minPublishYear
+              if (!isNaN(pubYearNum) && pubYearNum < minPublishYear) continue;
+
               seenTitles.add(title.toLowerCase());
 
-              const pubDate = info.publishedDate || '2026';
               const categories = info.categories || [genre.toUpperCase()];
               const mainGenre = categories[0] || genre.toUpperCase();
               const rawWebsite = info.infoLink || info.previewLink || undefined;
@@ -140,7 +144,7 @@ export class EbookDiscoveryService {
       console.warn('Google Books API query skipped due to network or rate limit:', e);
     }
 
-    // 2. Query OpenLibrary API as primary rich live feed (Multi-keyword discovery to reach 50+ unique leads)
+    // 2. Query OpenLibrary API as primary rich live feed (Multi-keyword discovery for modern books)
     const subKeywords = searchTerm 
       ? [searchTerm] 
       : genre === 'business' 
@@ -155,7 +159,8 @@ export class EbookDiscoveryService {
       if (leads.length >= limit) break;
 
       try {
-        const olUrl = `https://openlibrary.org/search.json?q=${encodeURIComponent(kw)}&limit=40`;
+        const queryWithYear = `${kw} AND first_publish_year:[${minPublishYear} TO 2026]`;
+        const olUrl = `https://openlibrary.org/search.json?q=${encodeURIComponent(queryWithYear)}&limit=40`;
         const res = await fetch(olUrl);
         if (res.ok) {
           const data = await res.json();
@@ -167,9 +172,14 @@ export class EbookDiscoveryService {
               const authorName = authors.length > 0 ? authors[0] : undefined;
 
               if (title && authorName && !seenTitles.has(title.toLowerCase())) {
+                const pubYear = doc.first_publish_year || 0;
+                const pubYearNum = typeof pubYear === 'number' ? pubYear : parseInt(String(pubYear || 0), 10);
+                
+                // Strict check: skip any old/deceased authors published before minPublishYear
+                if (!isNaN(pubYearNum) && pubYearNum > 0 && pubYearNum < minPublishYear) continue;
+
                 seenTitles.add(title.toLowerCase());
 
-                const pubYear = doc.first_publish_year || '2025';
                 const mainGenre = (doc.subject?.[0] || genre).toUpperCase();
                 const olKey = doc.key || '';
 
@@ -217,7 +227,7 @@ export class EbookDiscoveryService {
                 leads.push({
                   id: `ol-ebook-${olKey.replace(/[^a-z0-9]/g, '') || Math.random()}`,
                   title: `${authorName} — OpenLibrary Verified Author`,
-                  description: `Author of "${title}". Published: ${pubYear} (${editionCount} Editions). Genre: ${mainGenre}. Seeking direct author sales website & reader app.`,
+                  description: `Author of "${title}". Published: ${pubYearNum || 'Recent'} (${editionCount} Editions). Genre: ${mainGenre}. Seeking direct author sales website & reader app.`,
                   company: {
                     name: `${authorName} (OpenLibrary Author)`,
                     industry: `${mainGenre} / Author`,
@@ -248,7 +258,7 @@ export class EbookDiscoveryService {
                     'NO_WEBSITE_NO_APP'
                   ],
                   notes: [
-                    `OpenLibrary Author Record #${olKey}. Book: "${title}". First Published: ${pubYear}. Total Editions: ${editionCount}.`,
+                    `OpenLibrary Author Record #${olKey}. Book: "${title}". First Published: ${pubYearNum}. Total Editions: ${editionCount}.`,
                     `Pitch: Build custom author store to sell PDF / EPUB / Audiobooks directly to readers.`
                   ],
                   discoveredAt: new Date().toISOString(),
@@ -260,7 +270,7 @@ export class EbookDiscoveryService {
                   ebookInfo: {
                     bookTitle: title,
                     genre: mainGenre,
-                    publicationDate: String(pubYear),
+                    publicationDate: String(pubYearNum || 'Recent'),
                     storeUrl: `https://openlibrary.org${olKey}`,
                     platform: 'OPEN_LIBRARY'
                   }

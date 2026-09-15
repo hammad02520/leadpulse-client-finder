@@ -33,6 +33,7 @@ export const EbookAuthorsView: React.FC<EbookAuthorsViewProps> = ({
 }) => {
   const [selectedGenre, setSelectedGenre] = useState<EbookSearchParams['genre']>('business');
   const [filterType, setFilterType] = useState<'ALL' | 'NO_WEBSITE' | 'NEEDS_APP'>('ALL');
+  const [minPublishYear, setMinPublishYear] = useState<number>(2010);
   const [searchTerm, setSearchTerm] = useState('');
   const [isSearching, setIsSearching] = useState(false);
 
@@ -56,6 +57,7 @@ export const EbookAuthorsView: React.FC<EbookAuthorsViewProps> = ({
       const results = await ebookDiscoveryService.discoverEbookAuthors({
         genre: selectedGenre,
         filterType,
+        minPublishYear,
         searchTerm: searchTerm.trim() || undefined,
         limit: 50
       });
@@ -87,13 +89,18 @@ export const EbookAuthorsView: React.FC<EbookAuthorsViewProps> = ({
       l.tags.some(t => t.toLowerCase().includes(selectedGenre.toLowerCase())) ||
       true;
 
-    return matchesSearch && matchesFilterType && matchesGenre;
+    // Filter out any older cached leads published before minPublishYear
+    const pubYearStr = l.ebookInfo?.publicationDate || '';
+    const pubYearNum = parseInt(pubYearStr.slice(0, 4), 10);
+    const matchesYear = isNaN(pubYearNum) || pubYearNum >= minPublishYear;
+
+    return matchesSearch && matchesFilterType && matchesGenre && matchesYear;
   });
 
   // Reset pagination on filter change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, filterType, selectedGenre, allEbookLeads.length]);
+  }, [searchTerm, filterType, selectedGenre, minPublishYear, allEbookLeads.length]);
 
   const totalItems = filteredLeads.length;
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
@@ -110,17 +117,17 @@ export const EbookAuthorsView: React.FC<EbookAuthorsViewProps> = ({
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
               <span className="badge badge-hot" style={{ fontSize: '0.75rem', background: '#d1fae5', color: '#047857', border: '1px solid #a7f3d0' }}>
-                📚 eBook Authors & Digital Creators Discovery Engine
+                📚 eBook Authors & Active Digital Creators Discovery Engine
               </span>
               <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                Google Books API + OpenLibrary Verified Feed (Total Authors: {allEbookLeads.length})
+                Google Books API + OpenLibrary Modern Verified Feed (Total Authors: {allEbookLeads.length})
               </span>
             </div>
             <h2 style={{ fontSize: '1.4rem', fontWeight: '800', color: 'var(--text-main)', letterSpacing: '-0.02em' }}>
-              eBook Creators & Self-Published Authors Lead Engine
+              Active Modern eBook Creators Lead Engine
             </h2>
             <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-              Target digital product creators, self-published authors, and ebook writers who need direct-to-reader sales websites & mobile reading apps.
+              Target active digital product creators, self-published authors, and ebook writers who need direct-to-reader sales websites & mobile reading apps.
             </p>
           </div>
 
@@ -131,7 +138,7 @@ export const EbookAuthorsView: React.FC<EbookAuthorsViewProps> = ({
               onClick={handleRunSearch}
               disabled={isSearching}
             >
-              {isSearching ? '⏳ Querying Live Book Registries...' : '🚀 Discover eBook Authors'}
+              {isSearching ? '⏳ Querying Live Book Registries...' : '🚀 Discover Active Authors'}
             </button>
           </div>
         </div>
@@ -139,7 +146,7 @@ export const EbookAuthorsView: React.FC<EbookAuthorsViewProps> = ({
 
       {/* Filter Controls */}
       <div className="glass-panel" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '14px' }}>
           
           {/* Genre Selector */}
           <div>
@@ -158,6 +165,22 @@ export const EbookAuthorsView: React.FC<EbookAuthorsViewProps> = ({
               <option value="finance">📈 Finance & Crypto</option>
               <option value="fitness">🏋️ Health & Fitness</option>
               <option value="fiction">📖 Fiction & Novels</option>
+            </select>
+          </div>
+
+          {/* Publication Era Filter (No Deceased/Old Authors) */}
+          <div>
+            <label style={{ fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
+              📅 Author Publication Era
+            </label>
+            <select 
+              className="input-field" 
+              value={minPublishYear} 
+              onChange={(e) => setMinPublishYear(Number(e.target.value))}
+            >
+              <option value={2015}>🔥 Hot Active Creators (2015 - 2026)</option>
+              <option value={2010}>⚡ Modern Authors (2010 - 2026)</option>
+              <option value={2000}>📖 Contemporary (2000 - 2026)</option>
             </select>
           </div>
 

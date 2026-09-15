@@ -219,6 +219,7 @@ export interface EbookSearchParams {
   filterType?: 'ALL' | 'NO_WEBSITE' | 'NEEDS_APP';
   limit?: number;
   searchTerm?: string;
+  minPublishYear?: number;
 }
 
 export type AppViewMode = 
