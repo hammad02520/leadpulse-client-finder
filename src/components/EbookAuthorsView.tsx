@@ -408,29 +408,41 @@ export const EbookAuthorsView: React.FC<EbookAuthorsViewProps> = ({
                 </div>
 
                 {/* Technical Audit & Pitch Checklist */}
-                <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '0.75rem', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <div style={{ fontWeight: '700', color: '#3f3f46', borderBottom: '1px solid #e2e8f0', paddingBottom: '4px', marginBottom: '2px', display: 'flex', justifyContent: 'space-between' }}>
-                    <span>Author Digital Opportunity</span>
-                    <span style={{ color: '#059669' }}>{lead.budgetSignal}</span>
-                  </div>
+                {(() => {
+                  const hasRealCustomWebsite = Boolean(
+                    lead.company.websiteUrl && 
+                    !lead.company.websiteUrl.includes('books.google.com') && 
+                    !lead.company.websiteUrl.includes('openlibrary.org') && 
+                    !lead.company.websiteUrl.includes('amazon.com') &&
+                    !lead.company.websiteUrl.includes('wikipedia.org')
+                  );
 
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      {audit.hasWebsite ? <CheckCircle2 size={13} color="#059669" /> : <XCircle size={13} color="#dc2626" />}
-                      <span>Author Store Site: {audit.hasWebsite ? 'Custom Branded Site' : '❌ Missing (Using Store Link)'}</span>
-                    </div>
+                  return (
+                    <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '0.75rem', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <div style={{ fontWeight: '700', color: '#3f3f46', borderBottom: '1px solid #e2e8f0', paddingBottom: '4px', marginBottom: '2px', display: 'flex', justifyContent: 'space-between' }}>
+                        <span>Author Digital Opportunity</span>
+                        <span style={{ color: '#059669' }}>{lead.budgetSignal}</span>
+                      </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <Smartphone size={13} color="#d97706" />
-                      <span>Mobile Reader App: ❌ Missing (Opportunity)</span>
-                    </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          {hasRealCustomWebsite ? <CheckCircle2 size={13} color="#059669" /> : <XCircle size={13} color="#dc2626" />}
+                          <span>Author Store Site: {hasRealCustomWebsite ? 'Custom Branded Site' : '❌ Missing (Using Store Link)'}</span>
+                        </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <ShoppingBag size={13} color="#0284c7" />
-                      <span>Direct Reader Margin: 100% Profit with Custom Store</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <Smartphone size={13} color="#d97706" />
+                          <span>Mobile Reader App: ❌ Missing (Opportunity)</span>
+                        </div>
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <ShoppingBag size={13} color="#0284c7" />
+                          <span>Direct Reader Margin: 100% Profit with Custom Store</span>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </div>
+                  );
+                })()}
 
                 {/* Retailer Store Link & Amazon Marketplace Block */}
                 <div style={{ background: '#faf5ff', padding: '10px 12px', borderRadius: '8px', border: '1px solid #e9d5ff', fontSize: '0.75rem', display: 'flex', flexDirection: 'column', gap: '6px' }}>
