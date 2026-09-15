@@ -207,10 +207,17 @@ export class EbookDiscoveryService {
                   isExpired: false
                 });
 
+                const editionCount = doc.edition_count || 1;
+                const dynamicBudget = editionCount > 15 
+                  ? '$3,000 - $8,000 (Established Bestseller Suite)'
+                  : editionCount > 5 
+                    ? '$1,500 - $4,000 (Multi-Book D2C Store & Reader App)'
+                    : '$800 - $2,000 (Author Storefront & Lead Funnel)';
+
                 leads.push({
                   id: `ol-ebook-${olKey.replace(/[^a-z0-9]/g, '') || Math.random()}`,
                   title: `${authorName} — OpenLibrary Verified Author`,
-                  description: `Author of "${title}". Published: ${pubYear}. Genre: ${mainGenre}. Seeking direct author sales website & reader app.`,
+                  description: `Author of "${title}". Published: ${pubYear} (${editionCount} Editions). Genre: ${mainGenre}. Seeking direct author sales website & reader app.`,
                   company: {
                     name: `${authorName} (OpenLibrary Author)`,
                     industry: `${mainGenre} / Author`,
@@ -230,7 +237,7 @@ export class EbookDiscoveryService {
                   source: 'EBOOK_AUTHOR',
                   sourceUrl: `https://openlibrary.org${olKey}`,
                   projectNeed: 'NO_WEBSITE_NO_APP',
-                  budgetSignal: '$500 - $2,500',
+                  budgetSignal: dynamicBudget,
                   scoreBreakdown,
                   websiteAudit: audit,
                   status: 'NEW',
@@ -241,7 +248,7 @@ export class EbookDiscoveryService {
                     'NO_WEBSITE_NO_APP'
                   ],
                   notes: [
-                    `OpenLibrary Author Record #${olKey}. Book: "${title}". First Published: ${pubYear}.`,
+                    `OpenLibrary Author Record #${olKey}. Book: "${title}". First Published: ${pubYear}. Total Editions: ${editionCount}.`,
                     `Pitch: Build custom author store to sell PDF / EPUB / Audiobooks directly to readers.`
                   ],
                   discoveredAt: new Date().toISOString(),

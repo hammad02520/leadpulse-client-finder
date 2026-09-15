@@ -301,32 +301,45 @@ export const EbookAuthorsView: React.FC<EbookAuthorsViewProps> = ({
                   </div>
                 </div>
 
-                {/* Actions & Pitch */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', paddingTop: '6px' }}>
-                  <button 
-                    className="btn btn-secondary"
-                    style={{ fontSize: '0.75rem', padding: '6px 10px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
-                    onClick={() => onSelectLead(lead)}
-                  >
-                    Inspect Audit
-                  </button>
+                {/* Multi-Channel Outreach & Direct Contact Lookup */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', paddingTop: '6px' }}>
+                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                    <a 
+                      href={`https://www.google.com/search?q=${encodeURIComponent('contact email author ' + lead.contact.personName + ' ' + (ebook?.bookTitle || ''))}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      style={{ flex: 1, fontSize: '0.7rem', padding: '5px 8px', borderRadius: '4px', background: '#f0fdf4', color: '#047857', border: '1px solid #a7f3d0', fontWeight: '700', textDecoration: 'none', textAlign: 'center' }}
+                    >
+                      ✉️ Find Email ↗
+                    </a>
 
-                  <a 
-                    href={`https://www.google.com/search?q=${encodeURIComponent('contact email author ' + lead.contact.personName + ' ' + (ebook?.bookTitle || ''))}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    style={{ fontSize: '0.7rem', padding: '4px 8px', borderRadius: '4px', background: '#f4f4f5', color: 'var(--primary)', border: '1px solid var(--border-color)', fontWeight: '700', textDecoration: 'none' }}
-                  >
-                    🔍 Find Email ↗
-                  </a>
+                    <a 
+                      href={`https://www.google.com/search?q=${encodeURIComponent(lead.contact.personName + ' author LinkedIn site:linkedin.com/in')}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      style={{ flex: 1, fontSize: '0.7rem', padding: '5px 8px', borderRadius: '4px', background: '#e0f2fe', color: '#0369a1', border: '1px solid #bae6fd', fontWeight: '700', textDecoration: 'none', textAlign: 'center' }}
+                    >
+                      👔 LinkedIn ↗
+                    </a>
+                  </div>
 
-                  <button 
-                    className="btn btn-primary"
-                    style={{ fontSize: '0.75rem', padding: '6px 12px', background: '#059669', borderColor: '#059669', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
-                    onClick={() => onOpenPitchModal(lead)}
-                  >
-                    <Sparkles size={13} /> Pitch
-                  </button>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                    <button 
+                      className="btn btn-secondary"
+                      style={{ fontSize: '0.75rem', padding: '6px 10px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                      onClick={() => onSelectLead(lead)}
+                    >
+                      Inspect Audit
+                    </button>
+
+                    <button 
+                      className="btn btn-primary"
+                      style={{ fontSize: '0.75rem', padding: '6px 12px', background: '#059669', borderColor: '#059669', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                      onClick={() => onOpenPitchModal(lead)}
+                    >
+                      <Sparkles size={13} /> Pitch
+                    </button>
+                  </div>
                 </div>
 
               </div>
