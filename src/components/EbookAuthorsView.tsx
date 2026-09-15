@@ -307,14 +307,14 @@ export const EbookAuthorsView: React.FC<EbookAuthorsViewProps> = ({
                   )}
                 </div>
 
-                {/* Author Contact Person & Verified Outreach Details Block */}
+                {/* Author Contact Person & Authentic Outreach Details Block */}
                 <div style={{ background: '#f0f9ff', padding: '10px 12px', borderRadius: '8px', border: '1px solid #bae6fd', fontSize: '0.75rem', display: 'flex', flexDirection: 'column', gap: '5px' }}>
                   <div style={{ fontWeight: '800', color: '#0369a1', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
                       <Mail size={13} color="#0284c7" /> Author Contact Details
                     </span>
-                    <span style={{ color: '#047857', background: '#d1fae5', padding: '1px 6px', borderRadius: '4px', fontSize: '0.675rem', fontWeight: '800', border: '1px solid #a7f3d0' }}>
-                      ✓ VERIFIED CONTACT
+                    <span style={{ color: '#0284c7', background: '#e0f2fe', padding: '1px 6px', borderRadius: '4px', fontSize: '0.675rem', fontWeight: '800' }}>
+                      VERIFIED AUTHOR
                     </span>
                   </div>
 
@@ -325,26 +325,40 @@ export const EbookAuthorsView: React.FC<EbookAuthorsViewProps> = ({
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', fontSize: '0.725rem' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <span>✉️ Email:</span>
-                      <a href={`mailto:${lead.contact.email || `contact@${lead.contact.personName?.toLowerCase().replace(/[^a-z0-9]/g, '')}.com`}`} style={{ fontWeight: '700', color: '#0284c7', textDecoration: 'underline' }}>
-                        {lead.contact.email || `contact@${lead.contact.personName?.toLowerCase().replace(/[^a-z0-9]/g, '')}.com`}
-                      </a>
+                      {lead.contact.email ? (
+                        <a href={`mailto:${lead.contact.email}`} style={{ fontWeight: '700', color: '#0284c7', textDecoration: 'underline' }}>
+                          {lead.contact.email}
+                        </a>
+                      ) : (
+                        <span style={{ color: '#0284c7', fontWeight: '700' }}>
+                          Corporate Mailbox Pending
+                        </span>
+                      )}
                     </div>
 
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <span>📞 Phone:</span>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <a href={`tel:${lead.contact.phone || '+12125550199'}`} style={{ fontWeight: '700', color: '#0369a1', textDecoration: 'underline' }}>
-                          {lead.contact.phone || '+1 (212) 555-0199'}
-                        </a>
-                        <a 
-                          href={`https://wa.me/${(lead.contact.phoneNormalized || '12125550199')}`} 
-                          target="_blank" 
-                          rel="noreferrer"
-                          style={{ background: '#25d366', color: '#ffffff', padding: '1px 5px', borderRadius: '3px', fontWeight: '800', textDecoration: 'none', fontSize: '0.65rem' }}
-                        >
-                          💬 WA
-                        </a>
-                      </div>
+                      {lead.contact.phone ? (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <a href={`tel:${lead.contact.phone}`} style={{ fontWeight: '700', color: '#0369a1', textDecoration: 'underline' }}>
+                            {lead.contact.phone}
+                          </a>
+                          {lead.contact.hasWhatsapp && lead.contact.phoneNormalized && (
+                            <a 
+                              href={`https://wa.me/${lead.contact.phoneNormalized}`} 
+                              target="_blank" 
+                              rel="noreferrer"
+                              style={{ background: '#25d366', color: '#ffffff', padding: '1px 5px', borderRadius: '3px', fontWeight: '800', textDecoration: 'none', fontSize: '0.65rem' }}
+                            >
+                              💬 WA
+                            </a>
+                          )}
+                        </div>
+                      ) : (
+                        <span style={{ color: '#64748b', fontWeight: '600' }}>
+                          Publisher Hotline Pending
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
