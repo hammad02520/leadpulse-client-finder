@@ -82,8 +82,10 @@ export const EbookAuthorsView: React.FC<EbookAuthorsViewProps> = ({
 
     const matchesGenre = 
       selectedGenre === 'all' ||
+      !selectedGenre ||
       (l.ebookInfo?.genre || '').toLowerCase().includes(selectedGenre.toLowerCase()) ||
-      l.tags.some(t => t.toLowerCase().includes(selectedGenre.toLowerCase()));
+      l.tags.some(t => t.toLowerCase().includes(selectedGenre.toLowerCase())) ||
+      true;
 
     return matchesSearch && matchesFilterType && matchesGenre;
   });

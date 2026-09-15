@@ -11,15 +11,15 @@ export class EbookDiscoveryService {
     const leads: Lead[] = [];
     const seenTitles = new Set<string>();
 
-    // 1. Query Google Books API
+    // 1. Query Google Books API cleanly to avoid 429 rate limits
     const googleQuery = searchTerm 
       ? encodeURIComponent(searchTerm) 
       : genre === 'all' 
-        ? 'subject:business OR subject:technology' 
+        ? 'subject:business' 
         : `subject:${genre}`;
 
     try {
-      const gUrl = `https://www.googleapis.com/books/v1/volumes?q=${googleQuery}&maxResults=${Math.min(limit, 40)}&orderBy=newest`;
+      const gUrl = `https://www.googleapis.com/books/v1/volumes?q=${googleQuery}&maxResults=40`;
       const res = await fetch(gUrl);
       if (res.ok) {
         const data = await res.json();
@@ -146,7 +146,7 @@ export class EbookDiscoveryService {
     if (leads.length < limit) {
       try {
         const olQuery = searchTerm || (genre === 'all' ? 'business' : genre);
-        const olUrl = `https://openlibrary.org/search.json?q=${encodeURIComponent(olQuery)}&limit=25`;
+        const olUrl = `https://openlibrary.org/search.json?q=${encodeURIComponent(olQuery)}&limit=50`;
         const res = await fetch(olUrl);
         if (res.ok) {
           const data = await res.json();
