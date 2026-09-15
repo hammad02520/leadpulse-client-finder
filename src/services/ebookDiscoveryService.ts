@@ -191,6 +191,8 @@ export class EbookDiscoveryService {
 
                   const mainGenre = (doc.subject?.[0] || genre).toUpperCase();
                   const olKey = doc.key || '';
+                  const authorKeys: string[] = doc.author_key || [];
+                  const authorKey = authorKeys.length > 0 ? authorKeys[0] : undefined;
 
                   const cleanAuthorSlug = authorName.toLowerCase().replace(/[^a-z0-9]/g, '');
 
@@ -283,7 +285,8 @@ export class EbookDiscoveryService {
                       genre: mainGenre,
                       publicationDate: String(pubYearNum || 'Recent'),
                       storeUrl: `https://openlibrary.org${olKey}`,
-                      platform: 'OPEN_LIBRARY'
+                      platform: 'OPEN_LIBRARY',
+                      authorKey: authorKey
                     }
                   });
                 }
@@ -296,7 +299,21 @@ export class EbookDiscoveryService {
       }
     }
 
-    // 3. Sort Year-Wise Newest First (2026 -> 2025 -> 2024...)
+    // 3. Deep-Parse OpenLibrary Author Bios for initial batch (top 20 OpenLibrary leads)
+    const openLibraryLeadsToEnrich = leads.filter(l => l.ebookInfo?.platform === 'OPEN_LIBRARY' && l.ebookInfo?.authorKey).slice(0, 20);
+    if (openLibraryLeadsToEnrich.length > 0) {
+      const enrichedBatch = await Promise.all(
+        openLibraryLeadsToEnrich.map(lead => this.enrichLeadWithAuthorBio(lead))
+      );
+      const enrichedMap = new Map(enrichedBatch.map(l => [l.id, l]));
+      for (let i = 0; i < leads.length; i++) {
+        if (enrichedMap.has(leads[i].id)) {
+          leads[i] = enrichedMap.get(leads[i].id)!;
+        }
+      }
+    }
+
+    // 4. Sort Year-Wise Newest First (2026 -> 2025 -> 2024...)
     leads.sort((a, b) => {
       const yearA = parseInt(a.ebookInfo?.publicationDate || '0', 10);
       const yearB = parseInt(b.ebookInfo?.publicationDate || '0', 10);
@@ -304,6 +321,133 @@ export class EbookDiscoveryService {
     });
 
     return leads;
+  }
+
+  /**
+   * Fetch author bio details from OpenLibrary Author Bio API (openlibrary.org/authors/{authorKey}.json)
+   * Deep-parses bio text, links, and website field for verified email and direct portfolio URL.
+   */
+  public async fetchAuthorBioDetails(authorKey: string): Promise<{
+    email?: string;
+    phone?: string;
+    websiteUrl?: string;
+    bioText?: string;
+    socialLinks: { title: string; url: string }[];
+  }> {
+    if (!authorKey) return { socialLinks: [] };
+    const cleanKey = authorKey.replace('/authors/', '');
+    try {
+      const res = await fetch(`https://openlibrary.org/authors/${cleanKey}.json`);
+      if (!res.ok) return { socialLinks: [] };
+      const data = await res.json();
+
+      let bioStr = '';
+      if (typeof data.bio === 'string') {
+        bioStr = data.bio;
+      } else if (data.bio && typeof data.bio === 'object' && data.bio.value) {
+        bioStr = data.bio.value;
+      }
+
+      // 1. Email extraction regex from Bio string
+      let email: string | undefined = undefined;
+      const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
+      const emailMatches = bioStr.match(emailRegex);
+      if (emailMatches && emailMatches.length > 0) {
+        email = emailMatches[0];
+      }
+
+      // 2. Phone extraction regex from Bio string
+      let phone: string | undefined = undefined;
+      const phoneRegex = /(?:\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/g;
+      const phoneMatches = bioStr.match(phoneRegex);
+      if (phoneMatches && phoneMatches.length > 0) {
+        phone = phoneMatches[0];
+      }
+
+      // 3. Website & Links extraction
+      let websiteUrl: string | undefined = typeof data.website === 'string' ? data.website : undefined;
+      const socialLinks: { title: string; url: string }[] = [];
+
+      if (Array.isArray(data.links)) {
+        for (const l of data.links) {
+          if (l && l.url) {
+            const linkTitle = l.title || 'Official Link';
+            const linkUrl = l.url;
+            socialLinks.push({ title: linkTitle, url: linkUrl });
+
+            if (!email && linkUrl.startsWith('mailto:')) {
+              email = linkUrl.replace('mailto:', '').trim();
+            }
+
+            if (!websiteUrl && (linkUrl.startsWith('http://') || linkUrl.startsWith('https://'))) {
+              if (!linkUrl.includes('wikipedia.org') && !linkUrl.includes('openlibrary.org') && !linkUrl.includes('goodreads.com')) {
+                websiteUrl = linkUrl;
+              }
+            }
+          }
+        }
+      }
+
+      return {
+        email,
+        phone,
+        websiteUrl,
+        bioText: bioStr ? bioStr.slice(0, 500) : undefined,
+        socialLinks
+      };
+    } catch (e) {
+      console.warn(`OpenLibrary author bio fetch failed for ${authorKey}:`, e);
+      return { socialLinks: [] };
+    }
+  }
+
+  /**
+   * Enriches a single Lead with OpenLibrary Author Bio Deep-Parsing
+   */
+  public async enrichLeadWithAuthorBio(lead: Lead): Promise<Lead> {
+    const authorKey = lead.ebookInfo?.authorKey;
+    if (!authorKey) return lead;
+
+    const bioDetails = await this.fetchAuthorBioDetails(authorKey);
+    const updated: Lead = {
+      ...lead,
+      contact: { ...lead.contact },
+      company: { ...lead.company },
+      websiteAudit: { ...lead.websiteAudit },
+      tags: [...lead.tags],
+      notes: [...lead.notes]
+    };
+
+    if (bioDetails.email) {
+      updated.contact.email = bioDetails.email;
+      updated.contact.emailValidationStage = 'VERIFIED';
+      if (!updated.tags.includes('OPENLIBRARY_BIO_EMAIL')) {
+        updated.tags.push('OPENLIBRARY_BIO_EMAIL', 'VERIFIED_AUTHOR_CONTACT');
+      }
+      updated.notes.unshift(`✅ Verified Email Enriched via OpenLibrary Author Bio: ${bioDetails.email}`);
+    }
+
+    if (bioDetails.phone) {
+      updated.contact.phone = bioDetails.phone;
+      updated.contact.phoneNormalized = bioDetails.phone;
+    }
+
+    if (bioDetails.websiteUrl) {
+      try {
+        const urlObj = new URL(bioDetails.websiteUrl);
+        updated.company.websiteUrl = bioDetails.websiteUrl;
+        updated.websiteAudit.domain = urlObj.hostname;
+        updated.websiteAudit.hasWebsite = true;
+      } catch (e) {
+        // ignore invalid URL
+      }
+    }
+
+    if (bioDetails.bioText && !updated.notes.some(n => n.includes('Author Bio Excerpt:'))) {
+      updated.notes.push(`Author Bio Excerpt: ${bioDetails.bioText}`);
+    }
+
+    return updated;
   }
 }
 

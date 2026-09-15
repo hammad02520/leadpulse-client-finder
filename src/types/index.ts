@@ -192,6 +192,7 @@ export interface Lead {
     storeUrl?: string;
     platform: 'GOOGLE_BOOKS' | 'OPEN_LIBRARY' | 'GUMROAD' | 'AMAZON';
     coverUrl?: string;
+    authorKey?: string;
   };
 }
 

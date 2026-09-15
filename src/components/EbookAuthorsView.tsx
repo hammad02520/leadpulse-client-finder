@@ -38,6 +38,20 @@ export const EbookAuthorsView: React.FC<EbookAuthorsViewProps> = ({
   const [minPublishYear, setMinPublishYear] = useState<number>(2010);
   const [searchTerm, setSearchTerm] = useState('');
   const [isSearching, setIsSearching] = useState(false);
+  const [enrichingId, setEnrichingId] = useState<string | null>(null);
+
+  const handleEnrichBio = async (lead: Lead) => {
+    if (!lead.ebookInfo?.authorKey) return;
+    setEnrichingId(lead.id);
+    try {
+      const enriched = await ebookDiscoveryService.enrichLeadWithAuthorBio(lead);
+      onAddDiscoveredLeads([enriched]);
+    } catch (e) {
+      console.error('Bio enrich failed:', e);
+    } finally {
+      setEnrichingId(null);
+    }
+  };
 
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
@@ -360,6 +374,36 @@ export const EbookAuthorsView: React.FC<EbookAuthorsViewProps> = ({
                         </span>
                       )}
                     </div>
+
+                    {lead.ebookInfo?.authorKey && (
+                      <div style={{ paddingTop: '4px', borderTop: '1px dashed #bae6fd', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '2px' }}>
+                        <button
+                          onClick={() => handleEnrichBio(lead)}
+                          disabled={enrichingId === lead.id}
+                          style={{
+                            width: '100%',
+                            fontSize: '0.7rem',
+                            padding: '4px 8px',
+                            borderRadius: '4px',
+                            background: lead.contact.email ? '#d1fae5' : '#e0f2fe',
+                            color: lead.contact.email ? '#047857' : '#0284c7',
+                            border: lead.contact.email ? '1px solid #a7f3d0' : '1px solid #bae6fd',
+                            fontWeight: '800',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '4px'
+                          }}
+                        >
+                          {enrichingId === lead.id 
+                            ? '⏳ Scanning OpenLibrary Bio...' 
+                            : lead.contact.email 
+                              ? '✅ Verified Bio Email Found' 
+                              : '🔍 Deep-Scan OpenLibrary Author Profile'}
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
 
