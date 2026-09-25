@@ -32,6 +32,14 @@ export type SourceType =
   | 'META_ADS'
   | 'GOOGLE_PPC'
   | 'EBOOK_AUTHOR'
+  | 'ECOMMERCE_HUNTER'
+  | 'AI_AUTOMATION'
+  | 'AGENCY_HUNTER'
+  | 'SAAS_GITHUB'
+  | 'SEC_FORM_D'
+  | 'REVIEW_PAIN'
+  | 'SECURITY_HUNTER'
+  | 'SWEDEN_VAT_REGISTRY'
   | 'MANUAL_IMPORT';
 
 export type JobFeedSource = 'ALL' | 'REMOTIVE' | 'ARBEITNOW' | 'JOBICY' | 'HACKERNEWS';
@@ -44,7 +52,13 @@ export type ProjectNeedType =
   | 'MOBILE_APP' 
   | 'SAAS_MVP' 
   | 'ECOMMERCE' 
-  | 'SPEED_PERFORMANCE';
+  | 'SPEED_PERFORMANCE'
+  | 'AI_AUTOMATION_BOT'
+  | 'WHITE_LABEL_DEV'
+  | 'ECOMMERCE_OPTIMIZATION'
+  | 'TECH_DEBT_REBUILD'
+  | 'SECURITY_HARDENING'
+  | 'REVIEW_COMPLAINT_FIX';
 
 export type FreshnessTier = 'JUST_NOW' | 'TODAY' | 'RECENT' | 'STALE_EXPIRED';
 
@@ -55,6 +69,43 @@ export type EmailValidationStage =
   | 'MX_VALID' 
   | 'DELIVERABILITY_CHECK' 
   | 'VERIFIED';
+
+export type WebsiteVerificationStatus = 
+  | 'UNKNOWN' 
+  | 'SOURCE_MISSING' 
+  | 'LIKELY_NO_WEBSITE' 
+  | 'VERIFIED_NO_WEBSITE' 
+  | 'WEBSITE_FOUND';
+
+export interface WebsiteVerification {
+  status: WebsiteVerificationStatus;
+  url?: string;
+  osmChecked: boolean;
+  foursquareChecked: boolean;
+  searchChecked: boolean;
+  googleChecked?: boolean;
+  confidence: number;
+  reason: string;
+}
+
+export interface PublicContacts {
+  phone?: string;
+  email?: string;
+  whatsapp?: string;
+  facebook?: string;
+  instagram?: string;
+  address?: string;
+  openingHours?: string;
+}
+
+export interface NicheCategory {
+  id: string;
+  name: string;
+  tier: 'TIER_A' | 'TIER_B';
+  osmFilter: { key: string; value: string };
+  avgTicketValue: string;
+  typicalNeed: string;
+}
 
 export interface WebsiteAudit {
   domain: string;
@@ -79,6 +130,20 @@ export interface WebsiteAudit {
   speedIndex?: string;
   seoScore?: number;
   accessibilityScore?: number;
+  hasMetaPixel?: boolean;
+  hasGtm?: boolean;
+  hasGa4?: boolean;
+  hasChatbot?: boolean;
+  hasCalendly?: boolean;
+  faqCount?: number;
+  phoneOnlyBooking?: boolean;
+  legacyLibraries?: string[];
+  securityAudit?: {
+    hasTls: boolean;
+    hstsEnabled: boolean;
+    securityGrade: string;
+    missingHeaders: string[];
+  };
 }
 
 export interface ScoreBreakdown {
@@ -120,6 +185,57 @@ export interface CompanyInfo {
   socialPresence: boolean;
 }
 
+export interface IntentSignals {
+  hiringIntent?: {
+    role: string;
+    urgency: string;
+    careerKeywords: string[];
+  };
+  fundingIntent?: {
+    round: string;
+    amount?: string;
+    source: 'SEC_FORM_D' | 'PRODUCT_HUNT' | 'YC';
+    filingDate?: string;
+  };
+  techDebtIntent?: {
+    cms: string;
+    legacyLibs: string[];
+    pageSpeed: number;
+    migrationUrgency: 'HIGH' | 'MEDIUM' | 'LOW';
+    stalledRepo?: string;
+  };
+  ecommerceIntent?: {
+    platform: string;
+    hasPixel: boolean;
+    hasGtm: boolean;
+    speedScore: number;
+    cartIssues?: string[];
+  };
+  aiAutomationIntent?: {
+    hasFaq: boolean;
+    hasPhoneBookingOnly: boolean;
+    hasChatbot: boolean;
+    opportunity: string;
+    aiNeedScore: number;
+  };
+  agencyPartnerIntent?: {
+    agencyType: string;
+    missingDevCap: boolean;
+    whiteLabelScore: number;
+    offeredServices?: string[];
+  };
+  reviewPainIntent?: {
+    techComplaintDetected: boolean;
+    complaintSummary: string;
+    reviewRating?: number;
+  };
+  securityIntent?: {
+    missingTls: boolean;
+    missingHeaders: string[];
+    sslWarning: boolean;
+  };
+}
+
 export interface Lead {
   id: string;
   title: string;
@@ -133,6 +249,13 @@ export interface Lead {
   
   scoreBreakdown: ScoreBreakdown;
   websiteAudit: WebsiteAudit;
+  intentSignals?: IntentSignals;
+  
+  // Local SMB Freelancer Intelligence
+  freelancerFitScore?: number;
+  freelancerFitTier?: 'PREMIUM_TARGET' | 'GOOD_FIT' | 'MODERATE' | 'SKIP_CHAIN';
+  websiteVerification?: WebsiteVerification;
+  publicContacts?: PublicContacts;
   
   status: LeadStatus;
   tags: string[];
@@ -195,6 +318,26 @@ export interface Lead {
     coverUrl?: string;
     authorKey?: string;
   };
+  swedenVatInfo?: SwedenVatBusinessInfo;
+}
+
+export interface SwedenVatBusinessInfo {
+  orgNumber: string; // e.g. "556912-3456"
+  vatNumber: string; // e.g. "SE556912345601"
+  vatStatus: 'REGISTERED' | 'EXEMPT';
+  fSkattStatus: 'APPROVED' | 'NOT_APPROVED';
+  employerRegistered: boolean;
+  companyType: 'Aktiebolag (AB)' | 'Enskild firma' | 'Handelsbolag (HB)' | 'Kommanditbolag (KB)';
+  revenueSek?: string; // Annual turnover (omsättning)
+  profitSek?: string;
+  employeeRange?: string;
+  municipality: string; // Kommun (e.g. Stockholm, Göteborg, Malmö)
+  county: string; // Län
+  sniCode?: string; // Swedish Standard Industrial Classification (SNI)
+  sniDescription?: string;
+  ceoOrContact?: string;
+  registeredAddress?: string;
+  sourceRegistry: 'Bolagsverket & Skatteverket' | 'Allabolag' | 'EU_VIES';
 }
 
 export interface SourceFilter {
@@ -225,16 +368,8 @@ export interface EbookSearchParams {
 }
 
 export type AppViewMode = 
+  | 'sweden_registry'
   | 'dashboard' 
-  | 'local_biz' 
-  | 'b2b_founders' 
-  | 'tech_stack' 
-  | 'funded_startups' 
-  | 'remote_jobs' 
-  | 'global_registries'
-  | 'trade_expos'
-  | 'ad_hunter'
-  | 'ebook_authors'
-  | 'crawler_dashboard'
   | 'kanban' 
-  | 'table';
+  | 'table' 
+  | 'crawler_dashboard';

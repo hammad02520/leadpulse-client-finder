@@ -1,28 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
-import { Dashboard } from './components/Dashboard';
+import { SwedenBusinessRegistryView } from './components/SwedenBusinessRegistryView';
+import { LocalSMBClientFinderView } from './components/LocalSMBClientFinderView';
 import { LeadTable } from './components/LeadTable';
 import { KanbanBoard } from './components/KanbanBoard';
-import { LocalBizLeadsView } from './components/LocalBizLeadsView';
-import { B2BDecisionMakersView } from './components/B2BDecisionMakersView';
-import { TechStackView } from './components/TechStackView';
-import { FundedStartupsView } from './components/FundedStartupsView';
-import { RemoteJobsView } from './components/RemoteJobsView';
-import { GlobalRegistriesView } from './components/GlobalRegistriesView';
-import { TradeExposView } from './components/TradeExposView';
-import { AdHunterView } from './components/AdHunterView';
-import { EbookAuthorsView } from './components/EbookAuthorsView';
 import { CrawlerDashboard } from './components/CrawlerDashboard';
 import { LeadDetailDrawer } from './components/LeadDetailDrawer';
 import { OutreachModal } from './components/OutreachModal';
 import { ManualLeadModal } from './components/ManualLeadModal';
 import { leadService } from './services/leadService';
 import { strictDeduplicate } from './services/deduplicationService';
-import { Lead, LeadStatus, AppViewMode, SourceType } from './types';
+import { Lead, LeadStatus, AppViewMode } from './types';
 
 export const App: React.FC = () => {
-  const [currentView, setCurrentView] = useState<AppViewMode>('dashboard');
+  const [currentView, setCurrentView] = useState<AppViewMode>('sweden_registry');
   const [leads, setLeads] = useState<Lead[]>(() => leadService.getLeadsFromStorage());
   const [isSyncing, setIsSyncing] = useState(false);
   const [freshOnly, setFreshOnly] = useState(false);
@@ -53,36 +45,19 @@ export const App: React.FC = () => {
     }
   };
 
-  const handleAddDiscoveredLeads = (newLeads: Lead[], replaceCity?: string) => {
+  const handleAddDiscoveredLeads = (newLeads: Lead[]) => {
     const currentLeads = leadService.getLeadsFromStorage();
     let baseLeads = currentLeads;
-    // Cleanly replace META_ADS and GOOGLE_PPC leads on a fresh scan so the user sees exact leads for selected country/city
     if (newLeads.length > 0) {
-      const src = newLeads[0].source;
-      if (src === 'META_ADS' || src === 'GOOGLE_PPC') {
-        baseLeads = currentLeads.filter(l => l.source !== src);
-      }
-    }
-
-    // When fetching a new volume batch for a local city or entire country, cleanly replace that scope's leads
-    // so the user sees EXACTLY the volume they selected (100, 300, 500, 1,000)
-    const targetCity = replaceCity || (newLeads.length > 0 && newLeads[0].source === 'LOCAL_BIZ' ? newLeads[0].company.city : undefined);
-    if (targetCity) {
-      if (targetCity.startsWith('NATIONWIDE_')) {
-        const cleanCountry = targetCity.replace('NATIONWIDE_', '').toLowerCase().trim();
+      const city = newLeads[0].company.city?.toLowerCase().trim();
+      const industry = newLeads[0].company.industry?.toLowerCase().trim();
+      if (city) {
+        // Cleanly replace that city's matching niche so user gets full fresh batch
         baseLeads = currentLeads.filter(l => 
-          l.source !== 'LOCAL_BIZ' || 
-          (l.company.country?.toLowerCase().trim() !== cleanCountry && !l.company.location?.toLowerCase().includes(cleanCountry))
-        );
-      } else {
-        const cleanCity = targetCity.toLowerCase().trim();
-        baseLeads = currentLeads.filter(l => 
-          l.source !== 'LOCAL_BIZ' || 
-          (l.company.city?.toLowerCase().trim() !== cleanCity && !l.company.location?.toLowerCase().includes(cleanCity))
+          !(l.company.city?.toLowerCase().trim() === city && l.company.industry?.toLowerCase().trim() === industry)
         );
       }
     }
-
     const finalLeads = strictDeduplicate([...newLeads, ...baseLeads]);
     leadService.saveLeadsToStorage(finalLeads);
     setLeads(finalLeads);
@@ -121,66 +96,111 @@ export const App: React.FC = () => {
   const handleRecordOutreach = (leadId: string, type: 'EMAIL' | 'WHATSAPP', pitchText: string) => {
     const updated = leadService.addOutreachRecord(leadId, type, pitchText);
     setLeads(updated);
-  };
-
-  const handleUpdateLead = (updatedLead: Lead) => {
-    const updated = leadService.updateLead(updatedLead);
-    setLeads(updated);
-    if (selectedLead && selectedLead.id === updatedLead.id) {
-      setSelectedLead(updatedLead);
+    if (selectedLead && selectedLead.id === leadId) {
+      setSelectedLead({
+        ...selectedLead,
+        status: selectedLead.status === 'NEW' ? 'CONTACTED' : selectedLead.status,
+        lastContactedAt: new Date().toISOString()
+      });
     }
   };
 
-  const handleAddCustomLead = (newLead: Lead) => {
-    const currentLeads = leadService.getLeadsFromStorage();
-    const updated = strictDeduplicate([newLead, ...currentLeads]);
+  const handleAddCustomLead = (newLeadData: Partial<Lead>) => {
+    const fit = newLeadData.freelancerFitScore || 85;
+    const fullLead: Lead = {
+      id: `manual_smb_${Date.now()}`,
+      title: `${newLeadData.company?.name || 'Local Business'} — ${newLeadData.company?.industry || 'Trade'}`,
+      description: newLeadData.description || 'Manually entered local business lead.',
+      source: 'MANUAL_IMPORT',
+      sourceUrl: newLeadData.sourceUrl || '',
+      projectNeed: newLeadData.projectNeed || 'NO_WEBSITE_NO_APP',
+      budgetSignal: newLeadData.budgetSignal || '£500 - £2,500',
+      
+      company: {
+        name: newLeadData.company?.name || 'Local Business',
+        industry: newLeadData.company?.industry || 'Services',
+        location: newLeadData.company?.location || 'Local Area',
+        city: newLeadData.company?.city || 'Manchester',
+        country: newLeadData.company?.country || 'United Kingdom',
+        websiteUrl: newLeadData.company?.websiteUrl,
+        socialPresence: false
+      },
+
+      contact: {
+        personName: newLeadData.contact?.personName || 'Owner',
+        role: 'Business Owner',
+        phone: newLeadData.contact?.phone,
+        email: newLeadData.contact?.email,
+        hasWhatsapp: Boolean(newLeadData.contact?.phone)
+      },
+
+      freelancerFitScore: fit,
+      freelancerFitTier: fit >= 80 ? 'PREMIUM_TARGET' : 'GOOD_FIT',
+      websiteVerification: {
+        status: newLeadData.company?.websiteUrl ? 'WEBSITE_FOUND' : 'VERIFIED_NO_WEBSITE',
+        url: newLeadData.company?.websiteUrl,
+        osmChecked: false,
+        foursquareChecked: false,
+        searchChecked: true,
+        confidence: 90,
+        reason: newLeadData.company?.websiteUrl ? 'Manual website provided' : 'Manually confirmed missing website'
+      },
+
+      scoreBreakdown: {
+        needSignalScore: 35,
+        businessQualityScore: 20,
+        websiteProblemsScore: 30,
+        contactabilityScore: 30,
+        activitySignalScore: 10,
+        freshnessScore: 20,
+        penalties: 0,
+        totalScore: fit,
+        temperature: fit >= 80 ? 'HOT' : 'WARM'
+      },
+
+      websiteAudit: {
+        domain: newLeadData.company?.websiteUrl || 'No Domain',
+        hasWebsite: Boolean(newLeadData.company?.websiteUrl),
+        hasMobileApp: false,
+        mobileFriendly: false,
+        performanceScore: 0,
+        hasHttps: false,
+        hasModernUi: false,
+        hasCta: false,
+        hasContactForm: false,
+        hasOnlineBooking: false,
+        hasOnlineOrdering: false,
+        opportunityScore: 90,
+        issuesDetected: newLeadData.company?.websiteUrl ? ['Outdated design'] : ['No official website'],
+        aiOpportunityReason: 'Pitch high-converting 5-page mobile website with WhatsApp booking.'
+      },
+
+      status: 'NEW',
+      tags: ['MANUAL_LEAD', 'LOCAL_SMB', ...(newLeadData.tags || [])],
+      notes: [`${new Date().toLocaleDateString()}: Added manually by user.`],
+      discoveredAt: new Date().toISOString(),
+      postedAt: new Date().toISOString(),
+      freshnessTier: 'JUST_NOW',
+      isExpired: false,
+      lastVerifiedAt: new Date().toISOString(),
+      outreachHistory: []
+    };
+
+    const updated = strictDeduplicate([fullLead, ...leads]);
     leadService.saveLeadsToStorage(updated);
     setLeads(updated);
   };
 
-  // STRICT GUARANTEE: Never surface expired leads in any module
-  const unexpiredLeads = leads.filter(l => !l.isExpired && l.freshnessTier !== 'STALE_EXPIRED');
-  const visibleLeads = freshOnly 
-    ? unexpiredLeads.filter(l => l.freshnessTier === 'JUST_NOW' || l.freshnessTier === 'TODAY') 
-    : unexpiredLeads;
-
-  const handleExportCSV = (leadsToExport: Lead[] = visibleLeads) => {
-    if (currentView === 'local_biz') {
-      const localLeads = leads.filter(l => l.source === 'LOCAL_BIZ');
-      leadService.exportLeadsToCSV(localLeads, 'LOCAL_SMB');
-    } else if (currentView === 'b2b_founders') {
-      const b2bLeads = leads.filter(l => l.source === 'B2B_APOLLO');
-      leadService.exportLeadsToCSV(b2bLeads, 'B2B_FOUNDERS');
-    } else if (currentView === 'tech_stack') {
-      const techLeads = leads.filter(l => l.source === 'TECH_STACK');
-      leadService.exportLeadsToCSV(techLeads, 'TECH_STACK');
-    } else if (currentView === 'funded_startups') {
-      const startupLeads = leads.filter(l => l.source === 'FUNDED_STARTUP');
-      leadService.exportLeadsToCSV(startupLeads, 'FUNDED_STARTUPS');
-    } else if (currentView === 'remote_jobs') {
-      const remoteLeads = leadsToExport.filter(l => l.source === 'JOB_FEED' || l.source === 'REDDIT');
-      leadService.exportLeadsToCSV(remoteLeads, 'REMOTE_JOBS');
-    } else if (currentView === 'global_registries') {
-      const regLeads = leads.filter(l => l.source === 'GLOBAL_REGISTRY');
-      leadService.exportLeadsToCSV(regLeads, 'GLOBAL_REGISTRY');
-    } else if (currentView === 'trade_expos') {
-      const expoLeads = leads.filter(l => l.source === 'TRADE_EXPO');
-      leadService.exportLeadsToCSV(expoLeads, 'TRADE_EXPO');
-    } else {
-      leadService.exportLeadsToCSV(leadsToExport, 'ALL');
-    }
+  const handleExportCSV = () => {
+    leadService.exportLeadsToCSV(leads);
   };
 
-  const handleClearCategoryLeads = (sourceType: SourceType) => {
-    const remaining = leads.filter(l => l.source !== sourceType && !l.tags.includes(sourceType));
-    leadService.saveLeadsToStorage(remaining);
-    setLeads(remaining);
-  };
+  const visibleLeads = strictDeduplicate(leads);
 
   return (
-    <div className="app-container">
+    <div className="app-container" style={{ display: 'flex', width: '100vw', height: '100vh', overflow: 'hidden' }}>
       
-      {/* Left Enterprise Sidebar */}
+      {/* Streamlined Sidebar */}
       <Sidebar 
         currentView={currentView}
         setCurrentView={setCurrentView}
@@ -188,7 +208,7 @@ export const App: React.FC = () => {
       />
 
       {/* Main Content View Container */}
-      <div className="main-content">
+      <div className="main-content" style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100vh', overflowY: 'auto' }}>
         
         {/* Top Header Bar */}
         <Header 
@@ -205,118 +225,23 @@ export const App: React.FC = () => {
 
         {/* View Component Switcher */}
         <main style={{ flex: 1 }}>
+          {currentView === 'sweden_registry' && (
+            <SwedenBusinessRegistryView 
+              onSelectLead={(l) => setSelectedLead(l)}
+              onOpenPitchModal={(l) => setPitchLead(l)}
+              onStatusChange={handleStatusChange}
+              onAddDiscoveredLeads={handleAddDiscoveredLeads}
+            />
+          )}
+
           {currentView === 'dashboard' && (
-            <Dashboard 
-              leads={visibleLeads}
-              onSelectLead={(l) => setSelectedLead(l)}
-              onOpenPitchModal={(l) => setPitchLead(l)}
-            />
-          )}
-
-          {currentView === 'local_biz' && (
-            <LocalBizLeadsView 
-              leads={visibleLeads}
-              onSelectLead={(l) => setSelectedLead(l)}
-              onOpenPitchModal={(l) => setPitchLead(l)}
-              onAddDiscoveredLeads={handleAddDiscoveredLeads}
-            />
-          )}
-
-          {currentView === 'b2b_founders' && (
-            <B2BDecisionMakersView 
+            <LocalSMBClientFinderView 
               leads={visibleLeads}
               onSelectLead={(l) => setSelectedLead(l)}
               onOpenPitchModal={(l) => setPitchLead(l)}
               onStatusChange={handleStatusChange}
               onExportCSV={handleExportCSV}
               onAddDiscoveredLeads={handleAddDiscoveredLeads}
-            />
-          )}
-
-          {currentView === 'tech_stack' && (
-            <TechStackView 
-              leads={visibleLeads}
-              onSelectLead={(l) => setSelectedLead(l)}
-              onOpenPitchModal={(l) => setPitchLead(l)}
-              onStatusChange={handleStatusChange}
-              onExportCSV={handleExportCSV}
-              onAddDiscoveredLeads={handleAddDiscoveredLeads}
-            />
-          )}
-
-          {currentView === 'funded_startups' && (
-            <FundedStartupsView 
-              leads={visibleLeads}
-              onSelectLead={(l) => setSelectedLead(l)}
-              onOpenPitchModal={(l) => setPitchLead(l)}
-              onStatusChange={handleStatusChange}
-              onExportCSV={handleExportCSV}
-              onAddDiscoveredLeads={handleAddDiscoveredLeads}
-            />
-          )}
-
-          {currentView === 'remote_jobs' && (
-            <RemoteJobsView 
-              leads={visibleLeads}
-              onSelectLead={(l) => setSelectedLead(l)}
-              onOpenPitchModal={(l) => setPitchLead(l)}
-              onAddDiscoveredLeads={handleAddDiscoveredLeads}
-            />
-          )}
-
-          {currentView === 'global_registries' && (
-            <GlobalRegistriesView 
-              leads={visibleLeads}
-              onSelectLead={(l) => setSelectedLead(l)}
-              onOpenPitchModal={(l) => setPitchLead(l)}
-              onStatusChange={handleStatusChange}
-              onExportCSV={handleExportCSV}
-              onAddDiscoveredLeads={handleAddDiscoveredLeads}
-            />
-          )}
-
-          {currentView === 'trade_expos' && (
-            <TradeExposView 
-              leads={visibleLeads}
-              onSelectLead={(l) => setSelectedLead(l)}
-              onOpenPitchModal={(l) => setPitchLead(l)}
-              onStatusChange={handleStatusChange}
-              onExportCSV={handleExportCSV}
-              onAddDiscoveredLeads={handleAddDiscoveredLeads}
-            />
-          )}
-
-          {currentView === 'ad_hunter' && (
-            <AdHunterView 
-              leads={visibleLeads}
-              onSelectLead={(l) => setSelectedLead(l)}
-              onOpenPitchModal={(l) => setPitchLead(l)}
-              onAddDiscoveredLeads={handleAddDiscoveredLeads}
-              onNavigateToView={(v) => setCurrentView(v)}
-            />
-          )}
-
-          {currentView === 'ebook_authors' && (
-            <EbookAuthorsView 
-              leads={visibleLeads}
-              onSelectLead={(l) => setSelectedLead(l)}
-              onOpenPitchModal={(l) => setPitchLead(l)}
-              onAddDiscoveredLeads={handleAddDiscoveredLeads}
-              onClearCategoryLeads={() => handleClearCategoryLeads('EBOOK_AUTHOR')}
-              onUpdateSingleLead={handleUpdateSingleLead}
-            />
-          )}
-
-          {currentView === 'crawler_dashboard' && (
-            <CrawlerDashboard />
-          )}
-          {currentView === 'table' && (
-            <LeadTable 
-              leads={visibleLeads}
-              onSelectLead={(l) => setSelectedLead(l)}
-              onOpenPitchModal={(l) => setPitchLead(l)}
-              onStatusChange={handleStatusChange}
-              freshOnly={freshOnly}
             />
           )}
 
@@ -328,6 +253,20 @@ export const App: React.FC = () => {
               onStatusChange={handleStatusChange}
             />
           )}
+
+          {currentView === 'table' && (
+            <LeadTable 
+              leads={visibleLeads}
+              onSelectLead={(l) => setSelectedLead(l)}
+              onOpenPitchModal={(l) => setPitchLead(l)}
+              onStatusChange={handleStatusChange}
+              freshOnly={freshOnly}
+            />
+          )}
+
+          {currentView === 'crawler_dashboard' && (
+            <CrawlerDashboard />
+          )}
         </main>
       </div>
 
@@ -338,7 +277,7 @@ export const App: React.FC = () => {
         onOpenPitchModal={(l) => setPitchLead(l)}
         onAddNote={handleAddNote}
         onStatusChange={handleStatusChange}
-        onUpdateLead={handleUpdateLead}
+        onUpdateLead={handleUpdateSingleLead}
       />
 
       {/* AI Pitch & Outreach Modal */}
@@ -358,3 +297,4 @@ export const App: React.FC = () => {
     </div>
   );
 };
+export default App;

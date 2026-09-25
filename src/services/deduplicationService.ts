@@ -35,10 +35,11 @@ export function strictDeduplicate(leads: Lead[]): Lead[] {
       seenUrls.add(cleanUrl);
     }
 
-    // 3. Domain Check (scoped by module source so a job posting doesn't block B2B or TechStack)
-    const domain = lead.company.websiteUrl || lead.websiteAudit?.domain;
-    if (domain && domain !== 'none' && domain !== 'No Domain' && domain.length > 3) {
+    // 3. Domain Check: Only deduplicate on actual, valid website domains
+    const domain = lead.company.websiteUrl;
+    if (domain && typeof domain === 'string' && domain.includes('.') && domain.length > 4) {
       const cleanDom = domain.toLowerCase().replace(/^https?:\/\//, '').replace(/\/.*$/, '').trim();
+      const isPlaceholder = cleanDom.includes('no official website') || cleanDom.includes('no domain') || cleanDom.includes('none');
       const isPlatformDomain = [
         'openlibrary.org',
         'books.google.com',
@@ -53,7 +54,7 @@ export function strictDeduplicate(leads: Lead[]): Lead[] {
         'openstreetmap.org'
       ].some(pd => cleanDom.includes(pd));
 
-      if (!isPlatformDomain && cleanDom.length > 3) {
+      if (!isPlaceholder && !isPlatformDomain && cleanDom.length > 3) {
         const domKey = `${sourceScope}_${cleanDom}`;
         if (seenDomainsBySource.has(domKey)) continue;
         seenDomainsBySource.add(domKey);
@@ -70,20 +71,21 @@ export function strictDeduplicate(leads: Lead[]): Lead[] {
       seenNameLocationBySource.add(nameCity);
     }
 
-    // 5. Phone Check (scoped by module source)
+    // 5. Phone Check (scoped by module source - ignore generic/dummy numbers)
     const phone = lead.contact?.phoneNormalized || lead.contact?.phone;
     if (phone && phone.trim().length > 6) {
       const cleanPhone = phone.replace(/\D/g, '');
-      if (cleanPhone.length > 6) {
+      const isPlaceholderPhone = cleanPhone.includes('5550') || cleanPhone.includes('5551') || cleanPhone.includes('5552') || cleanPhone.includes('00000') || cleanPhone.length < 8;
+      if (!isPlaceholderPhone && cleanPhone.length > 7) {
         const phoneKey = `${sourceScope}_${cleanPhone}`;
         if (seenPhonesBySource.has(phoneKey)) continue;
         seenPhonesBySource.add(phoneKey);
       }
     }
 
-    // 6. Email Check (scoped by module source)
+    // 6. Email Check (scoped by module source - ignore generic placeholders)
     const email = lead.contact?.email;
-    if (email && email.trim().length > 4 && !email.startsWith('info@none')) {
+    if (email && email.trim().length > 4 && !email.startsWith('info@none') && !email.includes('example.com') && !email.includes('@business.com')) {
       const cleanEmail = `${sourceScope}_${email.toLowerCase().trim()}`;
       if (seenEmailsBySource.has(cleanEmail)) continue;
       seenEmailsBySource.add(cleanEmail);

@@ -16,9 +16,10 @@ import {
   Activity,
   CheckCircle2
 } from 'lucide-react';
-import { Lead, LeadStatus } from '../types';
 import { pageSpeedService } from '../services/pageSpeedService';
 import { calculateLeadScore } from '../services/scoringEngine';
+import { formatExternalUrl } from '../services/contactValidationService';
+import { Lead, LeadStatus } from '../types';
 
 interface LeadDetailDrawerProps {
   lead: Lead | null;
@@ -97,7 +98,8 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
   const audit = lead.websiteAudit;
   const score = lead.scoreBreakdown;
 
-  const auditedSiteUrl = lead.company.websiteUrl || (audit.domain && audit.domain !== 'No Domain' ? `https://${audit.domain}` : undefined);
+  const rawSite = lead.company.websiteUrl || (audit.domain && audit.domain !== 'No Domain' && audit.domain !== 'none' ? audit.domain : undefined);
+  const auditedSiteUrl = formatExternalUrl(rawSite);
   const googleSearchEmailUrl = `https://www.google.com/search?q=${encodeURIComponent('contact email ' + lead.company.name + ' ' + (audit.domain || ''))}`;
   const linkedinSearchUrl = `https://www.linkedin.com/search/results/all/?keywords=${encodeURIComponent(lead.company.name + ' founder OR owner OR CTO')}`;
 
@@ -137,6 +139,13 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
           subtitle: 'View detected tech stack & website signals',
           buttonText: 'View Source Link ↗',
           directLinkText: 'Open Technology Signal Source ↗'
+        };
+      case 'SWEDEN_VAT_REGISTRY':
+        return {
+          title: 'Bolagsverket & Skatteverket Official Swedish Registry',
+          subtitle: 'Public corporate registration, VAT filing (SE...01) & F-skatt record',
+          buttonText: 'View on Allabolag ↗',
+          directLinkText: 'Open Swedish Corporate Registry Record ↗'
         };
       default:
         return {
@@ -208,7 +217,7 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
             </div>
           </div>
           <a 
-            href={lead.sourceUrl} 
+            href={formatExternalUrl(lead.sourceUrl)} 
             target="_blank" 
             rel="noreferrer"
             className="btn btn-primary"
@@ -217,6 +226,46 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
             {sourceMeta.buttonText}
           </a>
         </div>
+
+        {/* 🇸🇪 Swedish Corporate & VAT Registry Profile */}
+        {lead.swedenVatInfo && (
+          <div style={{ background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: '10px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span style={{ fontSize: '0.8rem', fontWeight: '800', color: '#005293', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span>🇸🇪</span> SWEDISH TAX & CORPORATE REGISTRY
+              </span>
+              <span style={{ fontSize: '0.7rem', fontWeight: '800', background: '#dcfce7', color: '#15803d', padding: '2px 8px', borderRadius: '4px' }}>
+                ✅ F-Tax: Approved (F-skatt)
+              </span>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '0.75rem', background: '#ffffff', padding: '10px', borderRadius: '6px', border: '1px solid #e0f2fe' }}>
+              <div>
+                <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: '0.675rem', fontWeight: '700' }}>ORGANIZATION NUMBER</span>
+                <span style={{ fontWeight: '800', color: '#0f172a', fontFamily: 'monospace' }}>{lead.swedenVatInfo.orgNumber}</span>
+              </div>
+              <div>
+                <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: '0.675rem', fontWeight: '700' }}>VAT ID (MOMSNR)</span>
+                <span style={{ fontWeight: '800', color: '#16a34a', fontFamily: 'monospace' }}>{lead.swedenVatInfo.vatNumber}</span>
+              </div>
+              <div>
+                <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: '0.675rem', fontWeight: '700' }}>ANNUAL TURNOVER</span>
+                <span style={{ fontWeight: '800', color: '#0284c7' }}>{lead.swedenVatInfo.revenueSek}</span>
+              </div>
+              <div>
+                <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: '0.675rem', fontWeight: '700' }}>ENTITY TYPE</span>
+                <span style={{ fontWeight: '700', color: '#334155' }}>{lead.swedenVatInfo.companyType}</span>
+              </div>
+            </div>
+
+            <div style={{ fontSize: '0.75rem', color: '#334155' }}>
+              <strong>Industry (SNI):</strong> {lead.swedenVatInfo.sniCode} — {lead.swedenVatInfo.sniDescription}
+            </div>
+            <div style={{ fontSize: '0.75rem', color: '#334155' }}>
+              <strong>CEO / Contact:</strong> {lead.swedenVatInfo.ceoOrContact}
+            </div>
+          </div>
+        )}
 
         {/* Website Technical Audit Card with Prominent Audited Link */}
         <div className="glass-panel" style={{ padding: '16px' }}>
@@ -299,7 +348,64 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
                 {audit.hasCta ? '✅ Present' : '❌ Missing'}
               </strong>
             </div>
+
+            <div style={{ background: '#f4f4f5', padding: '8px 10px', borderRadius: '6px' }}>
+              <span style={{ color: '#71717a' }}>Meta Pixel:</span>{' '}
+              <strong style={{ color: audit.hasMetaPixel ? '#b45309' : '#71717a' }}>
+                {audit.hasMetaPixel ? '🔥 Active (Ads Spend)' : 'None'}
+              </strong>
+            </div>
+
+            <div style={{ background: '#f4f4f5', padding: '8px 10px', borderRadius: '6px' }}>
+              <span style={{ color: '#71717a' }}>AI Chatbot:</span>{' '}
+              <strong style={{ color: audit.hasChatbot ? '#16a34a' : '#dc2626' }}>
+                {audit.hasChatbot ? '✅ Detected' : '❌ Zero Bot (High AI Need)'}
+              </strong>
+            </div>
+
+            <div style={{ background: '#f4f4f5', padding: '8px 10px', borderRadius: '6px' }}>
+              <span style={{ color: '#71717a' }}>Booking Funnel:</span>{' '}
+              <strong style={{ color: audit.phoneOnlyBooking ? '#dc2626' : '#16a34a' }}>
+                {audit.phoneOnlyBooking ? '📞 Phone-Only' : 'Direct / Online'}
+              </strong>
+            </div>
+
+            <div style={{ background: '#f4f4f5', padding: '8px 10px', borderRadius: '6px' }}>
+              <span style={{ color: '#71717a' }}>Tech Stack:</span>{' '}
+              <strong style={{ color: '#4f46e5' }}>
+                {audit.techFramework || 'Standard Web'}
+              </strong>
+            </div>
           </div>
+
+          {/* Layer 3 Intent Signals Banner */}
+          {lead.intentSignals && (
+            <div style={{ background: '#faf5ff', border: '1px solid #e9d5ff', borderRadius: '8px', padding: '10px 12px', marginBottom: '12px', fontSize: '0.75rem' }}>
+              <div style={{ fontWeight: '800', color: '#6b21a8', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Zap size={13} color="#9333ea" /> LAYER 3 BUYING INTENT SIGNALS:
+              </div>
+              <div style={{ color: '#581c87', display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                {lead.intentSignals.aiAutomationIntent && (
+                  <div>• <strong>AI Automation:</strong> {lead.intentSignals.aiAutomationIntent.opportunity} (Need Score: {lead.intentSignals.aiAutomationIntent.aiNeedScore}/100)</div>
+                )}
+                {lead.intentSignals.agencyPartnerIntent && (
+                  <div>• <strong>White-Label Partner:</strong> {lead.intentSignals.agencyPartnerIntent.agencyType} lacking dev staff (Score: {lead.intentSignals.agencyPartnerIntent.whiteLabelScore}/100)</div>
+                )}
+                {lead.intentSignals.ecommerceIntent && (
+                  <div>• <strong>eCommerce Speed:</strong> {lead.intentSignals.ecommerceIntent.platform} losing conversion with {lead.intentSignals.ecommerceIntent.speedScore}/100 PageSpeed</div>
+                )}
+                {lead.intentSignals.fundingIntent && (
+                  <div>• <strong>Capital Filing:</strong> {lead.intentSignals.fundingIntent.round} ({lead.intentSignals.fundingIntent.amount}) via {lead.intentSignals.fundingIntent.source}</div>
+                )}
+                {lead.intentSignals.techDebtIntent && (
+                  <div>• <strong>Tech Debt:</strong> {lead.intentSignals.techDebtIntent.cms} with {lead.intentSignals.techDebtIntent.migrationUrgency} urgency</div>
+                )}
+                {lead.intentSignals.reviewPainIntent && (
+                  <div>• <strong>Customer Review Pain:</strong> {lead.intentSignals.reviewPainIntent.complaintSummary}</div>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Real-Time Google Lighthouse Verified Metrics */}
           {audit.isLiveAudit && (
@@ -391,7 +497,7 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <ExternalLink size={15} color="var(--primary)" />
-              <a href={lead.sourceUrl} target="_blank" rel="noreferrer" style={{ color: 'var(--primary)', fontWeight: '700', textDecoration: 'none' }}>
+              <a href={formatExternalUrl(lead.sourceUrl)} target="_blank" rel="noreferrer" style={{ color: 'var(--primary)', fontWeight: '700', textDecoration: 'none' }}>
                 {sourceMeta.directLinkText}
               </a>
             </div>

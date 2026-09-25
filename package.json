@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "concurrently \"vite\" \"node server/crawler.js\"",
+    "dev": "concurrently \"vite\" \"node --watch server/crawler.js\"",
     "build": "tsc && vite build",
     "preview": "vite preview"
   },

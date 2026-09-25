@@ -451,3 +451,15 @@ export function generateCorporateEmailCandidates(companyName: string, domain: st
   return emails;
 }
 
+/**
+ * Ensures any website link opens as an absolute URL with https://
+ */
+export function formatExternalUrl(url?: string): string {
+  if (!url || url === 'none' || url === 'No Domain' || url.trim().length <= 3) return '';
+  const trimmed = url.trim();
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+    return trimmed;
+  }
+  return `https://${trimmed}`;
+}
+

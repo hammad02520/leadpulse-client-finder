@@ -1,4 +1,4 @@
-import { ScoreBreakdown, LeadTemperature, WebsiteAudit, FreshnessTier } from '../types';
+import { ScoreBreakdown, LeadTemperature, WebsiteAudit, FreshnessTier, IntentSignals } from '../types';
 
 export function calculateLeadScore(data: {
   hasExplicitHiringSignal: boolean;
@@ -11,6 +11,7 @@ export function calculateLeadScore(data: {
   isExpired: boolean;
   isDuplicate?: boolean;
   outreachCount?: number;
+  intentSignals?: IntentSignals;
 }): ScoreBreakdown {
   let needSignalScore = 0;
   let businessQualityScore = 0;
@@ -20,11 +21,25 @@ export function calculateLeadScore(data: {
   let freshnessScore = 0;
   let penalties = 0;
 
-  // 1. Need Signal (+30)
-  if (data.hasExplicitHiringSignal) {
+  // 1. Need Signal (+20 to +35 based on intent vectors)
+  const intents = data.intentSignals;
+  if (data.hasExplicitHiringSignal || intents?.hiringIntent) {
     needSignalScore = 30;
+  } else if (intents?.aiAutomationIntent && intents.aiAutomationIntent.aiNeedScore > 70) {
+    needSignalScore = 32;
+  } else if (intents?.agencyPartnerIntent && intents.agencyPartnerIntent.missingDevCap) {
+    needSignalScore = 30;
+  } else if (intents?.ecommerceIntent && intents.ecommerceIntent.hasPixel && intents.ecommerceIntent.speedScore < 50) {
+    needSignalScore = 32;
+  } else if (intents?.fundingIntent) {
+    needSignalScore = 28;
+  } else if (intents?.techDebtIntent && intents.techDebtIntent.migrationUrgency === 'HIGH') {
+    needSignalScore = 28;
+  } else if (intents?.reviewPainIntent && intents.reviewPainIntent.techComplaintDetected) {
+    needSignalScore = 26;
   } else {
-    penalties += 15;
+    // General baseline
+    needSignalScore = 15;
   }
 
   // 2. Business Quality (+10)
@@ -34,9 +49,11 @@ export function calculateLeadScore(data: {
 
   // 3. Website Audit Problems (+15 to +30)
   if (data.websiteAudit.hasWebsite) {
-    if (!data.websiteAudit.mobileFriendly) websiteProblemsScore += 15;
-    if (data.websiteAudit.performanceScore < 60) websiteProblemsScore += 15;
-    if (!data.websiteAudit.hasCta) websiteProblemsScore += 10;
+    if (!data.websiteAudit.mobileFriendly) websiteProblemsScore += 10;
+    if (data.websiteAudit.performanceScore < 60) websiteProblemsScore += 12;
+    if (!data.websiteAudit.hasCta) websiteProblemsScore += 8;
+    if (data.websiteAudit.hasMetaPixel && data.websiteAudit.performanceScore < 50) websiteProblemsScore += 10;
+    if (data.websiteAudit.legacyLibraries && data.websiteAudit.legacyLibraries.length > 0) websiteProblemsScore += 8;
   } else {
     websiteProblemsScore = 25;
   }

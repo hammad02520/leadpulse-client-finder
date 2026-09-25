@@ -4,9 +4,9 @@ import {
   Plus, 
   Download,
   Clock,
-  Search,
   MapPin,
-  Briefcase
+  Kanban,
+  Table
 } from 'lucide-react';
 import { Lead, AppViewMode } from '../types';
 
@@ -34,24 +34,40 @@ export const Header: React.FC<HeaderProps> = ({
   setFreshOnly
 }) => {
   return (
-    <header style={{ padding: '16px 24px', borderBottom: '1px solid var(--border-color)', background: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
+    <header style={{ padding: '14px 24px', borderBottom: '1px solid var(--border-color)', background: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '14px' }}>
       
       {/* Category Quick Switcher Tabs */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
         <button 
-          onClick={() => setCurrentView('local_biz')}
-          className={`btn ${currentView === 'local_biz' ? 'btn-primary' : 'btn-secondary'}`}
-          style={{ padding: '7px 14px', fontSize: '0.8rem' }}
+          onClick={() => setCurrentView('sweden_registry')}
+          className={`btn ${currentView === 'sweden_registry' ? 'btn-primary' : 'btn-secondary'}`}
+          style={{ padding: '7px 14px', fontSize: '0.825rem', fontWeight: '800', background: currentView === 'sweden_registry' ? '#005293' : undefined, borderColor: currentView === 'sweden_registry' ? '#005293' : undefined }}
         >
-          <MapPin size={15} /> 📍 Local SMB Finder
+          <span>🇸🇪</span> Sweden VAT Registry
         </button>
 
         <button 
-          onClick={() => setCurrentView('remote_jobs')}
-          className={`btn ${currentView === 'remote_jobs' ? 'btn-primary' : 'btn-secondary'}`}
-          style={{ padding: '7px 14px', fontSize: '0.8rem' }}
+          onClick={() => setCurrentView('dashboard')}
+          className={`btn ${currentView === 'dashboard' ? 'btn-primary' : 'btn-secondary'}`}
+          style={{ padding: '7px 14px', fontSize: '0.825rem', fontWeight: '700' }}
         >
-          <Briefcase size={15} /> 💼 Remote Dev Jobs
+          <MapPin size={15} /> 📍 Global SMB
+        </button>
+
+        <button 
+          onClick={() => setCurrentView('kanban')}
+          className={`btn ${currentView === 'kanban' ? 'btn-primary' : 'btn-secondary'}`}
+          style={{ padding: '7px 14px', fontSize: '0.825rem', fontWeight: '700' }}
+        >
+          <Kanban size={15} /> 📋 Outreach CRM
+        </button>
+
+        <button 
+          onClick={() => setCurrentView('table')}
+          className={`btn ${currentView === 'table' ? 'btn-primary' : 'btn-secondary'}`}
+          style={{ padding: '7px 14px', fontSize: '0.825rem', fontWeight: '700' }}
+        >
+          <Table size={15} /> 📊 Master Grid
         </button>
       </div>
 
@@ -59,43 +75,30 @@ export const Header: React.FC<HeaderProps> = ({
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
         
         <button 
-          className={`btn ${freshOnly ? 'btn-primary' : 'btn-secondary'}`}
-          onClick={() => setFreshOnly(!freshOnly)}
-          style={{ padding: '7px 14px', fontSize: '0.8rem' }}
-        >
-          <Clock size={14} /> {freshOnly ? '⚡ Fresh Leads Only (<48h)' : '🌐 All Active Leads'}
-        </button>
-
-        <button 
           className="btn btn-secondary"
           onClick={onSyncSources}
           disabled={isSyncing}
-          style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+          style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.825rem' }}
         >
-          <RefreshCw size={15} className={isSyncing ? 'animate-spin' : ''} />
-          {isSyncing ? 'Syncing...' : 'Fetch Live Leads'}
+          <RefreshCw size={14} className={isSyncing ? 'animate-spin' : ''} />
+          {isSyncing ? 'Syncing Overpass...' : 'Refresh Local Leads'}
         </button>
 
         <button 
           className="btn btn-secondary"
           onClick={onExportCSV}
-          title="Export qualified leads to CSV/Excel"
+          style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.825rem' }}
+          title="Export qualified SMB leads to CSV/Excel"
         >
-          <Download size={15} /> {
-            currentView === 'local_biz' ? 'Export Local SMBs (CSV)' :
-            currentView === 'b2b_founders' ? 'Export B2B Executives (CSV)' :
-            currentView === 'tech_stack' ? 'Export Tech Audits (CSV)' :
-            currentView === 'funded_startups' ? 'Export Startups (CSV)' :
-            currentView === 'remote_jobs' ? 'Export Remote Jobs (CSV)' :
-            'Export Master Leads (CSV)'
-          }
+          <Download size={14} /> Export SMBs (CSV)
         </button>
 
         <button 
           className="btn btn-primary"
           onClick={onOpenAddModal}
+          style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.825rem', fontWeight: '700' }}
         >
-          <Plus size={15} /> Add Custom Lead
+          <Plus size={14} /> Add Local Lead
         </button>
 
       </div>

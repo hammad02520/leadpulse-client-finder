@@ -14,6 +14,7 @@ import {
   Building2
 } from 'lucide-react';
 import { Lead, LeadStatus, LeadTemperature, SourceType, ProjectNeedType } from '../types';
+import { formatExternalUrl } from '../services/contactValidationService';
 
 interface LeadTableProps {
   leads: Lead[];
@@ -231,7 +232,8 @@ export const LeadTable: React.FC<LeadTableProps> = ({
                   lead.scoreBreakdown.temperature === 'HOT' ? 'badge-hot' :
                   lead.scoreBreakdown.temperature === 'WARM' ? 'badge-warm' : 'badge-cold';
 
-                const auditedSiteUrl = lead.company.websiteUrl || (lead.websiteAudit.domain && lead.websiteAudit.domain !== 'No Domain' ? `https://${lead.websiteAudit.domain}` : undefined);
+                const rawSite = lead.company.websiteUrl || (lead.websiteAudit.domain && lead.websiteAudit.domain !== 'No Domain' ? lead.websiteAudit.domain : undefined);
+                const auditedSiteUrl = formatExternalUrl(rawSite);
 
                 return (
                   <tr 
