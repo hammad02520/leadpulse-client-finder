@@ -152,34 +152,6 @@ export const SwedenBusinessRegistryView: React.FC<SwedenBusinessRegistryViewProp
     swedenRegistryService.exportSwedishCsv(leads);
   };
 
-  // Export ALL leads (across all pages) to CSV/Excel
-  const handleExportAll = async () => {
-    setLoading(true);
-    const allLeads: Lead[] = [];
-    const total = TOTAL_SWEDISH_COMPANIES;
-    const limit = pageSize; // reuse current page size
-    for (let offset = 0; offset < total; offset += limit) {
-      try {
-        const batch = await swedenRegistryService.discoverSwedenLeads({
-          municipality: selectedCity,
-          industrySector: selectedIndustry,
-          vatStatusFilter: vatFilter,
-          revenueTier: revenueFilter,
-          searchTerm: searchQuery,
-          language: displayLanguage,
-          limit,
-          offset,
-        });
-        allLeads.push(...batch);
-      } catch (e) {
-        console.error('Failed to fetch batch at offset', offset, e);
-        break;
-      }
-    }
-    swedenRegistryService.exportSwedishCsv(allLeads);
-    setLoading(false);
-  };
-
   const currentPitchText = useMemo(() => {
     if (!pitchLead) return '';
     return swedenRegistryService.generateSwedishPitch(pitchLead, pitchLanguage);
@@ -388,16 +360,6 @@ export const SwedenBusinessRegistryView: React.FC<SwedenBusinessRegistryViewProp
               style={{ padding: '9px 16px', fontSize: '0.85rem', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '8px', color: '#005293', borderColor: '#005293' }}
             >
               <Download size={16} /> {isEn ? 'Export Swedish CSV' : 'Exportera Svensk CSV'}
-            </button>
-            {/* Export All button */}
-            <button
-              onClick={handleExportAll}
-              className="btn btn-secondary"
-              style={{ padding: '9px 16px', fontSize: '0.85rem', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '8px', color: '#005293', borderColor: '#005293' }}
-              disabled={loading}
-              title={isEn ? 'Export ALL 1.42 M Swedish companies (may take a while)' : 'Exportera ALLA 1,42 M svenska företag (kan ta tid)'}
-            >
-              <Download size={16} /> {isEn ? 'Export All (CSV/Excel)' : 'Exportera Alla (CSV/Excel)'}
             </button>
           </div>
         </div>
