@@ -340,6 +340,7 @@ export interface SwedenVatBusinessInfo {
   ceoOrContact?: string;
   registeredAddress?: string;
   sourceRegistry: 'Bolagsverket & Skatteverket' | 'Allabolag' | 'EU_VIES' | 'Bolagsverket & SCB (Officiellt HVD)';
+  ratsitUrl?: string;
   hittaUrl?: string;
   allabolagUrl?: string;
   eniroUrl?: string;

@@ -24,16 +24,18 @@ LeadPulse isolates client discovery into **10 dedicated, non-contaminated lead s
 6. 🚀 **Venture-Backed & Funded Startups (`funded_startups`)**: Scans funded tech startups (Y-Combinator, Betalist, Seed/Series A rounds) seeking freelance fullstack engineering bandwidth (React, Next.js, React Native, Flutter).
 7. 💼 **Remote Jobs & Hiring Feed (`remote_jobs`)**: Aggregates real-time hiring posts from companies actively looking for web developers, mobile app engineers, and UI/UX designers from HackerNews "Who is Hiring", Remotive, Jobicy, and Reddit (`r/forhire`).
 8. 🏛️ **Global Business Registries (`global_registries`)**: Scans official government legal incorporation registries (OpenCorporates, UK Companies House) for brand-new LLCs registered in the last 30–60 days that need their first digital presence.
-9. 🎪 **Trade Expos & Booth Exhibitors (`trade_expos`)**: Tracks corporate trade show exhibitors and booth sponsors participating in major global trade Expos.
-10. 📊 **Executive Overview & Sales Pipeline (`dashboard` & `kanban`)**: Features a high-level metrics dashboard, lead score distribution charts, temperature heatmaps, and a full drag-and-drop Kanban pipeline board (`NEW`, `QUALIFIED`, `CONTACTED`, `PROPOSAL`, `WON`).
+9. 🇸🇪 **Sweden Business Registry & HVD Engine (`sweden_registry`)**: Direct integration with Bolagsverket & SCB (EU 2023/138 High-Value Dataset). Indexes **791,105 active Swedish companies** (658,420 Aktiebolag AB) in a local high-performance SQLite database with sub-millisecond FTS5 search, 10-digit Modulo-10 Luhn verification, native Moms/VAT status, and Reklamspärr outreach filtering.
+10. 🎪 **Trade Expos & Booth Exhibitors (`trade_expos`)**: Tracks corporate trade show exhibitors and booth sponsors participating in major global trade Expos.
+11. 📊 **Executive Overview & Sales Pipeline (`dashboard` & `kanban`)**: Features a high-level metrics dashboard, lead score distribution charts, temperature heatmaps, and a full drag-and-drop Kanban pipeline board (`NEW`, `QUALIFIED`, `CONTACTED`, `PROPOSAL`, `WON`).
 
 ---
 
 ## ⚡ Key Architecture & Features
 
-- **Zero Fake Data Policy**: Strictly refrains from synthetic email generation, displaying verified contact badges or official corporate pending statuses.
+- **Zero Fake Data Policy**: Strictly refrains from synthetic generation, displaying verified contact badges or official corporate registry records.
+- **High-Speed SQLite & FTS5 Engine**: Local SQLite database (`data/sweden/sweden_registry.db`, 390 MB) indexing 791k+ Swedish active companies with FTS5 unicode diacritic folding (0.4ms – 1.2ms latency).
 - **AI Proposal & Pitch Studio**: Generates tailored email subjects, custom pitch proposals, and 1-click WhatsApp scripts for each specific lead category.
-- **1-Click Outreach Launchers**: Direct Google Email Search, LinkedIn Profile Search, and Twitter/X DM shortcuts on every lead card.
+- **1-Click Outreach Launchers**: Direct Google Email Search, LinkedIn Profile Search, Hitta.se, Allabolag.se, and Eniro.se lookup links on every lead card.
 - **Multi-Stage Email Validation**: Real-time validation badges (`FOUND` ➔ `FORMAT_VALID` ➔ `DOMAIN_VALID` ➔ `📬 MX_VALID` ➔ `✅ VERIFIED`).
 - **Phone Normalization & WhatsApp Direct**: Automatic country code resolution (`+1`, `+44`, `+971`, `+92`) and instant 1-click pre-filled WhatsApp chat links.
 - **Universal Export Engine**: Export filtered lead lists to CSV / Excel with custom module-specific column structures.
@@ -44,10 +46,11 @@ LeadPulse isolates client discovery into **10 dedicated, non-contaminated lead s
 ## 🛠️ Tech Stack
 
 - **Core**: React 18, TypeScript, Vite
+- **Backend & Database**: Node.js v22 `node:sqlite` (`DatabaseSync`), Express, FTS5 Virtual Table
 - **Styling**: Vanilla CSS with custom glassmorphism design tokens & micro-animations
 - **Icons**: Lucide React
 - **Geocoding & Maps**: OpenStreetMap Overpass QL & Komoot Photon Engine
-- **Persistence**: LocalStorage reactive schema state
+- **Persistence**: LocalStorage reactive schema state + SQLite persistent disk storage
 
 ---
 
@@ -60,10 +63,17 @@ git clone https://github.com/hammad02520/leadpulse-client-finder.git
 # 2. Install dependencies
 npm install
 
-# 3. Start local dev server
-npm run dev
+# 3. Ingest 791k+ Swedish Active Companies into SQLite (One-time, ~15-30s)
+npm run sweden:ingest
 
-# 4. Build for production (TypeScript verified)
+# 4. Start Backend Server (:3001) + Frontend Vite App (:3000)
+npm run dev:all
+
+# Or run separately:
+npm run server      # Express SQLite API backend (:3001)
+npm run dev         # Vite React frontend (:3000)
+
+# 5. Build for production (TypeScript verified)
 npm run build
 ```
 

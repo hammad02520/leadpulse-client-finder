@@ -9,4 +9,5 @@ data/
 *.db-wal
 *.db-shm
 *.zip
+*.rar
 

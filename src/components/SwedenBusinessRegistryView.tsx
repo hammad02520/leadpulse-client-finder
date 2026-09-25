@@ -659,7 +659,6 @@ export const SwedenBusinessRegistryView: React.FC<SwedenBusinessRegistryViewProp
           {leads.map(lead => {
             const sw = lead.swedenVatInfo;
             const hasWebsite = lead.websiteAudit?.hasWebsite;
-            const fitScore = lead.freelancerFitScore || 85;
 
             return (
               <div 
@@ -678,7 +677,7 @@ export const SwedenBusinessRegistryView: React.FC<SwedenBusinessRegistryViewProp
                 }}
               >
                 
-                {/* Header: Company Name, Type & Fit score */}
+                {/* Header: Company Name & Type */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '10px' }}>
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '4px' }}>
@@ -714,23 +713,6 @@ export const SwedenBusinessRegistryView: React.FC<SwedenBusinessRegistryViewProp
                     <div style={{ fontSize: '0.775rem', color: 'var(--text-muted)', marginTop: '3px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <MapPin size={13} color="#005293" />
                       <span>{sw?.municipality || lead.company.city}, {sw?.county}</span>
-                    </div>
-                  </div>
-
-                  {/* Score Pill */}
-                  <div style={{
-                    background: fitScore >= 90 ? '#fef2f2' : '#eff6ff',
-                    border: `1px solid ${fitScore >= 90 ? '#fecaca' : '#bfdbfe'}`,
-                    padding: '6px 10px',
-                    borderRadius: '8px',
-                    textAlign: 'right',
-                    flexShrink: 0
-                  }}>
-                    <div style={{ fontSize: '1rem', fontWeight: '900', color: fitScore >= 90 ? '#dc2626' : '#2563eb' }}>
-                      {fitScore}
-                    </div>
-                    <div style={{ fontSize: '0.65rem', fontWeight: '800', color: fitScore >= 90 ? '#b91c1c' : '#1d4ed8' }}>
-                      FIT SCORE
                     </div>
                   </div>
                 </div>
@@ -795,12 +777,24 @@ export const SwedenBusinessRegistryView: React.FC<SwedenBusinessRegistryViewProp
                     </div>
                   </div>
                   <div>
-                    <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: '0.675rem', fontWeight: '700' }}>{isEn ? 'ANNUAL TURNOVER' : 'OMSÄTTNING (REVENUE)'}</span>
+                    <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: '0.675rem', fontWeight: '700' }}>{isEn ? 'ANNUAL TURNOVER (1 YR)' : 'OMSÄTTNING (1 ÅR)'}</span>
                     <span style={{ fontWeight: '800', color: '#0284c7' }}>{sw?.revenueSek}</span>
+                    <a 
+                      href={sw?.ratsitUrl || `https://www.ratsit.se/${lead.swedenVatInfo?.orgNumber?.replace(/\D/g, '') || ''}`} 
+                      target="_blank" 
+                      rel="noreferrer" 
+                      style={{ display: 'block', fontSize: '0.625rem', color: '#0369a1', textDecoration: 'underline', fontWeight: '700' }}
+                      title="Se officiell årsredovisning på Ratsit (Global tillgång utan CloudFront blockering)"
+                    >
+                      {isEn ? 'Audited report (Ratsit) ↗' : 'Årsredovisning (Ratsit) ↗'}
+                    </a>
                   </div>
                   <div>
-                    <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: '0.675rem', fontWeight: '700' }}>{isEn ? 'PROFIT AFTER TAX' : 'VINST EFTER SKATT'}</span>
+                    <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: '0.675rem', fontWeight: '700' }}>{isEn ? 'PROFIT AFTER TAX (1 YR)' : 'ÅRETS RESULTAT (1 ÅR)'}</span>
                     <span style={{ fontWeight: '700', color: '#059669' }}>{sw?.profitSek}</span>
+                    <span style={{ display: 'block', fontSize: '0.625rem', color: 'var(--text-muted)' }}>
+                      {isEn ? '12 mo. fiscal' : '12 månader'}
+                    </span>
                   </div>
                 </div>
 
@@ -812,14 +806,14 @@ export const SwedenBusinessRegistryView: React.FC<SwedenBusinessRegistryViewProp
 
                 {/* Website & Opportunity Angle */}
                 <div style={{
-                  background: !hasWebsite ? '#fffbeb' : '#f0fdf4',
-                  border: `1px solid ${!hasWebsite ? '#fef3c7' : '#bbf7d0'}`,
+                  background: !lead.company.websiteUrl ? '#fffbeb' : '#f0fdf4',
+                  border: `1px solid ${!lead.company.websiteUrl ? '#fef3c7' : '#bbf7d0'}`,
                   borderRadius: '8px',
                   padding: '10px 12px',
                   fontSize: '0.8rem'
                 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', marginBottom: '6px' }}>
-                    {hasWebsite ? (
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', marginBottom: 0 }}>
+                    {lead.company.websiteUrl ? (
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: '800', color: '#15803d', flexWrap: 'wrap' }}>
                         <Globe size={15} />
                         <a 
@@ -828,27 +822,16 @@ export const SwedenBusinessRegistryView: React.FC<SwedenBusinessRegistryViewProp
                           rel="noreferrer"
                           style={{ color: '#0369a1', textDecoration: 'underline' }}
                         >
-                          {lead.company.websiteUrl}
+                          {lead.company.websiteUrl.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '')}
                         </a>
                         <span style={{ fontSize: '0.65rem', background: '#dcfce7', color: '#15803d', padding: '1px 6px', borderRadius: '4px' }}>
-                          {isEn ? 'Verified Site' : 'Verifierad'}
+                          Webbplats ↗
                         </span>
                       </div>
                     ) : (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: '700', color: '#b45309', flexWrap: 'wrap' }}>
-                        <AlertTriangle size={15} />
-                        <span>{isEn ? 'URL unlisted in registry' : 'Ej listad i registret'}</span>
-                        {lead.company.websiteUrl && (
-                          <a 
-                            href={lead.company.websiteUrl} 
-                            target="_blank" 
-                            rel="noreferrer"
-                            style={{ color: '#0284c7', textDecoration: 'underline', fontSize: '0.75rem', fontWeight: '700' }}
-                            title={isEn ? "Suggested candidate domain" : "Kandidatdomän"}
-                          >
-                            ({lead.company.websiteUrl.replace(/^https?:\/\/(www\.)?/, '')})
-                          </a>
-                        )}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: '700', color: '#64748b', flexWrap: 'wrap' }}>
+                        <Globe size={15} color="#94a3b8" />
+                        <span>{isEn ? 'No official website registered' : 'Saknar registrerad webbplats'}</span>
                       </div>
                     )}
 
@@ -870,46 +853,44 @@ export const SwedenBusinessRegistryView: React.FC<SwedenBusinessRegistryViewProp
                         rel="noreferrer"
                         className="btn btn-secondary"
                         style={{ padding: '3px 8px', fontSize: '0.725rem', display: 'inline-flex', alignItems: 'center', gap: '4px', textDecoration: 'none', background: '#ffffff', color: '#b45309', borderColor: '#cbd5e1' }}
-                        title="Hitta.se (Sweden Phone & Address Directory)"
+                        title="Hitta.se (Sweden Phone & Address Directory — Global Access)"
                       >
                         <Phone size={11} /> Hitta.se ↗
+                      </a>
+                      <a
+                        href={sw?.ratsitUrl || `https://www.ratsit.se/${lead.swedenVatInfo?.orgNumber?.replace(/\D/g, '') || ''}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="btn btn-secondary"
+                        style={{ padding: '3px 8px', fontSize: '0.725rem', display: 'inline-flex', alignItems: 'center', gap: '4px', textDecoration: 'none', background: '#ffffff', color: '#15803d', borderColor: '#cbd5e1' }}
+                        title="Ratsit.se (Official Swedish Corporate Finances — Global Access, No CloudFront Block)"
+                      >
+                        <Building2 size={11} /> Ratsit ↗
                       </a>
                       <a
                         href={sw?.allabolagUrl || `https://www.allabolag.se/${lead.swedenVatInfo?.orgNumber?.replace(/\D/g, '') || ''}`}
                         target="_blank"
                         rel="noreferrer"
                         className="btn btn-secondary"
-                        style={{ padding: '3px 8px', fontSize: '0.725rem', display: 'inline-flex', alignItems: 'center', gap: '4px', textDecoration: 'none', background: '#ffffff', color: '#15803d', borderColor: '#cbd5e1' }}
-                        title="Allabolag.se (Sweden Corporate Finances)"
+                        style={{ padding: '3px 8px', fontSize: '0.725rem', display: 'inline-flex', alignItems: 'center', gap: '4px', textDecoration: 'none', background: '#f8fafc', color: '#64748b', borderColor: '#cbd5e1' }}
+                        title="Allabolag.se (Requires European IP / VPN)"
                       >
-                        <Building2 size={11} /> Allabolag ↗
-                      </a>
-                      <a
-                        href={sw?.eniroUrl || `https://www.eniro.se/${encodeURIComponent(lead.company.name)}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="btn btn-secondary"
-                        style={{ padding: '3px 8px', fontSize: '0.725rem', display: 'inline-flex', alignItems: 'center', gap: '4px', textDecoration: 'none', background: '#ffffff', color: '#7c3aed', borderColor: '#cbd5e1' }}
-                        title="Eniro.se (Sweden Company Directory)"
-                      >
-                        <ExternalLink size={11} /> Eniro ↗
+                        <ExternalLink size={11} /> Allabolag (VPN) ↗
                       </a>
                     </div>
-                  </div>
-
-                  <div style={{ color: '#334155', lineHeight: '1.4', fontSize: '0.775rem' }}>
-                    {lead.description}
                   </div>
                 </div>
 
                 {/* Decision Maker & Contact */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.8rem', paddingTop: '6px', borderTop: '1px solid var(--border-color)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.8rem', paddingTop: '6px', borderTop: '1px solid var(--border-color)', flexWrap: 'wrap', gap: '8px' }}>
                   <div>
                     <div style={{ fontWeight: '700', color: 'var(--text-main)' }}>{sw?.ceoOrContact}</div>
-                    <div style={{ fontSize: '0.725rem', color: 'var(--text-muted)' }}>{lead.contact.phone || (isEn ? 'Phone in Swedish directory' : 'Telefon i företagsregistret')}</div>
+                    <div style={{ fontSize: '0.725rem', color: 'var(--text-muted)' }}>
+                      {lead.contact.phone || (isEn ? 'Direct phone via Hitta.se' : 'Telefon via Hitta.se')}
+                    </div>
                   </div>
 
-                  <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
                     {lead.contact.phone ? (
                       <a 
                         href={`tel:${lead.contact.phone}`} 
@@ -921,17 +902,17 @@ export const SwedenBusinessRegistryView: React.FC<SwedenBusinessRegistryViewProp
                       </a>
                     ) : (
                       <a 
-                        href={`https://www.hitta.se/s%C3%B6k?vad=${encodeURIComponent(lead.company.name + ' ' + (lead.company.city || ''))}`}
+                        href={sw?.hittaUrl || `https://www.hitta.se/s%C3%B6k?vad=${encodeURIComponent(lead.company.name + ' ' + (lead.company.city || ''))}`}
                         target="_blank"
                         rel="noreferrer"
                         className="btn btn-secondary" 
                         style={{ padding: '5px 9px', fontSize: '0.725rem', color: '#005293', borderColor: '#cbd5e1', display: 'inline-flex', alignItems: 'center', gap: '4px', textDecoration: 'none' }}
-                        title="Find phone number on Hitta.se"
+                        title="Find verified phone number on Hitta.se"
                       >
-                        <Phone size={11} color="#005293" /> {isEn ? 'Find Phone (Hitta)' : 'Hitta Telefon'}
+                        <Phone size={11} color="#005293" /> {isEn ? 'Phone (Hitta) ↗' : 'Telefon (Hitta) ↗'}
                       </a>
                     )}
-                    {lead.contact.email && (
+                    {lead.contact.email ? (
                       <a 
                         href={`mailto:${lead.contact.email}`} 
                         className="btn btn-secondary" 
@@ -939,6 +920,17 @@ export const SwedenBusinessRegistryView: React.FC<SwedenBusinessRegistryViewProp
                         title={isEn ? "Send email" : "Skicka e-post"}
                       >
                         <Mail size={13} color="#0284c7" /> {isEn ? 'Email' : 'Mail'}
+                      </a>
+                    ) : (
+                      <a 
+                        href={sw?.googleUrl || `https://www.google.com/search?q=${encodeURIComponent(lead.company.name + ' ' + (lead.company.city || '') + ' kontakt e-post')}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="btn btn-secondary" 
+                        style={{ padding: '5px 9px', fontSize: '0.725rem', color: '#0284c7', borderColor: '#cbd5e1', display: 'inline-flex', alignItems: 'center', gap: '4px', textDecoration: 'none' }}
+                        title="Search verified contact & email on Google"
+                      >
+                        <Mail size={11} color="#0284c7" /> {isEn ? 'Find Email ↗' : 'Sök E-post ↗'}
                       </a>
                     )}
                   </div>

@@ -198,11 +198,13 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
       <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#fafafa' }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span className={`badge ${score.temperature === 'HOT' ? 'badge-hot' : 'badge-warm'}`}>
-              Score {score.totalScore}/100 ({score.temperature})
-            </span>
+            {lead.source !== 'SWEDEN_VAT_REGISTRY' && (
+              <span className={`badge ${score.temperature === 'HOT' ? 'badge-hot' : 'badge-warm'}`}>
+                Score {score.totalScore}/100 ({score.temperature})
+              </span>
+            )}
             <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: '600' }}>
-              {lead.source}
+              {lead.source === 'SWEDEN_VAT_REGISTRY' ? '🇸🇪 Bolagsverket & SCB (Officiellt HVD)' : lead.source}
             </span>
           </div>
           <h2 style={{ fontSize: '1.1rem', fontWeight: '700', marginTop: '4px', color: 'var(--text-main)' }}>
@@ -517,9 +519,11 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
             </div>
           )}
 
-          <div style={{ fontSize: '0.775rem', background: '#f0f9ff', borderLeft: '3px solid #0284c7', padding: '8px 10px', borderRadius: '4px', color: '#0369a1' }}>
-            <strong>AI Pitch Angle:</strong> {audit.aiOpportunityReason}
-          </div>
+          {audit.aiOpportunityReason && (
+            <div style={{ fontSize: '0.775rem', background: '#f0f9ff', borderLeft: '3px solid #0284c7', padding: '8px 10px', borderRadius: '4px', color: '#0369a1' }}>
+              <strong>AI Pitch Angle:</strong> {audit.aiOpportunityReason}
+            </div>
+          )}
         </div>
 
         {/* Quick Outreach CTA */}

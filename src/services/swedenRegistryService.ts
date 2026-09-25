@@ -194,9 +194,9 @@ export class SwedenRegistryService {
               },
               website: {
                 url: row.website_url || undefined,
-                status: row.website_url ? 'VERIFIED' : 'NO_WEBSITE_FOUND',
+                status: row.website_url ? 'LIKELY' : 'NO_WEBSITE_FOUND',
                 candidateDomains: row.website_url ? [row.website_url] : [],
-                hasAudit: true
+                hasAudit: false
               },
               vies: {
                 status: 'NOT_CHECKED'
@@ -431,15 +431,7 @@ export class SwedenRegistryService {
       .replace(/[ö]/g, 'o')
       .replace(/[^a-z0-9]/g, '');
 
-    const oppEn = isVerifiedRegistryUrl
-      ? `Established Swedish ${company.legalForm} in ${company.location.city} with verified VAT (${company.tax.vatNumber}) and ${revenueSek} revenue. Active website: ${websiteUrl}. High-value opportunity for mobile speed overhaul, conversion optimization, and modern UI revamp.`
-      : `Verified Swedish ${company.legalForm} in ${company.location.city} with active VAT (${company.tax.vatNumber}) and ${revenueSek} revenue. Unlisted website in registry tags. Candidate domain: ${cleanSlug ? cleanSlug + '.se' : 'N/A'}. Opportunity: Build modern mobile web presence, claim local Google listings, and establish conversion funnel.`;
-
-    const oppSv = isVerifiedRegistryUrl
-      ? `Etablerat svenskt ${company.legalForm}-bolag i ${company.location.city} med godkänd F-skatt och moms (${company.tax.vatNumber}). Befintlig webbplats: ${websiteUrl}. Utmärkt potential för mobil modernisering, snabbare laddtid och fler offertförfrågningar.`
-      : `Aktivt svenskt ${company.legalForm}-företag i ${company.location.city} med verifierat momsnummer (${company.tax.vatNumber}) och ${revenueSek} i omsättning. Saknar officiell webbplats i registret. Kandidatdomän: ${cleanSlug ? cleanSlug + '.se' : 'N/A'}. Potential: Skapa modern responsiv webb, optimera lokal Google-närvaro och driv nya kundförfrågningar.`;
-
-    const opportunityReason = lang === 'EN' ? oppEn : oppSv;
+    const opportunityReason = '';
     const industryDesc = lang === 'EN' ? company.industry.categoryEn : company.industry.descriptionSv;
 
     const rawDigits = company.orgNumber.replace(/\D/g, '');
@@ -447,6 +439,8 @@ export class SwedenRegistryService {
     const vatNumber = company.tax.vatNumber;
 
     // Outbound lookup URLs (strictly adhering to open directory linking without scraping)
+    // Ratsit.se has 100% Bolagsverket official audited reports with ZERO geo-blocking (Allabolag blocks non-EU IPs via CloudFront)
+    const ratsitUrl = `https://www.ratsit.se/${rawDigits}`;
     const hittaUrl = `https://www.hitta.se/s%C3%B6k?vad=${encodeURIComponent(company.legalName + ' ' + company.location.city)}`;
     const allabolagUrl = `https://www.allabolag.se/${rawDigits}`;
     const eniroUrl = `https://www.eniro.se/${encodeURIComponent(company.legalName)}`;
@@ -471,16 +465,18 @@ export class SwedenRegistryService {
       ceoOrContact: `${company.legalName} Ledning (VD)`,
       registeredAddress: company.location.streetAddress ? `${company.location.streetAddress}, ${company.location.postalCode ? company.location.postalCode + ' ' : ''}${company.location.city}, Sverige` : `${company.location.city}, Sverige`,
       sourceRegistry: 'Bolagsverket & SCB (Officiellt HVD)',
+      ratsitUrl,
       hittaUrl,
       allabolagUrl,
       eniroUrl,
       googleUrl
     };
 
-    const phonePrefix = company.location.city === 'Stockholm' ? '+46 8' : company.location.city === 'Göteborg' ? '+46 31' : company.location.city === 'Malmö' ? '+46 40' : '+46 18';
+    // Official SCB & Bolagsverket bulk datasets do NOT publish direct emails or phone numbers due to GDPR (IMY).
+    // Real contacts are accessed directly via 1-click verified outbound lookups (Hitta.se, Allabolag, Google).
     const contacts: PublicContacts = {
-      phone: `${phonePrefix} ${Math.floor(100 + (index * 3) % 899)} ${Math.floor(10 + (index * 7) % 89)} ${Math.floor(10 + (index * 13) % 89)}`,
-      email: `kontakt@${cleanSlug || 'foretag'}.se`,
+      phone: undefined,
+      email: undefined,
       whatsapp: undefined,
       address: swedenInfo.registeredAddress
     };
@@ -532,14 +528,14 @@ export class SwedenRegistryService {
       contact: {
         personName: swedenInfo.ceoOrContact,
         role: 'VD / Beslutsfattare',
-        email: contacts.email,
-        phone: contacts.phone,
-        phoneNormalized: contacts.phone?.replace(/\s+/g, ''),
+        email: undefined,
+        phone: undefined,
+        phoneNormalized: undefined,
         hasWhatsapp: false,
-        isPhoneVerified: true
+        isPhoneVerified: false
       },
       source: 'SWEDEN_VAT_REGISTRY',
-      sourceUrl: allabolagUrl,
+      sourceUrl: ratsitUrl,
       projectNeed: !isVerifiedRegistryUrl ? 'NO_WEBSITE_NO_APP' : 'WEB_REDESIGN',
       budgetSignal: `${revenueSek} Omsättning (Godkänd F-skatt)`,
       scoreBreakdown,
