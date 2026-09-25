@@ -4,7 +4,10 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "concurrently \"vite\" \"node --watch server/crawler.js\"",
+    "dev": "vite",
+    "server": "node server/scraper.js",
+    "dev:all": "concurrently \"node server/scraper.js\" \"vite\"",
+    "sweden:ingest": "node scripts/sweden/ingestScbToSqlite.js",
     "build": "tsc && vite build",
     "preview": "vite preview"
   },

@@ -19,14 +19,19 @@ import {
   FileText,
   Copy,
   Check,
-  RefreshCw
+  RefreshCw,
+  X,
+  Zap,
+  Terminal
 } from 'lucide-react';
 import { Lead, LeadStatus } from '../types';
 import { 
   swedenRegistryService, 
   SWEDISH_CITIES, 
   SWEDISH_INDUSTRIES, 
-  SwedenFilterParams 
+  SwedenFilterParams,
+  ViesVerificationResult,
+  BulkExportConfig
 } from '../services/swedenRegistryService';
 
 interface SwedenBusinessRegistryViewProps {
@@ -47,9 +52,11 @@ export const SwedenBusinessRegistryView: React.FC<SwedenBusinessRegistryViewProp
   const [selectedIndustry, setSelectedIndustry] = useState<string>('ALL');
   const [vatFilter, setVatFilter] = useState<SwedenFilterParams['vatStatusFilter']>('ALL');
   const [revenueFilter, setRevenueFilter] = useState<SwedenFilterParams['revenueTier']>('ALL');
+  const [legalFormFilter, setLegalFormFilter] = useState<'ALL' | 'AB' | 'HB'>('ALL');
+  const [excludeReklamsparr, setExcludeReklamsparr] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
   
-  const TOTAL_SWEDISH_COMPANIES = 1420000;
+  const [totalMatchingCount, setTotalMatchingCount] = useState<number>(0);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [pageSize, setPageSize] = useState<number>(50);
   const [jumpPageInput, setJumpPageInput] = useState<string>('');
@@ -57,17 +64,36 @@ export const SwedenBusinessRegistryView: React.FC<SwedenBusinessRegistryViewProp
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [loadingMore, setLoadingMore] = useState<boolean>(false);
+  const [isLiveDb, setIsLiveDb] = useState<boolean>(false);
   
   // Pitch Preview Modal state
   const [pitchLead, setPitchLead] = useState<Lead | null>(null);
   const [pitchLanguage, setPitchLanguage] = useState<'SVENSKA' | 'ENGLISH'>('SVENSKA');
   const [copiedPitch, setCopiedPitch] = useState<boolean>(false);
 
-  const totalPages = Math.ceil(TOTAL_SWEDISH_COMPANIES / pageSize);
+  // Live EU VIES Verification state
+  const [viesResults, setViesResults] = useState<Record<string, ViesVerificationResult>>({});
+  const [verifyingVat, setVerifyingVat] = useState<Record<string, boolean>>({});
+
+  const handleVerifyVat = async (leadId: string, orgOrVat: string) => {
+    if (verifyingVat[leadId]) return;
+    setVerifyingVat(prev => ({ ...prev, [leadId]: true }));
+    try {
+      const res = await swedenRegistryService.verifyVatWithVies(orgOrVat);
+      setViesResults(prev => ({ ...prev, [leadId]: res }));
+    } catch (err) {
+      console.error('VIES validation error:', err);
+    } finally {
+      setVerifyingVat(prev => ({ ...prev, [leadId]: false }));
+    }
+  };
+
+  const totalPages = Math.max(1, Math.ceil(totalMatchingCount / pageSize));
 
   // Load verified Swedish leads for a specific page
-  const fetchSwedishLeads = async (page: number = currentPage) => {
+  const fetchSwedishLeads = async (page: number = currentPage, queryOverride?: string) => {
     setLoading(true);
+    const query = queryOverride !== undefined ? queryOverride : searchQuery;
     const offset = (page - 1) * pageSize;
     try {
       const results = await swedenRegistryService.discoverSwedenLeads({
@@ -75,12 +101,17 @@ export const SwedenBusinessRegistryView: React.FC<SwedenBusinessRegistryViewProp
         industrySector: selectedIndustry,
         vatStatusFilter: vatFilter,
         revenueTier: revenueFilter,
-        searchTerm: searchQuery,
+        legalFormFilter,
+        excludeReklamsparr,
+        searchTerm: query,
         language: displayLanguage,
         limit: pageSize,
         offset
       });
       setLeads(results);
+      setIsLiveDb(Boolean((results as any).isLiveDb));
+      const count = (results as any).totalCount ?? results.length;
+      setTotalMatchingCount(count);
       onAddDiscoveredLeads(results);
     } catch (err) {
       console.error('Failed to load Swedish leads:', err);
@@ -115,6 +146,8 @@ export const SwedenBusinessRegistryView: React.FC<SwedenBusinessRegistryViewProp
         industrySector: selectedIndustry,
         vatStatusFilter: vatFilter,
         revenueTier: revenueFilter,
+        legalFormFilter,
+        excludeReklamsparr,
         searchTerm: searchQuery,
         language: displayLanguage,
         limit: pageSize,
@@ -141,11 +174,12 @@ export const SwedenBusinessRegistryView: React.FC<SwedenBusinessRegistryViewProp
   useEffect(() => {
     setCurrentPage(1);
     fetchSwedishLeads(1);
-  }, [selectedCity, selectedIndustry, vatFilter, revenueFilter, displayLanguage, pageSize]);
+  }, [selectedCity, selectedIndustry, vatFilter, revenueFilter, legalFormFilter, excludeReklamsparr, displayLanguage, pageSize]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    fetchSwedishLeads();
+    setCurrentPage(1);
+    fetchSwedishLeads(1, searchQuery);
   };
 
   const handleExportCsv = () => {
@@ -211,12 +245,25 @@ export const SwedenBusinessRegistryView: React.FC<SwedenBusinessRegistryViewProp
         <div style={{ maxWidth: '750px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', marginBottom: '12px' }}>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'rgba(254, 204, 0, 0.15)', border: '1px solid #fecc00', padding: '4px 12px', borderRadius: '999px', fontSize: '0.775rem', fontWeight: '800', color: '#fecc00' }}>
-              <span>🇸🇪</span> {isEn ? 'SWEDEN BOLAGSVERKET & SKATTEVERKET VERIFIED' : 'OFFENTLIGHETSPRINCIPEN & SKATTEVERKET VERIFIERAD'}
+              <span>🇸🇪</span> {isEn ? 'BOLAGSVERKET & SCB HIGH-VALUE DATASET (EU 2023/138)' : 'BOLAGSVERKET & SCB OFFICIELLA DATASET (EU 2023/138)'}
             </span>
 
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', background: 'rgba(74, 222, 128, 0.2)', border: '1px solid #4ade80', padding: '4px 10px', borderRadius: '999px', fontSize: '0.725rem', fontWeight: '800', color: '#4ade80' }}>
-              <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#4ade80', display: 'inline-block' }}></span>
-              {isEn ? '100% LIVE APIS (0 Hardcoded)' : '100% LIVE APIS (0 Statisk data)'}
+            <span style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              background: isLiveDb ? 'rgba(74, 222, 128, 0.25)' : 'rgba(254, 204, 0, 0.2)',
+              border: `1px solid ${isLiveDb ? '#4ade80' : '#fecc00'}`,
+              padding: '4px 12px',
+              borderRadius: '999px',
+              fontSize: '0.725rem',
+              fontWeight: '800',
+              color: isLiveDb ? '#4ade80' : '#fecc00'
+            }}>
+              <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: isLiveDb ? '#4ade80' : '#fecc00', display: 'inline-block' }}></span>
+              {isLiveDb 
+                ? (isEn ? 'LIVE SQLITE DB (791,105 ACTIVE COMPANIES)' : 'LOKAL SQLITE DATABAS (791 105 AKTIVA BOLAG)')
+                : (isEn ? 'OFFICIAL HVD REGISTRY PIPELINE' : 'OFFICIELLT BOLAGSREGISTER')}
             </span>
 
             {/* Language Switcher Toggle */}
@@ -259,25 +306,27 @@ export const SwedenBusinessRegistryView: React.FC<SwedenBusinessRegistryViewProp
           </h1>
           <p style={{ margin: 0, fontSize: '0.925rem', color: '#e0f2fe', lineHeight: '1.5' }}>
             {isEn 
-              ? 'Real verified Swedish businesses from official registries (Bolagsverket & Skatteverket) with 10-digit Organisationsnummer, verified VAT IDs (SE...01), F-tax approval, and annual turnover in SEK.'
-              : 'Officiellt registrerade svenska företag (Bolagsverket) med verifierade Organisationsnummer, momsstatus (Momsnr: SE...01), F-skattsedel och certifierad årsomsättning i SEK.'}
+              ? 'Real verified Swedish businesses from Bolagsverket & SCB HVD with 10-digit Modulo-10 Luhn Org.nr, native VAT status, F-skatt certification, Reklamspärr outreach filtering, and verified directory links.'
+              : 'Officiellt registrerade svenska företag (Bolagsverket & SCB HVD) med 10-siffrigt Luhn-godkänt Org.nr, momsstatus, F-skattsedel, reklamspärrsfiltrering och säkra kataloglänkar.'}
           </p>
         </div>
 
         {/* Quick Stats Pill */}
         <div style={{ display: 'flex', gap: '14px', flexWrap: 'wrap' }}>
           <div style={{ background: 'rgba(255, 255, 255, 0.1)', backdropFilter: 'blur(10px)', padding: '12px 18px', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.15)', textAlign: 'center' }}>
-            <div style={{ fontSize: '1.4rem', fontWeight: '900', color: '#fecc00' }}>1.42M+</div>
+            <div style={{ fontSize: '1.4rem', fontWeight: '900', color: '#fecc00' }}>
+              {totalMatchingCount.toLocaleString()}
+            </div>
             <div style={{ fontSize: '0.725rem', color: '#e0f2fe', fontWeight: '700', textTransform: 'uppercase' }}>
-              {isEn ? 'Bolagsverket Registry' : 'Bolagsverket Totalt'}
+              {searchQuery.trim() ? (isEn ? 'Matching Results' : 'Matchade Företag') : (isEn ? 'Active Loaded Companies' : 'Aktiva Företag')}
             </div>
           </div>
           <div style={{ background: 'rgba(255, 255, 255, 0.1)', backdropFilter: 'blur(10px)', padding: '12px 18px', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.15)', textAlign: 'center' }}>
             <div style={{ fontSize: '1.4rem', fontWeight: '900', color: '#4ade80' }}>
-              {isEn ? `Page ${currentPage}` : `Sida ${currentPage}`}
+              {isEn ? `Page ${currentPage} / ${totalPages}` : `Sida ${currentPage} / ${totalPages}`}
             </div>
             <div style={{ fontSize: '0.725rem', color: '#e0f2fe', fontWeight: '700', textTransform: 'uppercase' }}>
-              {isEn ? `Showing ${leads.length} leads` : `Visar ${leads.length} bolag`}
+              {isEn ? `Showing ${leads.length} on page` : `Visar ${leads.length} på sidan`}
             </div>
           </div>
           <div style={{ background: 'rgba(255, 255, 255, 0.1)', backdropFilter: 'blur(10px)', padding: '12px 18px', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.15)', textAlign: 'center' }}>
@@ -310,15 +359,48 @@ export const SwedenBusinessRegistryView: React.FC<SwedenBusinessRegistryViewProp
                 type="text"
                 placeholder={isEn ? "Search by company name, Org.nr (e.g. 556...), VAT nr, or keyword..." : "Sök på företagsnamn, Org.nr (t.ex. 556...), Momsnr, eller nyckelord..."}
                 value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
+                onChange={e => {
+                  const val = e.target.value;
+                  setSearchQuery(val);
+                  if (val === '') {
+                    setCurrentPage(1);
+                    fetchSwedishLeads(1, '');
+                  }
+                }}
                 style={{
                   width: '100%',
-                  padding: '9px 12px 9px 38px',
+                  padding: '9px 36px 9px 38px',
                   borderRadius: '8px',
                   border: '1px solid var(--border-color)',
                   fontSize: '0.875rem'
                 }}
               />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchQuery('');
+                    setCurrentPage(1);
+                    fetchSwedishLeads(1, '');
+                  }}
+                  title={isEn ? "Clear search" : "Rensa sökning"}
+                  style={{
+                    position: 'absolute',
+                    right: '10px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    color: 'var(--text-muted)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    padding: '2px'
+                  }}
+                >
+                  <X size={16} />
+                </button>
+              )}
             </div>
             <button type="submit" className="btn btn-primary" style={{ padding: '9px 18px', fontSize: '0.85rem' }}>
               <Search size={15} /> {isEn ? 'Search Companies' : 'Sök Företag'}
@@ -349,35 +431,36 @@ export const SwedenBusinessRegistryView: React.FC<SwedenBusinessRegistryViewProp
               disabled={loading}
               className="btn btn-secondary"
               style={{ padding: '9px 14px', fontSize: '0.85rem', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '6px' }}
-              title={isEn ? "Fetch fresh live data from Sweden APIs" : "Hämta färsk realtidsdata från Sverige"}
+              title={isEn ? "Fetch fresh data from Bolagsverket & SCB HVD" : "Hämta färsk data från Bolagsverket & SCB"}
             >
-              <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> {isEn ? 'Refresh Live Data' : 'Uppdatera Live'}
+              <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> {isEn ? 'Refresh HVD Data' : 'Uppdatera Register'}
             </button>
 
             <button 
               onClick={handleExportCsv}
-              className="btn btn-secondary"
-              style={{ padding: '9px 16px', fontSize: '0.85rem', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '8px', color: '#005293', borderColor: '#005293' }}
+              className="btn btn-primary"
+              style={{ padding: '9px 18px', fontSize: '0.85rem', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '8px', background: '#005293', borderColor: '#005293', color: '#ffffff' }}
+              title={isEn ? "Export genuine Swedish HVD leads currently loaded" : "Exportera äkta svenska registerleads"}
             >
-              <Download size={16} /> {isEn ? 'Export Swedish CSV' : 'Exportera Svensk CSV'}
+              <Download size={16} /> {isEn ? `Export Verified HVD (${leads.length} CSV)` : `Exportera Verifierade (${leads.length} CSV)`}
             </button>
           </div>
         </div>
 
         {/* Dropdowns Row */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '12px', paddingTop: '10px', borderTop: '1px solid var(--border-color)' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(185px, 1fr))', gap: '12px', paddingTop: '10px', borderTop: '1px solid var(--border-color)' }}>
           
           {/* City / Kommun */}
           <div>
             <label style={{ display: 'block', fontSize: '0.725rem', fontWeight: '800', color: 'var(--text-muted)', marginBottom: '5px', textTransform: 'uppercase' }}>
-              📍 {isEn ? 'Swedish City / Municipality' : 'Kommun / Stad (Sverige)'}
+              📍 {isEn ? 'Municipality' : 'Kommun / Stad'}
             </label>
             <select
               value={selectedCity}
               onChange={e => setSelectedCity(e.target.value)}
               style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '0.85rem', background: '#f8fafc', fontWeight: '600' }}
             >
-              <option value="ALL">{isEn ? 'All Sweden (All Cities)' : 'Hela Sverige (Alla städer)'}</option>
+              <option value="ALL">{isEn ? 'All Sweden (All 20 Cities)' : 'Hela Sverige (Alla 20 städer)'}</option>
               {SWEDISH_CITIES.map(c => (
                 <option key={c.name} value={c.name}>{c.name} ({c.county})</option>
               ))}
@@ -387,7 +470,7 @@ export const SwedenBusinessRegistryView: React.FC<SwedenBusinessRegistryViewProp
           {/* Industry / Bransch */}
           <div>
             <label style={{ display: 'block', fontSize: '0.725rem', fontWeight: '800', color: 'var(--text-muted)', marginBottom: '5px', textTransform: 'uppercase' }}>
-              🏢 {isEn ? 'Industry Sector (SNI Code)' : 'Bransch (SNI Kod)'}
+              🏢 {isEn ? 'Industry (SNI Code)' : 'Bransch (SNI)'}
             </label>
             <select
               value={selectedIndustry}
@@ -403,38 +486,93 @@ export const SwedenBusinessRegistryView: React.FC<SwedenBusinessRegistryViewProp
             </select>
           </div>
 
+          {/* Legal Form (Bolagsform) */}
+          <div>
+            <label style={{ display: 'block', fontSize: '0.725rem', fontWeight: '800', color: 'var(--text-muted)', marginBottom: '5px', textTransform: 'uppercase' }}>
+              ⚖️ {isEn ? 'Legal Form (Form)' : 'Bolagsform'}
+            </label>
+            <select
+              value={legalFormFilter}
+              onChange={e => setLegalFormFilter(e.target.value as any)}
+              style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '0.85rem', background: '#f8fafc', fontWeight: '600' }}
+            >
+              <option value="ALL">{isEn ? 'All Forms (AB & HB)' : 'Alla former (AB & HB)'}</option>
+              <option value="AB">{isEn ? 'Aktiebolag (AB) Only' : 'Endast Aktiebolag (AB)'}</option>
+              <option value="HB">{isEn ? 'Handelsbolag (HB) Only' : 'Endast Handelsbolag (HB)'}</option>
+            </select>
+          </div>
+
           {/* VAT / Moms Status */}
           <div>
             <label style={{ display: 'block', fontSize: '0.725rem', fontWeight: '800', color: 'var(--text-muted)', marginBottom: '5px', textTransform: 'uppercase' }}>
-              🛡️ {isEn ? 'VAT & Tax Compliance Status' : 'Moms & F-Skatt Status'}
+              🛡️ {isEn ? 'VAT & Tax Compliance' : 'Moms & F-Skatt'}
             </label>
             <select
               value={vatFilter}
               onChange={e => setVatFilter(e.target.value as any)}
               style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '0.85rem', background: '#f8fafc', fontWeight: '600' }}
             >
-              <option value="ALL">{isEn ? 'All Swedish Companies in Registry' : 'Alla Företag i Registret'}</option>
-              <option value="VERIFIED_VAT_ONLY">{isEn ? '✅ Verified VAT Registered (SE...01)' : '✅ Endast Momsregistrerade (SE...01)'}</option>
-              <option value="F_SKATT_ONLY">{isEn ? '📜 Approved for F-Tax (F-skatt)' : '📜 Endast Godkänd för F-skatt'}</option>
-              <option value="NO_WEBSITE_ONLY">{isEn ? '🔥 No Official Website (Highest Opportunity)' : '🔥 Saknar Officiell Hemsida (Highest Fit)'}</option>
+              <option value="ALL">{isEn ? 'All Registry Records' : 'Alla Företag i Registret'}</option>
+              <option value="VERIFIED_VAT_ONLY">{isEn ? '✅ Verified VAT (SE...01)' : '✅ Endast Momsregistrerade'}</option>
+              <option value="F_SKATT_ONLY">{isEn ? '📜 Approved F-Tax (F-skatt)' : '📜 Endast Godkänd F-skatt'}</option>
+              <option value="NO_WEBSITE_ONLY">{isEn ? '🔥 No Website (High Fit)' : '🔥 Saknar Hemsida (Högst potential)'}</option>
             </select>
           </div>
 
           {/* Revenue Tier */}
           <div>
             <label style={{ display: 'block', fontSize: '0.725rem', fontWeight: '800', color: 'var(--text-muted)', marginBottom: '5px', textTransform: 'uppercase' }}>
-              💰 {isEn ? 'Annual Turnover / Revenue (SEK)' : 'Årlig Omsättning (SEK)'}
+              💰 {isEn ? 'Turnover / Revenue (SEK)' : 'Omsättning (SEK)'}
             </label>
             <select
               value={revenueFilter}
               onChange={e => setRevenueFilter(e.target.value as any)}
               style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '0.85rem', background: '#f8fafc', fontWeight: '600' }}
             >
-              <option value="ALL">{isEn ? 'All Revenue Tiers' : 'Alla Omsättningsnivåer'}</option>
-              <option value="HIGH_REVENUE">{isEn ? '> 15 Million SEK (High Revenue)' : '> 15 Miljoner SEK (Toppskikt)'}</option>
-              <option value="MID_REVENUE">{isEn ? '5 - 15 Million SEK (Established Mid-Tier)' : '5 - 15 Miljoner SEK (Etablerade)'}</option>
-              <option value="GROWTH">{isEn ? '< 5 Million SEK (Small Business)' : '< 5 Miljoner SEK (Småföretag)'}</option>
+              <option value="ALL">{isEn ? 'All Turnover Tiers' : 'Alla Omsättningsnivåer'}</option>
+              <option value="HIGH_REVENUE">{isEn ? '> 15M SEK (High Revenue)' : '> 15M SEK (Toppskikt)'}</option>
+              <option value="MID_REVENUE">{isEn ? '5 - 15M SEK (Established)' : '5 - 15M SEK (Etablerade)'}</option>
+              <option value="GROWTH">{isEn ? '< 5M SEK (Small Business)' : '< 5M SEK (Småföretag)'}</option>
             </select>
+          </div>
+
+          {/* Reklamspärr Outreach Safety Switch */}
+          <div>
+            <label style={{ display: 'block', fontSize: '0.725rem', fontWeight: '800', color: 'var(--text-muted)', marginBottom: '5px', textTransform: 'uppercase' }}>
+              🛡️ {isEn ? 'Reklamspärr (Marketing)' : 'Reklamspärr (SCB)'}
+            </label>
+            <button
+              type="button"
+              onClick={() => setExcludeReklamsparr(!excludeReklamsparr)}
+              style={{
+                width: '100%',
+                padding: '8px 8px',
+                borderRadius: '8px',
+                border: excludeReklamsparr ? '1px solid #16a34a' : '1px solid #d97706',
+                background: excludeReklamsparr ? '#f0fdf4' : '#fffbeb',
+                color: excludeReklamsparr ? '#15803d' : '#b45309',
+                fontSize: '0.775rem',
+                fontWeight: '700',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '5px'
+              }}
+              title={isEn ? "Exclude entities with advertising block in Bolagsverket / SCB" : "Dölj företag med reklamspärr hos Bolagsverket / SCB"}
+            >
+              {excludeReklamsparr ? (
+                <>
+                  <ShieldCheck size={14} color="#16a34a" />
+                  <span>{isEn ? 'Safe: Hide Blocked' : 'Säker: Dölj spärrade'}</span>
+                </>
+              ) : (
+                <>
+                  <AlertTriangle size={14} color="#d97706" />
+                  <span>{isEn ? 'Show All (Inc. Blocked)' : 'Visa även spärrade'}</span>
+                </>
+              )}
+            </button>
           </div>
 
         </div>
@@ -489,8 +627,8 @@ export const SwedenBusinessRegistryView: React.FC<SwedenBusinessRegistryViewProp
               </span>
               <span>
                 {isEn 
-                  ? `Page ${currentPage.toLocaleString()} of ${totalPages.toLocaleString()} (1,420,000+ Enterprises)`
-                  : `Sida ${currentPage.toLocaleString()} av ${totalPages.toLocaleString()} (1 420 000+ Företag)`}
+                  ? `Page ${currentPage.toLocaleString()} of ${totalPages.toLocaleString()} (${totalMatchingCount.toLocaleString()} Enterprises)`
+                  : `Sida ${currentPage.toLocaleString()} av ${totalPages.toLocaleString()} (${totalMatchingCount.toLocaleString()} Företag)`}
               </span>
             </div>
 
@@ -545,10 +683,17 @@ export const SwedenBusinessRegistryView: React.FC<SwedenBusinessRegistryViewProp
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '4px' }}>
                       <span style={{ fontSize: '0.7rem', fontWeight: '800', background: '#e0f2fe', color: '#0369a1', padding: '2px 8px', borderRadius: '4px' }}>
-                        {sw?.companyType || 'Aktiebolag'}
+                        🇸🇪 Bolagsverket ({sw?.legalForm || 'AB'})
                       </span>
                       <span style={{ fontSize: '0.7rem', fontWeight: '800', background: '#dcfce7', color: '#15803d', padding: '2px 8px', borderRadius: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
                         <ShieldCheck size={12} /> {isEn ? 'F-Tax: Approved' : 'F-Skatt: Godkänd'}
+                      </span>
+                      <span style={{ fontSize: '0.7rem', fontWeight: '800', background: sw?.marketingBlocked ? '#fef2f2' : '#f0fdf4', color: sw?.marketingBlocked ? '#b91c1c' : '#15803d', border: `1px solid ${sw?.marketingBlocked ? '#fecaca' : '#bbf7d0'}`, padding: '2px 8px', borderRadius: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        {sw?.marketingBlocked ? (
+                          <><span>⚠️</span> {isEn ? 'Reklamspärr: Blocked' : 'Reklamspärr: Spärrad'}</>
+                        ) : (
+                          <><span>✉️</span> {isEn ? 'Reklamspärr: Allowed (Safe)' : 'Reklamspärr: Ej spärrad'}</>
+                        )}
                       </span>
                     </div>
 
@@ -607,7 +752,47 @@ export const SwedenBusinessRegistryView: React.FC<SwedenBusinessRegistryViewProp
                   </div>
                   <div>
                     <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: '0.675rem', fontWeight: '700' }}>{isEn ? 'VAT ID (MOMSNR)' : 'MOMSNUMMER (VAT)'}</span>
-                    <span style={{ fontWeight: '800', color: '#16a34a', fontFamily: 'monospace' }}>{sw?.vatNumber}</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                      <span style={{ fontWeight: '800', color: '#16a34a', fontFamily: 'monospace' }}>{sw?.vatNumber}</span>
+                      {viesResults[lead.id] ? (
+                        <span 
+                          title={viesResults[lead.id].statusMessage}
+                          style={{
+                            fontSize: '0.65rem',
+                            fontWeight: '800',
+                            padding: '1px 5px',
+                            borderRadius: '4px',
+                            background: viesResults[lead.id].isValid ? '#dcfce7' : '#fee2e2',
+                            color: viesResults[lead.id].isValid ? '#15803d' : '#b91c1c',
+                            cursor: 'help'
+                          }}
+                        >
+                          {viesResults[lead.id].isValid ? (viesResults[lead.id].source === 'EU_VIES_OFFICIAL' ? '✓ EU VIES' : '✓ Luhn OK') : '✕ Invalid'}
+                        </span>
+                      ) : (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (sw?.vatNumber || sw?.orgNumber) {
+                              handleVerifyVat(lead.id, sw.vatNumber || sw.orgNumber);
+                            }
+                          }}
+                          disabled={verifyingVat[lead.id]}
+                          style={{
+                            fontSize: '0.65rem',
+                            fontWeight: '700',
+                            padding: '1px 6px',
+                            borderRadius: '4px',
+                            border: '1px solid #cbd5e1',
+                            background: '#ffffff',
+                            color: '#0369a1',
+                            cursor: verifyingVat[lead.id] ? 'wait' : 'pointer'
+                          }}
+                        >
+                          {verifyingVat[lead.id] ? '...' : (isEn ? 'Verify VIES' : 'Verifiera VIES')}
+                        </button>
+                      )}
+                    </div>
                   </div>
                   <div>
                     <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: '0.675rem', fontWeight: '700' }}>{isEn ? 'ANNUAL TURNOVER' : 'OMSÄTTNING (REVENUE)'}</span>
@@ -667,17 +852,49 @@ export const SwedenBusinessRegistryView: React.FC<SwedenBusinessRegistryViewProp
                       </div>
                     )}
 
-                    {/* 🔍 1-Click Google Verification button */}
-                    <a
-                      href={`https://www.google.com/search?q=${encodeURIComponent(lead.company.name + ' ' + (lead.company.city || '') + ' hemsida')}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="btn btn-secondary"
-                      style={{ padding: '3px 9px', fontSize: '0.725rem', display: 'inline-flex', alignItems: 'center', gap: '4px', textDecoration: 'none', background: '#ffffff', color: '#005293', borderColor: '#cbd5e1' }}
-                      title={isEn ? "Search this business on Google" : "Verifiera företaget på Google"}
-                    >
-                      <Search size={12} /> {isEn ? 'Verify on Google ↗' : 'Kolla på Google ↗'}
-                    </a>
+                    {/* 🔍 1-Click Outbound Verification & Directory Helpers */}
+                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                      <a
+                        href={sw?.googleUrl || `https://www.google.com/search?q=${encodeURIComponent(lead.company.name + ' ' + (lead.company.city || '') + ' hemsida')}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="btn btn-secondary"
+                        style={{ padding: '3px 8px', fontSize: '0.725rem', display: 'inline-flex', alignItems: 'center', gap: '4px', textDecoration: 'none', background: '#ffffff', color: '#005293', borderColor: '#cbd5e1' }}
+                        title="Google Search"
+                      >
+                        <Search size={11} /> Google ↗
+                      </a>
+                      <a
+                        href={sw?.hittaUrl || `https://www.hitta.se/s%C3%B6k?vad=${encodeURIComponent(lead.company.name + ' ' + (lead.company.city || ''))}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="btn btn-secondary"
+                        style={{ padding: '3px 8px', fontSize: '0.725rem', display: 'inline-flex', alignItems: 'center', gap: '4px', textDecoration: 'none', background: '#ffffff', color: '#b45309', borderColor: '#cbd5e1' }}
+                        title="Hitta.se (Sweden Phone & Address Directory)"
+                      >
+                        <Phone size={11} /> Hitta.se ↗
+                      </a>
+                      <a
+                        href={sw?.allabolagUrl || `https://www.allabolag.se/${lead.swedenVatInfo?.orgNumber?.replace(/\D/g, '') || ''}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="btn btn-secondary"
+                        style={{ padding: '3px 8px', fontSize: '0.725rem', display: 'inline-flex', alignItems: 'center', gap: '4px', textDecoration: 'none', background: '#ffffff', color: '#15803d', borderColor: '#cbd5e1' }}
+                        title="Allabolag.se (Sweden Corporate Finances)"
+                      >
+                        <Building2 size={11} /> Allabolag ↗
+                      </a>
+                      <a
+                        href={sw?.eniroUrl || `https://www.eniro.se/${encodeURIComponent(lead.company.name)}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="btn btn-secondary"
+                        style={{ padding: '3px 8px', fontSize: '0.725rem', display: 'inline-flex', alignItems: 'center', gap: '4px', textDecoration: 'none', background: '#ffffff', color: '#7c3aed', borderColor: '#cbd5e1' }}
+                        title="Eniro.se (Sweden Company Directory)"
+                      >
+                        <ExternalLink size={11} /> Eniro ↗
+                      </a>
+                    </div>
                   </div>
 
                   <div style={{ color: '#334155', lineHeight: '1.4', fontSize: '0.775rem' }}>
@@ -689,11 +906,11 @@ export const SwedenBusinessRegistryView: React.FC<SwedenBusinessRegistryViewProp
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.8rem', paddingTop: '6px', borderTop: '1px solid var(--border-color)' }}>
                   <div>
                     <div style={{ fontWeight: '700', color: 'var(--text-main)' }}>{sw?.ceoOrContact}</div>
-                    <div style={{ fontSize: '0.725rem', color: 'var(--text-muted)' }}>{lead.contact.phone}</div>
+                    <div style={{ fontSize: '0.725rem', color: 'var(--text-muted)' }}>{lead.contact.phone || (isEn ? 'Phone in Swedish directory' : 'Telefon i företagsregistret')}</div>
                   </div>
 
-                  <div style={{ display: 'flex', gap: '6px' }}>
-                    {lead.contact.phone && (
+                  <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                    {lead.contact.phone ? (
                       <a 
                         href={`tel:${lead.contact.phone}`} 
                         className="btn btn-secondary" 
@@ -701,6 +918,17 @@ export const SwedenBusinessRegistryView: React.FC<SwedenBusinessRegistryViewProp
                         title={isEn ? "Call directly" : "Ring direkt"}
                       >
                         <Phone size={13} color="#16a34a" /> {isEn ? 'Call' : 'Ring'}
+                      </a>
+                    ) : (
+                      <a 
+                        href={`https://www.hitta.se/s%C3%B6k?vad=${encodeURIComponent(lead.company.name + ' ' + (lead.company.city || ''))}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="btn btn-secondary" 
+                        style={{ padding: '5px 9px', fontSize: '0.725rem', color: '#005293', borderColor: '#cbd5e1', display: 'inline-flex', alignItems: 'center', gap: '4px', textDecoration: 'none' }}
+                        title="Find phone number on Hitta.se"
+                      >
+                        <Phone size={11} color="#005293" /> {isEn ? 'Find Phone (Hitta)' : 'Hitta Telefon'}
                       </a>
                     )}
                     {lead.contact.email && (
@@ -778,13 +1006,13 @@ export const SwedenBusinessRegistryView: React.FC<SwedenBusinessRegistryViewProp
             <div>
               <div style={{ fontSize: '0.925rem', color: 'var(--text-main)', fontWeight: '800' }}>
                 {isEn 
-                  ? `Page ${currentPage.toLocaleString()} of ${totalPages.toLocaleString()} (1,420,000+ Total Swedish Companies)`
-                  : `Sida ${currentPage.toLocaleString()} av ${totalPages.toLocaleString()} (1 420 000+ Svenska Företag)`}
+                  ? `Page ${currentPage.toLocaleString()} of ${totalPages.toLocaleString()} (${totalMatchingCount.toLocaleString()} Matching Active Swedish Companies)`
+                  : `Sida ${currentPage.toLocaleString()} av ${totalPages.toLocaleString()} (${totalMatchingCount.toLocaleString()} Matchande Aktiva Svenska Företag)`}
               </div>
               <div style={{ fontSize: '0.775rem', color: 'var(--text-muted)' }}>
                 {isEn 
-                  ? `Showing businesses ${(currentPage - 1) * pageSize + 1} - ${Math.min(currentPage * pageSize, TOTAL_SWEDISH_COMPANIES).toLocaleString()} of Swedish Registry`
-                  : `Visar företag ${(currentPage - 1) * pageSize + 1} - ${Math.min(currentPage * pageSize, TOTAL_SWEDISH_COMPANIES).toLocaleString()} från Bolagsverket`}
+                  ? `Showing businesses ${Math.min((currentPage - 1) * pageSize + 1, totalMatchingCount).toLocaleString()} - ${Math.min(currentPage * pageSize, totalMatchingCount).toLocaleString()} of Swedish Registry`
+                  : `Visar företag ${Math.min((currentPage - 1) * pageSize + 1, totalMatchingCount).toLocaleString()} - ${Math.min(currentPage * pageSize, totalMatchingCount).toLocaleString()} från Bolagsverket`}
               </div>
             </div>
 
@@ -882,54 +1110,58 @@ export const SwedenBusinessRegistryView: React.FC<SwedenBusinessRegistryViewProp
           </div>
 
           {/* Quick Page Jump Presets & Append Mode row */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px', paddingTop: '12px', borderTop: '1px solid var(--border-color)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-              <span style={{ fontSize: '0.725rem', fontWeight: '800', color: 'var(--text-muted)', textTransform: 'uppercase' }}>
-                ⚡ {isEn ? 'Quick Jumps:' : 'Snabblänkar:'}
-              </span>
-              {[1, 10, 50, 100, 500, 1000, 5000].map(preset => (
+          {totalPages > 1 && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px', paddingTop: '12px', borderTop: '1px solid var(--border-color)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                <span style={{ fontSize: '0.725rem', fontWeight: '800', color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                  ⚡ {isEn ? 'Quick Jumps:' : 'Snabblänkar:'}
+                </span>
+                {[1, 5, 10, 20, 50, 100].filter(preset => preset <= totalPages).map(preset => (
+                  <button
+                    key={`preset_${preset}`}
+                    onClick={() => handlePageChange(preset)}
+                    disabled={loading || currentPage === preset}
+                    style={{
+                      padding: '4px 8px',
+                      borderRadius: '5px',
+                      border: '1px solid var(--border-color)',
+                      background: currentPage === preset ? '#e0f2fe' : '#f8fafc',
+                      color: currentPage === preset ? '#005293' : 'var(--text-muted)',
+                      fontSize: '0.725rem',
+                      fontWeight: '700',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Page {preset}
+                  </button>
+                ))}
+              </div>
+
+              {/* Append Next Batch Button */}
+              {leads.length < totalMatchingCount && (
                 <button
-                  key={`preset_${preset}`}
-                  onClick={() => handlePageChange(preset)}
-                  disabled={loading || currentPage === preset}
+                  onClick={handleLoadMore}
+                  disabled={loadingMore}
+                  className="btn btn-secondary"
                   style={{
-                    padding: '4px 8px',
-                    borderRadius: '5px',
-                    border: '1px solid var(--border-color)',
-                    background: currentPage === preset ? '#e0f2fe' : '#f8fafc',
-                    color: currentPage === preset ? '#005293' : 'var(--text-muted)',
-                    fontSize: '0.725rem',
-                    fontWeight: '700',
-                    cursor: 'pointer'
+                    padding: '8px 16px',
+                    fontSize: '0.8rem',
+                    fontWeight: '800',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    color: '#005293',
+                    borderColor: '#005293'
                   }}
                 >
-                  Page {preset}
+                  <RefreshCw size={14} className={loadingMore ? 'animate-spin' : ''} />
+                  {loadingMore 
+                    ? (isEn ? 'Appending next batch...' : 'Hämtar fler...') 
+                    : (isEn ? `➕ Append Next (+${pageSize} to bottom)` : `➕ Lägg till fler (+${pageSize})`)}
                 </button>
-              ))}
+              )}
             </div>
-
-            {/* Append Next Batch Button */}
-            <button
-              onClick={handleLoadMore}
-              disabled={loadingMore}
-              className="btn btn-secondary"
-              style={{
-                padding: '8px 16px',
-                fontSize: '0.8rem',
-                fontWeight: '800',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                color: '#005293',
-                borderColor: '#005293'
-              }}
-            >
-              <RefreshCw size={14} className={loadingMore ? 'animate-spin' : ''} />
-              {loadingMore 
-                ? (isEn ? 'Appending next batch...' : 'Hämtar fler...') 
-                : (isEn ? `➕ Append Next (+${pageSize} to bottom)` : `➕ Lägg till fler (+${pageSize})`)}
-            </button>
-          </div>
+          )}
 
         </div>
       )}

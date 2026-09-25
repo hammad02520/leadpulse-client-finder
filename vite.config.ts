@@ -11,6 +11,10 @@ export default defineConfig({
         target: 'https://serpapi.com',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/serpapi-proxy/, '')
+      },
+      '/api/sweden': {
+        target: 'http://localhost:3001',
+        changeOrigin: true
       }
     }
   }

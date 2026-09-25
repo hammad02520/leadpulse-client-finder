@@ -19,6 +19,7 @@ import {
 import { pageSpeedService } from '../services/pageSpeedService';
 import { calculateLeadScore } from '../services/scoringEngine';
 import { formatExternalUrl } from '../services/contactValidationService';
+import { swedenRegistryService, ViesVerificationResult } from '../services/swedenRegistryService';
 import { Lead, LeadStatus } from '../types';
 
 interface LeadDetailDrawerProps {
@@ -41,8 +42,25 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
   const [newNote, setNewNote] = useState('');
   const [isAuditingPageSpeed, setIsAuditingPageSpeed] = useState(false);
   const [pageSpeedStatus, setPageSpeedStatus] = useState<string | null>(null);
+  const [viesResult, setViesResult] = useState<ViesVerificationResult | null>(null);
+  const [isVerifyingVies, setIsVerifyingVies] = useState(false);
 
   if (!lead) return null;
+
+  const handleVerifyVies = async () => {
+    if (!lead.swedenVatInfo || isVerifyingVies) return;
+    setIsVerifyingVies(true);
+    try {
+      const res = await swedenRegistryService.verifyVatWithVies(
+        lead.swedenVatInfo.vatNumber || lead.swedenVatInfo.orgNumber
+      );
+      setViesResult(res);
+    } catch (e) {
+      console.error('VIES drawer check error:', e);
+    } finally {
+      setIsVerifyingVies(false);
+    }
+  };
 
   const handleNoteSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -246,7 +264,38 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
               </div>
               <div>
                 <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: '0.675rem', fontWeight: '700' }}>VAT ID (MOMSNR)</span>
-                <span style={{ fontWeight: '800', color: '#16a34a', fontFamily: 'monospace' }}>{lead.swedenVatInfo.vatNumber}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                  <span style={{ fontWeight: '800', color: '#16a34a', fontFamily: 'monospace' }}>{lead.swedenVatInfo.vatNumber}</span>
+                  {viesResult ? (
+                    <span style={{
+                      fontSize: '0.65rem',
+                      fontWeight: '800',
+                      padding: '1px 5px',
+                      borderRadius: '4px',
+                      background: viesResult.isValid ? '#dcfce7' : '#fee2e2',
+                      color: viesResult.isValid ? '#15803d' : '#b91c1c'
+                    }}>
+                      {viesResult.isValid ? (viesResult.source === 'EU_VIES_OFFICIAL' ? '✓ EU VIES' : '✓ Luhn OK') : '✕ Invalid'}
+                    </span>
+                  ) : (
+                    <button
+                      onClick={handleVerifyVies}
+                      disabled={isVerifyingVies}
+                      style={{
+                        fontSize: '0.65rem',
+                        fontWeight: '700',
+                        padding: '1px 6px',
+                        borderRadius: '4px',
+                        border: '1px solid #cbd5e1',
+                        background: '#ffffff',
+                        color: '#0369a1',
+                        cursor: isVerifyingVies ? 'wait' : 'pointer'
+                      }}
+                    >
+                      {isVerifyingVies ? 'Checking...' : 'Check VIES'}
+                    </button>
+                  )}
+                </div>
               </div>
               <div>
                 <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: '0.675rem', fontWeight: '700' }}>ANNUAL TURNOVER</span>
@@ -264,6 +313,28 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
             <div style={{ fontSize: '0.75rem', color: '#334155' }}>
               <strong>CEO / Contact:</strong> {lead.swedenVatInfo.ceoOrContact}
             </div>
+
+            {viesResult && (
+              <div style={{
+                background: viesResult.isValid ? '#ecfdf5' : '#fef2f2',
+                border: `1px solid ${viesResult.isValid ? '#a7f3d0' : '#fecaca'}`,
+                padding: '10px 12px',
+                borderRadius: '6px',
+                fontSize: '0.75rem',
+                color: viesResult.isValid ? '#065f46' : '#991b1b',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '3px'
+              }}>
+                <div style={{ fontWeight: '800', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span>{viesResult.isValid ? '✅' : '⚠️'}</span>
+                  <span>{viesResult.source === 'EU_VIES_OFFICIAL' ? 'EU Commission VIES Validation' : 'Skatteverket Checksum Validation'}</span>
+                </div>
+                <div>{viesResult.statusMessage}</div>
+                {viesResult.name && <div><strong>EU Registered Name:</strong> {viesResult.name}</div>}
+                {viesResult.address && <div><strong>EU Registered Address:</strong> {viesResult.address}</div>}
+              </div>
+            )}
           </div>
         )}
 

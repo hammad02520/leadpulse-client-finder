@@ -51,12 +51,6 @@ const CITY_FALLBACK_BOUNDS: Record<string, BoundingBox> = {
 };
 
 export class OverpassService {
-  // Public Overpass API mirrors for maximum uptime and resilience
-  private overpassEndpoints = [
-    'https://overpass-api.de/api/interpreter',
-    'https://lz4.overpass-api.de/api/interpreter',
-    'https://overpass.kumi.systems/api/interpreter'
-  ];
 
   /**
    * Geocode ANY City & Country dynamically anywhere in the world using OpenStreetMap Photon API

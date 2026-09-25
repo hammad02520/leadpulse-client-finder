@@ -5,7 +5,6 @@ import { SwedenBusinessRegistryView } from './components/SwedenBusinessRegistryV
 import { LocalSMBClientFinderView } from './components/LocalSMBClientFinderView';
 import { LeadTable } from './components/LeadTable';
 import { KanbanBoard } from './components/KanbanBoard';
-import { CrawlerDashboard } from './components/CrawlerDashboard';
 import { LeadDetailDrawer } from './components/LeadDetailDrawer';
 import { OutreachModal } from './components/OutreachModal';
 import { ManualLeadModal } from './components/ManualLeadModal';
@@ -262,10 +261,6 @@ export const App: React.FC = () => {
               onStatusChange={handleStatusChange}
               freshOnly={freshOnly}
             />
-          )}
-
-          {currentView === 'crawler_dashboard' && (
-            <CrawlerDashboard />
           )}
         </main>
       </div>

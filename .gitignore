@@ -4,3 +4,9 @@ dist
 .env.local
 .DS_Store
 *.log
+data/
+*.db
+*.db-wal
+*.db-shm
+*.zip
+

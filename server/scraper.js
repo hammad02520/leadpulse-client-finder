@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import puppeteer from 'puppeteer';
+import { querySwedenCompanies, getSwedenRegistryStats, isDbReady } from './swedenRegistryDb.js';
 
 const app = express();
 const PORT = 3001;
@@ -9,6 +10,45 @@ app.use(cors());
 
 // Delay helper
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+// ============================================================================
+// 🇸🇪 Sweden Business Registry API (Direct SQLite High-Speed Integration)
+// ============================================================================
+app.get('/api/sweden/status', (req, res) => {
+  const stats = getSwedenRegistryStats();
+  res.json(stats);
+});
+
+app.get('/api/sweden/companies', (req, res) => {
+  try {
+    const {
+      city = 'ALL',
+      industry = 'ALL',
+      legalForm = 'ALL',
+      excludeReklamsparr = 'true',
+      revenueTier = 'ALL',
+      search = '',
+      limit = '50',
+      offset = '0'
+    } = req.query;
+
+    const data = querySwedenCompanies({
+      city,
+      industry,
+      legalForm,
+      excludeReklamsparr: String(excludeReklamsparr).toLowerCase() === 'true',
+      revenueTier,
+      search,
+      limit: parseInt(limit, 10) || 50,
+      offset: parseInt(offset, 10) || 0
+    });
+
+    res.json(data);
+  } catch (error) {
+    console.error('[Sweden API] Error querying companies:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
 
 app.get('/api/scrape', async (req, res) => {
   const query = req.query.query;

@@ -327,7 +327,9 @@ export interface SwedenVatBusinessInfo {
   vatStatus: 'REGISTERED' | 'EXEMPT';
   fSkattStatus: 'APPROVED' | 'NOT_APPROVED';
   employerRegistered: boolean;
-  companyType: 'Aktiebolag (AB)' | 'Enskild firma' | 'Handelsbolag (HB)' | 'Kommanditbolag (KB)';
+  companyType: 'Aktiebolag (AB)' | 'Enskild firma' | 'Handelsbolag (HB)' | 'Kommanditbolag (KB)' | 'Företag';
+  legalForm?: 'AB' | 'HB' | 'KB' | 'EF' | 'OTHER';
+  marketingBlocked?: boolean; // reklamspärr from SCB/Bolagsverket HVD
   revenueSek?: string; // Annual turnover (omsättning)
   profitSek?: string;
   employeeRange?: string;
@@ -337,7 +339,11 @@ export interface SwedenVatBusinessInfo {
   sniDescription?: string;
   ceoOrContact?: string;
   registeredAddress?: string;
-  sourceRegistry: 'Bolagsverket & Skatteverket' | 'Allabolag' | 'EU_VIES';
+  sourceRegistry: 'Bolagsverket & Skatteverket' | 'Allabolag' | 'EU_VIES' | 'Bolagsverket & SCB (Officiellt HVD)';
+  hittaUrl?: string;
+  allabolagUrl?: string;
+  eniroUrl?: string;
+  googleUrl?: string;
 }
 
 export interface SourceFilter {
@@ -371,5 +377,4 @@ export type AppViewMode =
   | 'sweden_registry'
   | 'dashboard' 
   | 'kanban' 
-  | 'table' 
-  | 'crawler_dashboard';
+  | 'table';
