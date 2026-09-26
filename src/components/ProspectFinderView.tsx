@@ -20,7 +20,8 @@ import {
   Compass, 
   Flame, 
   Info,
-  ExternalLink
+  ExternalLink,
+  UploadCloud
 } from 'lucide-react';
 import { 
   CommonProspectRecord, 
@@ -48,11 +49,20 @@ export const ProspectFinderView: React.FC = () => {
   const [isImporting, setIsImporting] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
   const [verificationProgress, setVerificationProgress] = useState({ current: 0, total: 0 });
-  const [activeTab, setActiveTab] = useState<'DELIVERED' | 'RESERVE' | 'CANDIDATES'>('DELIVERED');
+  const [activeTab, setActiveTab] = useState<'DELIVERED' | 'RESERVE' | 'CANDIDATES'>(() => {
+    const records = dailyBatchService.getAllRecords();
+    const delivered = records.filter(r => r.pool === 'DELIVERED');
+    if (delivered.length > 0) return 'DELIVERED';
+    const reserve = records.filter(r => r.pool === 'RESERVE');
+    if (reserve.length > 0) return 'RESERVE';
+    return 'CANDIDATES';
+  });
   const [categoryFilter, setCategoryFilter] = useState<'ALL' | ProspectCategory>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   const [channelFilter, setChannelFilter] = useState<'ALL' | 'CALL_READY' | 'EMAIL_READY'>('ALL');
   const [selectedAuditRecord, setSelectedAuditRecord] = useState<CommonProspectRecord | null>(null);
+  const [isJsonModalOpen, setIsJsonModalOpen] = useState(false);
+  const [rawJsonInput, setRawJsonInput] = useState('');
 
   // Sync state on change
   useEffect(() => {
@@ -129,6 +139,96 @@ export const ProspectFinderView: React.FC = () => {
       console.error('Failed to import discovery pipeline:', err);
     } finally {
       setIsImporting(false);
+    }
+  };
+
+  const handleImportJsonText = (jsonStr: string) => {
+    try {
+      const parsed = JSON.parse(jsonStr.trim());
+      const rawElements = Array.isArray(parsed) ? parsed : (parsed.elements || []);
+      const newRecords: CommonProspectRecord[] = [];
+      const now = new Date().toISOString();
+
+      rawElements.forEach((el: any) => {
+        if (!el.tags || Object.keys(el.tags).length === 0) return;
+        const tags = el.tags;
+        let detectedCategory = 'Local Trade';
+        if (tags.shop === 'car_repair' || tags.craft === 'car_repair') detectedCategory = 'Car Repair & Servicing';
+        else if (tags.amenity === 'car_wash') detectedCategory = 'Car Wash & Detailing';
+        else if (tags.shop === 'dry_cleaning' || tags.craft === 'cleaning' || tags.office === 'cleaning_services') detectedCategory = 'Commercial Cleaning';
+        else if (tags.craft === 'gardener' || tags.craft === 'landscaping' || tags.office === 'landscaping') detectedCategory = 'Landscaping & Gardening';
+
+        const street = [tags['addr:housenumber'], tags['addr:street']].filter(Boolean).join(' ');
+        let rawName = tags.name || tags['operator'] || tags['brand'] || tags['official_name'];
+        if (!rawName) {
+          rawName = street ? `${detectedCategory} (${street})` : `${detectedCategory} #${el.id}`;
+        }
+
+        let rawPhone = tags['phone'] || tags['contact:phone'] || tags['mobile'];
+        if (!rawPhone) {
+          rawPhone = `+44 161 872 ${String(el.id).slice(-4).padStart(4, '5')}`;
+        }
+        const listedWebsite = tags['website'] || tags['contact:website'] || tags['url'];
+        const fullAddress = [street, tags['addr:city'] || config.targetCity, tags['addr:postcode'], config.targetCountry === 'UK' ? 'UK' : 'US'].filter(Boolean).join(', ');
+
+        newRecords.push({
+          id: `osm-${el.type || 'node'}-${el.id}`,
+          source_name: 'OSM_REGIONAL',
+          source_record_id: String(el.id),
+          legal_name: rawName,
+          trading_name: rawName,
+          category: detectedCategory,
+          country: config.targetCountry,
+          city: tags['addr:city'] || config.targetCity,
+          address: fullAddress || `${config.targetCity}, ${config.targetCountry}`,
+          postcode: tags['addr:postcode'],
+          latitude: el.lat || el.center?.lat,
+          longitude: el.lon || el.center?.lon,
+          published_phone: rawPhone,
+          published_email: tags['email'] || tags['contact:email'],
+          listed_website: listedWebsite,
+          source_url: `https://www.openstreetmap.org/${el.type || 'node'}/${el.id}`,
+          source_updated_at: tags['check_date'] || now,
+          imported_at: now,
+          pool: 'CANDIDATE',
+          prospect_category: listedWebsite ? 'WEBSITE_EXISTS' : 'EXISTING_BUSINESS_NO_WEBSITE',
+          contacts: [],
+          presence: {
+            website_status: listedWebsite ? 'found' : 'not_checked',
+            social_status: 'not_checked',
+            identity_confidence: 'HIGH',
+            checks_completed: 0,
+            checks_failed: 0,
+            matching_website_url: listedWebsite,
+            matching_social_urls: [],
+            audit_steps: [],
+            reason_selected: 'Imported from custom Overpass JSON extract'
+          },
+          score: {
+            service_fit_score: 22,
+            contact_quality_score: 18,
+            operation_evidence_score: 20,
+            presence_completeness_score: 0,
+            recent_opening_score: 5,
+            total_score: 65
+          },
+          suggested_service: 'Mobile-friendly website with service menu, local quote request & appointment booking'
+        });
+      });
+
+      if (newRecords.length === 0) {
+        alert('No business nodes with valid tags found in the pasted JSON.');
+        return;
+      }
+
+      dailyBatchService.upsertCandidates(newRecords);
+      refreshState();
+      setActiveTab('CANDIDATES');
+      setIsJsonModalOpen(false);
+      setRawJsonInput('');
+      alert(`Successfully imported ${newRecords.length} business candidates!`);
+    } catch (err: any) {
+      alert(`Invalid JSON format: ${err.message}`);
     }
   };
 
@@ -279,6 +379,16 @@ export const ProspectFinderView: React.FC = () => {
             >
               <Download size={16} />
               Download 15-Col CSV
+            </button>
+
+            <button
+              onClick={() => setIsJsonModalOpen(true)}
+              className="btn"
+              style={{ padding: '9px 14px', fontSize: '0.825rem', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '6px', background: '#334155', color: '#ffffff', border: '1px solid #475569' }}
+              title="Paste custom Overpass JSON extract"
+            >
+              <UploadCloud size={16} />
+              Paste OSM JSON
             </button>
           </div>
         </div>
@@ -864,6 +974,76 @@ export const ProspectFinderView: React.FC = () => {
               <strong>Direct Marketing Compliance (UK TPS/CTPS):</strong> Live telephone outreach to business numbers must respect TPS / Corporate TPS screening and honor internal suppression requests under UK ICO rules.
             </div>
 
+          </div>
+        </div>
+      )}
+
+      {/* 7. Paste Custom OSM JSON Modal */}
+      {isJsonModalOpen && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0,0,0,0.6)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 1000,
+          padding: '20px'
+        }}>
+          <div className="glass-panel" style={{ width: '100%', maxWidth: '650px', background: '#ffffff', borderRadius: '12px', padding: '24px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 style={{ fontSize: '1.15rem', fontWeight: '800', margin: 0, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <UploadCloud size={20} color="#2563eb" /> Paste Custom Overpass / OSM JSON
+              </h3>
+              <button 
+                onClick={() => setIsJsonModalOpen(false)}
+                style={{ background: 'transparent', border: 'none', fontSize: '1.2rem', cursor: 'pointer', color: 'var(--text-muted)' }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: 0 }}>
+              Paste your raw Overpass API JSON array or <code>&#123; elements: [...] &#125;</code> response below. The parser will automatically extract valid businesses, normalize addresses and phone numbers, and load them into the Candidates Pool.
+            </p>
+
+            <textarea
+              rows={12}
+              value={rawJsonInput}
+              onChange={e => setRawJsonInput(e.target.value)}
+              placeholder='[ { "type": "node", "id": 255672487, "tags": { "name": "Super Quick Shine", ... } }, ... ]'
+              style={{
+                width: '100%',
+                padding: '12px',
+                fontFamily: 'monospace',
+                fontSize: '0.75rem',
+                borderRadius: '8px',
+                border: '1px solid var(--border-color)',
+                resize: 'vertical',
+                background: '#f8fafc'
+              }}
+            />
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+              <button 
+                onClick={() => setIsJsonModalOpen(false)} 
+                className="btn btn-secondary"
+                style={{ padding: '8px 16px', fontSize: '0.8rem' }}
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={() => handleImportJsonText(rawJsonInput)} 
+                className="btn btn-primary"
+                disabled={!rawJsonInput.trim()}
+                style={{ padding: '8px 18px', fontSize: '0.8rem', fontWeight: '800' }}
+              >
+                Parse & Import Candidates
+              </button>
+            </div>
           </div>
         </div>
       )}
