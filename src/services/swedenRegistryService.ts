@@ -124,7 +124,7 @@ export class SwedenRegistryService {
     return {
       isLiveDb: false,
       totalActive: SWEDISH_MASTER_COMPANIES.length,
-      safeCount: SWEDISH_MASTER_COMPANIES.filter(c => !c.compliance.marketingBlocked).length
+      safeCount: SWEDISH_MASTER_COMPANIES.filter((c: SwedishMasterCompany) => !c.compliance.marketingBlocked).length
     };
   }
 
@@ -215,7 +215,7 @@ export class SwedenRegistryService {
     }
 
     // Attempt 2: Fallback to embedded Master dataset
-    let filteredMaster = SWEDISH_MASTER_COMPANIES.filter(c => {
+    let filteredMaster = SWEDISH_MASTER_COMPANIES.filter((c: SwedishMasterCompany) => {
       // Municipality filter
       if (params.municipality && params.municipality !== 'ALL') {
         const cityMatch = c.location.city.toLowerCase() === params.municipality.toLowerCase() ||

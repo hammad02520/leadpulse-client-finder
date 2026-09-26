@@ -10,7 +10,8 @@ import {
   PhoneCall,
   Globe,
   Award,
-  Layers
+  Layers,
+  Target
 } from 'lucide-react';
 import { Lead, AppViewMode } from '../types';
 import { strictDeduplicate } from '../services/deduplicationService';
@@ -67,8 +68,37 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1 }}>
         
         <div style={{ fontSize: '0.675rem', fontWeight: '800', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', padding: '4px 8px' }}>
-          Verified Sources
+          Dual-Pipeline Engines
         </div>
+
+        {/* 0. Flagship: New Business & No-Website Prospect Finder */}
+        <button 
+          onClick={() => setCurrentView('prospect_finder')}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '10px 12px',
+            borderRadius: '8px',
+            border: currentView === 'prospect_finder' ? '1px solid #2563eb' : '1px solid transparent',
+            fontSize: '0.85rem',
+            fontWeight: '800',
+            cursor: 'pointer',
+            background: currentView === 'prospect_finder' ? '#eff6ff' : 'transparent',
+            color: currentView === 'prospect_finder' ? '#1d4ed8' : 'var(--text-main)',
+            textAlign: 'left',
+            boxShadow: currentView === 'prospect_finder' ? '0 2px 6px rgba(37, 99, 235, 0.15)' : 'none',
+            marginBottom: '4px'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <Target size={18} color="#2563eb" />
+            <span>No-Website Finder</span>
+          </div>
+          <span style={{ fontSize: '0.65rem', background: '#dbeafe', color: '#1d4ed8', padding: '2px 7px', borderRadius: '999px', fontWeight: '800' }}>
+            BLUEPRINT
+          </span>
+        </button>
 
         {/* 1. Dedicated Sweden VAT Registry */}
         <button 

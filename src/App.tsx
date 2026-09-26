@@ -3,6 +3,7 @@ import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
 import { SwedenBusinessRegistryView } from './components/SwedenBusinessRegistryView';
 import { LocalSMBClientFinderView } from './components/LocalSMBClientFinderView';
+import { ProspectFinderView } from './components/ProspectFinderView';
 import { LeadTable } from './components/LeadTable';
 import { KanbanBoard } from './components/KanbanBoard';
 import { LeadDetailDrawer } from './components/LeadDetailDrawer';
@@ -13,7 +14,7 @@ import { strictDeduplicate } from './services/deduplicationService';
 import { Lead, LeadStatus, AppViewMode } from './types';
 
 export const App: React.FC = () => {
-  const [currentView, setCurrentView] = useState<AppViewMode>('sweden_registry');
+  const [currentView, setCurrentView] = useState<AppViewMode>('prospect_finder');
   const [leads, setLeads] = useState<Lead[]>(() => leadService.getLeadsFromStorage());
   const [isSyncing, setIsSyncing] = useState(false);
   const [freshOnly, setFreshOnly] = useState(false);
@@ -224,6 +225,10 @@ export const App: React.FC = () => {
 
         {/* View Component Switcher */}
         <main style={{ flex: 1 }}>
+          {currentView === 'prospect_finder' && (
+            <ProspectFinderView />
+          )}
+
           {currentView === 'sweden_registry' && (
             <SwedenBusinessRegistryView 
               onSelectLead={(l) => setSelectedLead(l)}

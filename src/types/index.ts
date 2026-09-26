@@ -374,7 +374,10 @@ export interface EbookSearchParams {
   minPublishYear?: number;
 }
 
+export * from './prospect';
+
 export type AppViewMode = 
+  | 'prospect_finder'
   | 'sweden_registry'
   | 'dashboard' 
   | 'kanban' 
